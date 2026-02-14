@@ -17,6 +17,7 @@ import { geminiProviderOptions } from './llm-providers/gemini';
 import { ollamaProviderOptions } from './llm-providers/ollama';
 import { chatglmProviderOptions } from './llm-providers/chatglm';
 import aiResource from './resource/ai';
+import aiSearchResource from './resource/ai-search';
 import PluginWorkflowServer from '@nocobase/plugin-workflow';
 import { LLMInstruction } from './workflow/nodes/llm';
 
@@ -37,10 +38,12 @@ export class PluginAIServer extends Plugin {
     this.aiManager.registerLLMProvider('chatglm', chatglmProviderOptions);
 
     this.app.resourceManager.define(aiResource);
+    this.app.resourceManager.define(aiSearchResource);
     this.app.acl.registerSnippet({
       name: `pm.${this.name}.llm-services`,
-      actions: ['ai:*', 'llmServices:*'],
+      actions: ['ai:*', 'llmServices:*', 'aiSearch:*'],
     });
+    this.app.acl.allow('aiSearch', ['query', 'getSchema'], 'loggedIn');
     const workflowSnippet = this.app.acl.snippetManager.snippets.get('pm.workflow.workflows');
     if (workflowSnippet) {
       workflowSnippet.actions.push('ai:listModels');
