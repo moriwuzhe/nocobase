@@ -8,7 +8,9 @@
  */
 
 import { Plugin } from '@nocobase/server';
+import { tval } from '@nocobase/utils';
 import { DingtalkAuthProvider } from './DingtalkAuthProvider';
+import { DingtalkAuth } from './DingtalkAuth';
 import { DingtalkContactSync } from './DingtalkContactSync';
 import { DingtalkNotificationChannel } from './DingtalkNotificationChannel';
 import { NAMESPACE } from '../common/constants';
@@ -17,7 +19,7 @@ import { NAMESPACE } from '../common/constants';
  * DingTalk Integration Plugin
  *
  * Provides:
- * 1. OAuth2.0 SSO login via DingTalk
+ * 1. OAuth2.0 SSO login via DingTalk (registered as auth type)
  * 2. Organization contacts sync (departments + users)
  * 3. Work notification message push
  * 4. Approval task sync to DingTalk
@@ -27,14 +29,11 @@ export default class PluginIntegrationDingtalkServer extends Plugin {
   private contactSync: DingtalkContactSync;
 
   async load() {
-    // --- 1. Register DingTalk as an auth provider ---
-    const authPlugin = this.app.pm.get('auth') as any;
-    if (authPlugin) {
-      authPlugin.registerAuthType?.('dingtalk', {
-        title: 'DingTalk SSO',
-        provider: DingtalkAuthProvider,
-      });
-    }
+    // --- 1. Register DingTalk as an auth type via authManager ---
+    this.app.authManager.registerTypes('dingtalk-oauth', {
+      auth: DingtalkAuth,
+      title: tval('DingTalk', { ns: NAMESPACE }),
+    });
 
     // --- 2. Register DingTalk notification channel ---
     const notificationPlugin = this.app.pm.get('notification-manager') as any;

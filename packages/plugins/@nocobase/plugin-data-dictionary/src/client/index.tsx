@@ -15,6 +15,7 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined, SettingOutlined } from '@ant-design/icons';
 import { Plugin, useAPIClient } from '@nocobase/client';
 import { tval } from '@nocobase/utils/client';
+import { DictionarySelect } from './DictionarySelect';
 
 const { Title, Text } = Typography;
 
@@ -176,6 +177,10 @@ const DictionaryManager: React.FC = () => {
 
 export class PluginDataDictionaryClient extends Plugin {
   async load() {
+    // Register the DictionarySelect component globally so schema can reference it
+    this.app.addComponents({ DictionarySelect });
+
+    // Register admin settings page
     this.app.pluginSettingsManager.add('data-dictionary', {
       icon: 'BookOutlined',
       title: tval('Data Dictionary'),
@@ -185,3 +190,4 @@ export class PluginDataDictionaryClient extends Plugin {
 }
 
 export default PluginDataDictionaryClient;
+export { DictionarySelect };

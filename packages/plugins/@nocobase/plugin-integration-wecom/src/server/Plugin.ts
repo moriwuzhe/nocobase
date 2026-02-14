@@ -8,6 +8,8 @@
  */
 
 import { Plugin } from '@nocobase/server';
+import { tval } from '@nocobase/utils';
+import { WecomAuth } from './WecomAuth';
 import axios from 'axios';
 
 const WECOM_API = 'https://qyapi.weixin.qq.com/cgi-bin';
@@ -25,6 +27,12 @@ export default class PluginIntegrationWecomServer extends Plugin {
   private accessTokenCache: { token: string; expiresAt: number } | null = null;
 
   async load() {
+    // Register WeCom as an auth type
+    this.app.authManager.registerTypes('wecom-oauth', {
+      auth: WecomAuth,
+      title: tval('WeCom'),
+    });
+
     this.app.resourceManager.define({
       name: 'wecom',
       actions: {

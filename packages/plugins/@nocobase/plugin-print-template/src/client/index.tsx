@@ -15,6 +15,7 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, EyeOutlined } from '@ant-design/icons';
 import { Plugin, useAPIClient } from '@nocobase/client';
 import { tval } from '@nocobase/utils/client';
+import { PrintTemplateAction } from './PrintTemplateAction';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -144,12 +145,37 @@ const PrintTemplateManager: React.FC = () => {
 
 export class PluginPrintTemplateClient extends Plugin {
   async load() {
+    // Register components
+    this.app.addComponents({ PrintTemplateAction });
+
+    // Settings page
     this.app.pluginSettingsManager.add('print-templates', {
       icon: 'PrinterOutlined',
       title: tval('Print Templates'),
       Component: PrintTemplateManager,
     });
+
+    // Add "Print from Template" action to detail page action bars
+    this.app.schemaInitializerManager.addItem(
+      'details:configureActions',
+      'enableActions.printTemplate',
+      {
+        title: tval('Print from Template'),
+        Component: 'PrintTemplateActionInitializer',
+      },
+    );
+
+    // Add to table row actions
+    this.app.schemaInitializerManager.addItem(
+      'table:configureItemActions',
+      'enableActions.printTemplate',
+      {
+        title: tval('Print from Template'),
+        Component: 'PrintTemplateActionInitializer',
+      },
+    );
   }
 }
 
 export default PluginPrintTemplateClient;
+export { PrintTemplateAction } from './PrintTemplateAction';

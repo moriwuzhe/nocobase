@@ -8,6 +8,8 @@
  */
 
 import { Plugin } from '@nocobase/server';
+import { tval } from '@nocobase/utils';
+import { FeishuAuth } from './FeishuAuth';
 import axios from 'axios';
 
 const FEISHU_API = 'https://open.feishu.cn/open-apis';
@@ -25,6 +27,12 @@ export default class PluginIntegrationFeishuServer extends Plugin {
   private tenantTokenCache: { token: string; expiresAt: number } | null = null;
 
   async load() {
+    // Register Feishu as an auth type
+    this.app.authManager.registerTypes('feishu-oauth', {
+      auth: FeishuAuth,
+      title: tval('Feishu'),
+    });
+
     this.app.resourceManager.define({
       name: 'feishu',
       actions: {
