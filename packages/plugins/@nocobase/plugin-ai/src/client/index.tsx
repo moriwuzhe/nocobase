@@ -70,4 +70,5 @@ export class PluginAIClient extends Plugin {
 
 export default PluginAIClient;
 export { Chat, ModelSelect };
+export { AISearchBar } from './ai-search/AISearchBar';
 export type { LLMProviderOptions } from './manager/ai-manager';

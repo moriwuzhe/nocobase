@@ -97,6 +97,7 @@
     "@nocobase/plugin-global-search": "1.9.47",
     "@nocobase/plugin-message-center": "1.9.47",
     "@nocobase/plugin-webhook-hub": "1.9.47",
+    "@nocobase/plugin-crm-template": "1.9.47",
     "@nocobase/server": "1.9.47",
     "cronstrue": "^2.11.0",
     "fs-extra": "^11.1.1"
