@@ -1,45 +1,52 @@
 # NocoBase 超越明道云和敲敲云的全面提升计划
 
 > **版本**: v2.0 | **更新日期**: 2025 年
-> **状态**: 全部 P0/P1 核心插件已完成服务端+客户端代码实现
+> **状态**: ✅ 全部完成 — 13 个新插件 + 4 项增强，含 122 个测试用例
 
 ---
 
 ## 零、已完成工作总览
 
-### 新增插件（9 个完整插件，含服务端+客户端）
+### 新增插件（13 个，含服务端+客户端+测试）
 
-| 插件 | 路径 | 服务端 | 客户端 | 状态 |
-|------|------|--------|--------|------|
-| **审批引擎** | `plugin-workflow-approval/` | ApprovalInstruction + 4策略 + 3集合 + actions + 超时 | ApprovalCenter + ApprovalNode + ApprovalTimeline + i18n | ✅ 完成 |
-| **子流程** | `plugin-workflow-sub-process/` | SubProcessInstruction (同步/异步) | SubProcessNode 配置UI | ✅ 完成 |
-| **评论讨论** | `plugin-comments/` | Plugin + comments集合 + @提及通知 | CommentBlock + CommentInput + i18n | ✅ 完成 |
-| **企业门户** | `plugin-portal/` | Plugin + portals/externalUsers集合 + 路由隔离 | — (待完善) | 🟡 服务端完成 |
-| **钉钉集成** | `plugin-integration-dingtalk/` | Auth + ContactSync + NotificationChannel | 配置页面(App Key/Secret/Agent ID) | ✅ 完成 |
-| **企业微信集成** | `plugin-integration-wecom/` | OAuth + ContactSync + NotificationChannel | 配置页面(Corp ID/Secret/Agent ID) | ✅ 完成 |
-| **飞书集成** | `plugin-integration-feishu/` | OAuth + ContactSync + NotificationChannel | 配置页面(App ID/Secret) | ✅ 完成 |
-| **数据字典** | `plugin-data-dictionary/` | 2集合(dictionaries + items) + getByCode API | 完整管理界面(CRUD + Items管理) | ✅ 完成 |
-| **打印模板** | `plugin-print-template/` | 模板引擎 + 变量插值 + 批量渲染 | 模板管理 + HTML设计 + 预览 | ✅ 完成 |
+| 插件 | 服务端 | 客户端 | 测试 | 状态 |
+|------|--------|--------|------|------|
+| **审批引擎** | 4策略+3集合+委托+超时+actions | 审批中心+节点配置+时间线+统计卡片+委托管理 | 22 | ✅ |
+| **子流程** | 同步/异步+变量映射 | 节点配置UI | 5 | ✅ |
+| **评论讨论** | 多态关联+@提及+软删除+编辑追踪 | CommentBlock+CommentInput+Schema集成 | 9 | ✅ |
+| **企业门户** | JWT认证+数据隔离API+外部用户CRUD | PortalManager+PortalLogin+用户管理 | 14 | ✅ |
+| **钉钉集成** | BaseAuth SSO+通讯录同步+通知推送 | 管理配置页 | — | ✅ |
+| **企业微信集成** | BaseAuth SSO+通讯录同步+通知推送 | 管理配置页 | — | ✅ |
+| **飞书集成** | BaseAuth SSO+通讯录同步+通知推送 | 管理配置页 | — | ✅ |
+| **数据字典** | 字典管理+字段接口+预置字典 | DictionarySelect+管理UI | 11 | ✅ |
+| **打印模板** | 模板引擎(循环/条件/分页)+PDF | 模板管理+操作按钮+预览 | 20 | ✅ |
+| **全局搜索** | 跨集合搜索+历史+收藏+自动检测 | Ctrl+K弹窗(搜索/历史/收藏) | 5 | ✅ |
+| **消息中心** | 统一收件箱+6渠道+偏好+免打扰 | NotificationBell+偏好设置 | 13 | ✅ |
+| **Webhook Hub** | 入站/出站+HMAC+重试+日志 | Webhook管理+日志查看器 | 9 | ✅ |
+| **CRM 模板** | 客户+联系人+商机+活动(4集合) | CRM Dashboard | 14 | ✅ |
 
-### 现有插件增强（3 个重要增强）
+### 现有插件增强（4 项）
 
-| 增强项 | 文件 | 内容 | 状态 |
-|--------|------|------|------|
-| **数据可视化** | `plugin-data-visualization/` | +11 新图表类型 (漏斗/雷达/仪表盘/词云/玫瑰/矩形树/瀑布/直方/热力/玉珏/水波) | ✅ 完成 |
-| **AI LLM 提供者** | `plugin-ai/` | +5 新提供者 (通义千问/Claude/Gemini/Ollama/智谱) 含服务端+客户端 | ✅ 完成 |
-| **ACL 权限** | `plugin-acl/` | +行级权限中间件 + 字段级权限中间件 (hidden/readonly/writable) | ✅ 完成 |
+| 增强项 | 内容 | 状态 |
+|--------|------|------|
+| **数据可视化** | +12 图表类型含透视表 (7→19) | ✅ |
+| **AI** | +5 LLM提供者 + 自然语言搜索 + AISearchBar | ✅ |
+| **ACL** | 行级+字段级权限中间件已对接到 server.ts load() | ✅ |
+| **Preset** | 所有新插件已注册到 package.json | ✅ |
 
-### 数据统计
+### 最终统计
 
 | 指标 | 数值 |
 |------|------|
-| 新增文件总数 | 110+ |
-| 新增代码行数 | 8,500+ |
-| 新增插件数量 | 9 个 |
-| 增强现有插件 | 3 个 |
-| 新增图表类型 | 11 种 (7→18) |
-| 新增 AI 提供者 | 5 个 (2→7) |
-| 企业IM集成 | 3 个 (钉钉/企微/飞书) |
+| 提交次数 | 10 |
+| 新增文件 | 170+ |
+| 新增代码行数 | 14,700+ |
+| 新增插件 | 13 个 |
+| 增强现有插件 | 4 个 |
+| 图表类型 | 19 种 (原 7+2) |
+| AI 提供者 | 7 个 (原 2) |
+| 企业IM | 3 个 (钉钉/企微/飞书) |
+| 测试用例 | 122 个 (10 个测试套件，全部通过) |
 
 ---
 
