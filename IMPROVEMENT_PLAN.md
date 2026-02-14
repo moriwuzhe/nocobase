@@ -1,5 +1,24 @@
 # NocoBase 超越明道云和敲敲云的全面提升计划
 
+> **版本**: v2.0 | **更新日期**: 2025 年
+> **状态**: P0 插件已完成代码脚手架，可直接进入开发
+
+---
+
+## 零、已完成工作（代码脚手架）
+
+以下 P0 插件已创建完整的服务端代码脚手架，包含数据模型、业务逻辑、API 定义：
+
+| 插件 | 路径 | 核心文件 | 状态 |
+|------|------|---------|------|
+| **审批引擎** | `packages/plugins/@nocobase/plugin-workflow-approval/` | ApprovalInstruction.ts, strategies/, 3个集合, actions/ | ✅ 服务端骨架完成 |
+| **子流程** | `packages/plugins/@nocobase/plugin-workflow-sub-process/` | SubProcessInstruction.ts, Plugin.ts | ✅ 服务端骨架完成 |
+| **评论讨论** | `packages/plugins/@nocobase/plugin-comments/` | Plugin.ts, collections/comments.ts | ✅ 服务端骨架完成 |
+| **企业门户** | `packages/plugins/@nocobase/plugin-portal/` | Plugin.ts, portals/externalUsers 集合 | ✅ 服务端骨架完成 |
+| **钉钉集成** | `packages/plugins/@nocobase/plugin-integration-dingtalk/` | Auth/Sync/Notification 三大模块 | ✅ 服务端骨架完成 |
+
+---
+
 ## 一、当前项目状况分析
 
 ### 1.1 项目概览
@@ -664,3 +683,173 @@ Phase 6 (P2): 企业基础设施            [Month 5-10]  ← 企业级保障
 6. **企业基础设施**（高可用、安全、运维）—— 支撑企业级部署
 
 NocoBase 最大的机会在于：**利用开源优势和AI原生能力，在保持架构先进性的同时，快速补齐功能短板，并在AI融合这一维度上远远甩开竞品。**
+
+---
+
+## 附录 A：P0 插件技术实现细节
+
+### A.1 审批引擎 (`plugin-workflow-approval`) — 技术要点
+
+**核心架构**: 基于现有 `plugin-workflow-manual` 的 `Instruction` 基类扩展，复用工作流引擎的 `Processor`、`JOB_STATUS` 等核心概念。
+
+**数据模型** (3 张表):
+
+| 表名 | 用途 | 关键字段 |
+|------|------|---------|
+| `approvalRecords` | 审批实例（一条审批请求） | initiatorId, workflowId, status, dataSnapshot, summary |
+| `approvalTasks` | 审批任务（每个审批人一条） | userId, status, comment, attachments, order, deadline, urgeCount |
+| `approvalDelegations` | 委托规则 | delegatorId, delegateeId, startDate, endDate, scope |
+
+**四种审批策略** (已实现于 `strategies/index.ts`):
+
+```
+Sequential  → 依次审批：按order排列，逐个处理
+Countersign → 会签(AND)：全部通过才通过，一票否决
+OrSign      → 或签(OR)：一人通过即通过，全部拒绝才拒绝
+VotePercent → 票签(%)：达到阈值百分比即通过
+```
+
+**关键扩展点** (相比现有 `workflow-manual`):
+- `APPROVAL_ACTION` 枚举: approve/reject/return/transfer/addSign/delegate/urge — 远超明道云
+- 自动超时处理: 定时器检查 `deadline`, 支持 autoApprove/autoReject/escalate/remind
+- 委托规则: `applyDelegationRules()` 在任务创建时自动替换被委托人
+- 退回机制: 支持退回上一节点/退回发起人/退回指定节点
+- 加签: `addSign` 动态添加审批人而不替换当前审批人
+- 催办: urge 操作 + 通知推送
+
+**需要修改的现有文件**:
+1. `packages/presets/nocobase/package.json` — 添加 `@nocobase/plugin-workflow-approval` 依赖
+2. `packages/plugins/@nocobase/plugin-workflow/src/client/nodes/index.tsx` — 注册审批节点 UI
+3. 客户端需新建 `ApprovalCenter.tsx` 页面（待审批/已审批/我发起的）
+
+### A.2 子流程 (`plugin-workflow-sub-process`) — 技术要点
+
+**核心逻辑**: `SubProcessInstruction` 继承 `Instruction`，通过 `workflow.trigger()` 调用目标工作流。
+
+**两种模式**:
+- **同步** (`sync`): 父流程阻塞等待子流程完成，子流程结果通过 `outputMapping` 回传
+- **异步** (`async`): 父流程立即继续，子流程后台执行
+
+**变量映射**:
+```
+inputMapping:  { childKey: parentExpression }  → 父→子 参数传递
+outputMapping: { parentKey: childResultPath }  → 子→父 结果回传
+```
+
+**需要修改的现有文件**:
+1. `packages/plugins/@nocobase/plugin-workflow/src/server/Processor.ts` — 支持 parentJobId 关联
+2. 客户端注册子流程节点: 选择目标工作流、配置变量映射 UI
+
+### A.3 评论讨论 (`plugin-comments`) — 技术要点
+
+**多态关联设计**: 使用 `collectionName` + `recordId` 字段实现多态关联，任何集合的任何记录都可以拥有评论。
+
+**树形评论**: `parentId` 自关联实现无限层级的回复嵌套。
+
+**@提及**: `mentions` 字段存储用户 ID 数组，`afterCreate` 钩子触发通知。
+
+**需要修改的现有文件**:
+1. `packages/core/client/src/schema-component/antd/` — 新增 `comment-block/` 区块组件
+2. 在 `schema-initializer` 中注册评论区块
+3. 客户端: CommentBlock → CommentTimeline → CommentInput 组件层级
+
+### A.4 企业门户 (`plugin-portal`) — 技术要点
+
+**路由隔离**: Koa 中间件拦截 `/portal/:slug/*` 路径，注入门户上下文 (`ctx.state.portal`)。
+
+**双用户系统**: `externalUsers` 表独立于 `users` 表，门户用户与系统用户完全隔离。
+
+**权限模型**: 每个门户有独立的 `permissions` JSON 配置，控制外部用户可访问的集合和操作。
+
+**需要修改的现有文件**:
+1. `packages/core/server/src/` — 可能需要在核心路由层支持门户上下文
+2. `packages/plugins/@nocobase/plugin-auth/` — 扩展支持外部用户认证
+3. 客户端: 门户设计器复用 NocoBase 的 Schema 区块系统
+
+### A.5 钉钉集成 (`plugin-integration-dingtalk`) — 技术要点
+
+**三大模块**:
+
+| 模块 | 类 | 对接 API |
+|------|-----|---------|
+| 认证 | `DingtalkAuthProvider` | OAuth2.0 `/oauth2/auth` + `/oauth2/userAccessToken` |
+| 同步 | `DingtalkContactSync` | `/topapi/v2/department/listsub` + `/topapi/v2/user/list` |
+| 通知 | `DingtalkNotificationChannel` | `/topapi/message/corpconversation/asyncsend_v2` |
+
+**复用现有框架**:
+- 认证: 对接 `plugin-auth` 的 AuthType 注册接口
+- 同步: 对接 `plugin-user-data-sync` 的数据同步框架
+- 通知: 继承 `BaseNotificationChannel`，对接 `plugin-notification-manager`
+
+**企业微信/飞书**: 参照同样的三模块模式，替换 API 端点即可快速复制。
+
+---
+
+## 附录 B：现有代码需增强的关键文件
+
+### B.1 数据可视化增强 (`plugin-data-visualization`)
+
+**当前不足**: 仅有 7 种图表 (Line, Area, Column, Bar, Pie, DualAxes, Scatter) + Statistic + Table = 9 种。
+
+**增强文件**: `packages/plugins/@nocobase/plugin-data-visualization/src/client/chart/g2plot/index.ts`
+
+需要添加的图表类型:
+```
+Funnel(漏斗图), Radar(雷达图), Waterfall(瀑布图), Heatmap(热力图),
+Treemap(矩形树图), Sankey(桑基图), WordCloud(词云), Gauge(仪表盘),
+Rose(玫瑰图), Histogram(直方图), Box(箱线图), Violin(小提琴图),
+Liquid(水波图), Bullet(子弹图), RadialBar(玉珏图)
+```
+
+### B.2 ACL 权限增强 (`plugin-acl`)
+
+**当前不足**: 资源级权限（整个集合的 CRUD），缺少行级和字段级权限。
+
+**需要增强的文件**:
+- `packages/plugins/@nocobase/plugin-acl/src/server/server.ts` — 添加 rowFilter 和 fieldPermission 中间件
+- `packages/core/acl/src/acl-resource.ts` — 扩展 `AclResource` 支持 `rowCondition` 和 `fieldAccess`
+- 集合 `rolesResourcesActions` 需要新增 `rowFilter` (JSON) 和 `hiddenFields` / `readonlyFields` (Array) 字段
+
+### B.3 AI 提供者扩展 (`plugin-ai`)
+
+**当前不足**: 仅支持 OpenAI 和 DeepSeek。
+
+**需要增强的文件**:
+- `packages/plugins/@nocobase/plugin-ai/src/server/plugin.ts` — 在 `load()` 中注册新的提供者
+- `packages/plugins/@nocobase/plugin-ai/src/server/llm-providers/` — 新增提供者文件
+
+新增提供者模板 (基于 `LLMProvider` 基类 + LangChain):
+```
+qwen.ts     → ChatAlibabaTongyi (通义千问)
+ernie.ts    → ChatBaiduWenxin  (文心一言)
+chatglm.ts  → ChatZhipuAI      (智谱清言)
+claude.ts   → ChatAnthropic     (Claude)
+gemini.ts   → ChatGoogleGenerativeAI (Gemini)
+ollama.ts   → ChatOllama        (本地模型)
+```
+
+### B.4 移动端增强 (`plugin-mobile`)
+
+**当前不足**: 基础适配层，缺少原生移动端组件和功能。
+
+**需要增强的文件**:
+- `packages/plugins/@nocobase/plugin-mobile/src/client/mobile/` — 增加移动专属组件
+- 新增: 扫码组件、GPS定位/签到、拍照上传、下拉刷新、滑动操作
+- 新增: 移动端审批页面、移动端仪表盘
+
+---
+
+## 附录 C：开发优先级的快速参考表
+
+| 排名 | 任务 | 工作量 | 价值 | 开发入口点 |
+|------|------|--------|------|-----------|
+| 1 | 审批引擎完善 (客户端UI) | 中 | 极高 | `plugin-workflow-approval/src/client/` |
+| 2 | 钉钉/企微集成完善 | 中 | 极高 | `plugin-integration-dingtalk/src/client/` |
+| 3 | 评论系统客户端 | 低 | 高 | `plugin-comments/src/client/` |
+| 4 | 图表类型扩展 | 低 | 高 | `plugin-data-visualization/src/client/chart/g2plot/` |
+| 5 | AI提供者扩展 | 低 | 高 | `plugin-ai/src/server/llm-providers/` |
+| 6 | 行级/字段级权限 | 高 | 极高 | `plugin-acl/src/server/server.ts` |
+| 7 | 门户系统客户端 | 高 | 极高 | `plugin-portal/src/client/` |
+| 8 | 子流程客户端 | 低 | 中 | `plugin-workflow-sub-process/src/client/` |
+| 9 | 移动端增强 | 高 | 高 | `plugin-mobile/src/client/mobile/` |
+| 10 | 高级报表/透视表 | 高 | 高 | 新建 `plugin-report-center/` |

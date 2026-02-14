@@ -1,0 +1,27 @@
+{
+  "name": "@nocobase/plugin-integration-dingtalk",
+  "displayName": "Integration: DingTalk",
+  "displayName.zh-CN": "集成：钉钉",
+  "description": "DingTalk integration: SSO, contacts sync, message push, approval sync.",
+  "description.zh-CN": "钉钉集成：单点登录、通讯录同步、消息推送、审批同步。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "devDependencies": {
+    "@ant-design/icons": "5.x",
+    "antd": "5.x",
+    "react": "18.x",
+    "axios": "^1.6.0"
+  },
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/plugin-auth": "1.x",
+    "@nocobase/plugin-notification-manager": "1.x",
+    "@nocobase/plugin-users": "1.x",
+    "@nocobase/plugin-user-data-sync": "1.x",
+    "@nocobase/server": "1.x",
+    "@nocobase/utils": "1.x"
+  },
+  "keywords": ["Integration", "DingTalk"]
+}

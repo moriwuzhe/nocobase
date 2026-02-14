@@ -1,0 +1,25 @@
+{
+  "name": "@nocobase/plugin-comments",
+  "displayName": "Comments & Discussions",
+  "displayName.zh-CN": "评论与讨论",
+  "description": "Record-level comments, discussions with @mentions and rich-text support.",
+  "description.zh-CN": "记录级评论讨论，支持@提及、富文本和附件。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "devDependencies": {
+    "@ant-design/icons": "5.x",
+    "antd": "5.x",
+    "react": "18.x",
+    "react-i18next": "^11.15.1"
+  },
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/plugin-notification-manager": "1.x",
+    "@nocobase/plugin-users": "1.x",
+    "@nocobase/server": "1.x",
+    "@nocobase/utils": "1.x"
+  },
+  "keywords": ["Comments", "Discussion", "Collaboration"]
+}
