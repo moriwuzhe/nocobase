@@ -10,6 +10,17 @@
 import { Pie } from './pie';
 import { DualAxes } from './dualAxes';
 import { G2PlotChart } from './g2plot';
+import { Funnel } from './funnel';
+import { Radar } from './radar';
+import { Gauge } from './gauge';
+import { WordCloud } from './wordCloud';
+import { Rose } from './rose';
+import { Treemap } from './treemap';
+import { Waterfall } from './waterfall';
+import { Histogram } from './histogram';
+import { Heatmap } from './heatmap';
+import { RadialBar } from './radialBar';
+import { Liquid } from './liquid';
 
 import { lazy } from '@nocobase/client';
 // import { Area, Column, Line, Scatter, Bar } from '@ant-design/plots';
@@ -23,6 +34,7 @@ const { Area, Column, Line, Scatter, Bar } = lazy(
 );
 
 export default [
+  // --- Basic charts ---
   new G2PlotChart({
     name: 'line',
     title: 'Line',
@@ -59,4 +71,16 @@ export default [
   new Pie(),
   new DualAxes(),
   new G2PlotChart({ name: 'scatter', title: 'Scatter', Component: Scatter }),
+  // --- New chart types ---
+  new Funnel(),
+  new Radar(),
+  new Gauge(),
+  new WordCloud(),
+  new Rose(),
+  new Treemap(),
+  new Waterfall(),
+  new Histogram(),
+  new Heatmap(),
+  new RadialBar(),
+  new Liquid(),
 ];

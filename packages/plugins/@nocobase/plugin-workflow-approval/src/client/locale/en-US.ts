@@ -1,0 +1,60 @@
+/**
+ * This file is part of the NocoBase (R) project.
+ * Copyright (c) 2020-2024 NocoBase Co., Ltd.
+ * Authors: NocoBase Team.
+ *
+ * This project is dual-licensed under AGPL-3.0 and NocoBase Commercial License.
+ * For more information, please refer to: https://www.nocobase.com/agreement.
+ */
+
+export default {
+  'Approval': 'Approval',
+  'Approval Center': 'Approval Center',
+  'Pending Approval': 'Pending Approval',
+  'Approved': 'Approved',
+  'Rejected': 'Rejected',
+  'Returned': 'Returned',
+  'Delegated': 'Delegated',
+  'Reassigned': 'Reassigned',
+  'Withdrawn': 'Withdrawn',
+  'Auto Approved': 'Auto Approved',
+  'Skipped': 'Skipped',
+  'My Approvals': 'My Approvals',
+  'Initiated by Me': 'Initiated by Me',
+  'Approve': 'Approve',
+  'Reject': 'Reject',
+  'Return': 'Return',
+  'Transfer': 'Transfer',
+  'Add Approver': 'Add Approver',
+  'Delegate': 'Delegate',
+  'Urge': 'Urge',
+  'Withdraw': 'Withdraw',
+  'Approval Comment': 'Approval Comment',
+  'Approval Timeline': 'Approval Timeline',
+  'Approval Mode': 'Approval Mode',
+  'Sequential': 'Sequential (one by one)',
+  'Countersign': 'Countersign (all must approve)',
+  'Or Sign': 'Or Sign (any one approves)',
+  'Vote Percentage': 'Vote Percentage',
+  'Vote Threshold': 'Vote Threshold (%)',
+  'Assignees': 'Assignees',
+  'Allow Withdraw': 'Allow initiator to withdraw',
+  'Skip Self Approval': 'Skip when approver is initiator',
+  'Enable Timeout': 'Enable timeout',
+  'Timeout Duration (minutes)': 'Timeout Duration (minutes)',
+  'Timeout Action': 'Timeout Action',
+  'Auto Approve': 'Auto Approve',
+  'Auto Reject': 'Auto Reject',
+  'Escalate': 'Escalate',
+  'Send Reminder': 'Send Reminder',
+  'Approval Delegation': 'Approval Delegation',
+  'Delegation Rules': 'Delegation Rules',
+  'Delegator': 'Delegator',
+  'Delegatee': 'Delegatee',
+  'Start Date': 'Start Date',
+  'End Date': 'End Date',
+  'Approver': 'Approver',
+  'Task title': 'Task Title',
+  'No pending approvals': 'No pending approvals',
+  'Processing...': 'Processing...',
+};

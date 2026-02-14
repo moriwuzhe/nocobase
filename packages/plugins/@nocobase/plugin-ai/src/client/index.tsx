@@ -11,6 +11,11 @@ import { Plugin, lazy } from '@nocobase/client';
 import { AIManager } from './manager/ai-manager';
 import { openaiProviderOptions } from './llm-providers/openai';
 import { deepseekProviderOptions } from './llm-providers/deepseek';
+import { qwenProviderOptions } from './llm-providers/qwen';
+import { claudeProviderOptions } from './llm-providers/claude';
+import { geminiProviderOptions } from './llm-providers/gemini';
+import { ollamaProviderOptions } from './llm-providers/ollama';
+import { chatglmProviderOptions } from './llm-providers/chatglm';
 import PluginWorkflowClient from '@nocobase/plugin-workflow/client';
 import { LLMInstruction } from './workflow/nodes/llm';
 import { tval } from '@nocobase/utils/client';
@@ -43,8 +48,15 @@ export class PluginAIClient extends Plugin {
       Component: LLMServices,
     });
 
+    // Register all LLM providers
     this.aiManager.registerLLMProvider('openai', openaiProviderOptions);
     this.aiManager.registerLLMProvider('deepseek', deepseekProviderOptions);
+    this.aiManager.registerLLMProvider('qwen', qwenProviderOptions);
+    this.aiManager.registerLLMProvider('claude', claudeProviderOptions);
+    this.aiManager.registerLLMProvider('gemini', geminiProviderOptions);
+    this.aiManager.registerLLMProvider('ollama', ollamaProviderOptions);
+    this.aiManager.registerLLMProvider('chatglm', chatglmProviderOptions);
+
     this.aiManager.chatSettings.set('messages', {
       title: tval('Messages'),
       Component: MessagesSettings,

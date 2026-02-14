@@ -85,6 +85,13 @@
     "@nocobase/plugin-workflow-request": "1.9.47",
     "@nocobase/plugin-workflow-response-message": "1.9.47",
     "@nocobase/plugin-workflow-sql": "1.9.47",
+    "@nocobase/plugin-workflow-approval": "1.9.47",
+    "@nocobase/plugin-workflow-sub-process": "1.9.47",
+    "@nocobase/plugin-comments": "1.9.47",
+    "@nocobase/plugin-portal": "1.9.47",
+    "@nocobase/plugin-integration-dingtalk": "1.9.47",
+    "@nocobase/plugin-integration-wecom": "1.9.47",
+    "@nocobase/plugin-integration-feishu": "1.9.47",
     "@nocobase/server": "1.9.47",
     "cronstrue": "^2.11.0",
     "fs-extra": "^11.1.1"
@@ -147,7 +154,10 @@
     "@nocobase/plugin-workflow-notification",
     "@nocobase/plugin-theme-editor",
     "@nocobase/plugin-block-template",
-    "@nocobase/plugin-license"
+    "@nocobase/plugin-license",
+    "@nocobase/plugin-workflow-approval",
+    "@nocobase/plugin-workflow-sub-process",
+    "@nocobase/plugin-comments"
   ],
   "repository": {
     "type": "git",

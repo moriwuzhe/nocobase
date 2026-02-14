@@ -1,0 +1,20 @@
+{
+  "name": "@nocobase/plugin-integration-wecom",
+  "displayName": "Integration: WeCom",
+  "displayName.zh-CN": "集成：企业微信",
+  "description": "WeCom (WeChat Work) integration: SSO, contacts sync, message push.",
+  "description.zh-CN": "企业微信集成：单点登录、通讯录同步、消息推送。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/plugin-auth": "1.x",
+    "@nocobase/plugin-notification-manager": "1.x",
+    "@nocobase/plugin-users": "1.x",
+    "@nocobase/server": "1.x",
+    "@nocobase/utils": "1.x"
+  },
+  "keywords": ["Integration", "WeCom", "WeChat Work"]
+}
