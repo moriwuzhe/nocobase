@@ -29,9 +29,54 @@ export default class PluginCommentsServer extends Plugin {
       actions: ['comments:*'],
     });
 
+    // --- Database hooks ---
+
     // After a comment is created, send mention notifications
     this.db.on('comments.afterCreate', async (comment, { transaction }) => {
+      // Auto-set userId from current user
+      if (!comment.userId && comment._ctx?.state?.currentUser) {
+        await comment.update({ userId: comment._ctx.state.currentUser.id }, { transaction });
+      }
       await this.sendMentionNotifications(comment, transaction);
+    });
+
+    // Track edits
+    this.db.on('comments.beforeUpdate', async (comment) => {
+      if (comment.changed('content')) {
+        comment.set('edited', true);
+        comment.set('editedAt', new Date());
+      }
+    });
+
+    // Only allow users to edit/delete their own comments (unless admin)
+    this.app.resourceManager.use(async (ctx, next) => {
+      const { resourceName, actionName } = ctx.action;
+      if (resourceName !== 'comments') return next();
+      if (!['update', 'destroy'].includes(actionName)) return next();
+
+      const { filterByTk } = ctx.action.params;
+      if (!filterByTk) return next();
+
+      const comment = await ctx.db.getRepository('comments').findOne({ filterByTk });
+      if (!comment) return ctx.throw(404, 'Comment not found');
+
+      const currentUserId = ctx.state.currentUser?.id;
+      const isAdmin = ctx.state.currentRole === 'root' || ctx.state.currentRole === 'admin';
+      if (comment.userId !== currentUserId && !isAdmin) {
+        return ctx.throw(403, 'You can only modify your own comments');
+      }
+
+      // Soft delete: mark as deleted instead of removing
+      if (actionName === 'destroy') {
+        await ctx.db.getRepository('comments').update({
+          filterByTk,
+          values: { status: 'deleted', content: '[This comment has been deleted]', contentText: '' },
+        });
+        ctx.body = { success: true };
+        return;
+      }
+
+      return next();
     });
   }
 
