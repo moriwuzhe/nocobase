@@ -1,0 +1,15 @@
+export default {
+  'Global Search': '全局搜索',
+  'Search across all data...': '搜索所有数据...',
+  'Results': '搜索结果',
+  'Recent': '最近搜索',
+  'Favorites': '收藏',
+  'No results found': '没有找到结果',
+  'Type to search': '输入关键词搜索',
+  'No recent searches': '暂无搜索记录',
+  'No favorites yet': '暂无收藏',
+  'Clear all': '清除全部',
+  'History cleared': '搜索记录已清除',
+  'Search Config': '搜索配置',
+  'Try asking:': '试试搜索：',
+};

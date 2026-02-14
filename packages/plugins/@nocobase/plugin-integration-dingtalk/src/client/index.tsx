@@ -111,6 +111,20 @@ export class PluginIntegrationDingtalkClient extends Plugin {
       title: tval('DingTalk'),
       Component: DingtalkConfigPage,
     });
+
+    // Register DingTalk SSO as an auth type on the login page
+    try {
+      const AuthPlugin = this.app.pm.get('auth') as any;
+      if (AuthPlugin?.registerType) {
+        const { DingtalkSignInForm, DingtalkAdminSettingsForm } = await import('./SignInButton');
+        AuthPlugin.registerType('dingtalk-oauth', {
+          components: {
+            SignInForm: DingtalkSignInForm,
+            AdminSettingsForm: DingtalkAdminSettingsForm,
+          },
+        });
+      }
+    } catch { /* auth plugin not available */ }
   }
 }
 

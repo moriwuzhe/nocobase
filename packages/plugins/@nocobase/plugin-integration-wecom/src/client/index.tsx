@@ -106,6 +106,16 @@ export class PluginIntegrationWecomClient extends Plugin {
       title: tval('WeCom'),
       Component: WecomConfigPage,
     });
+
+    try {
+      const AuthPlugin = this.app.pm.get('auth') as any;
+      if (AuthPlugin?.registerType) {
+        const { WecomSignInForm, WecomAdminSettingsForm } = await import('./SignInButton');
+        AuthPlugin.registerType('wecom-oauth', {
+          components: { SignInForm: WecomSignInForm, AdminSettingsForm: WecomAdminSettingsForm },
+        });
+      }
+    } catch { /* ignore */ }
   }
 }
 

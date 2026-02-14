@@ -103,6 +103,16 @@ export class PluginIntegrationFeishuClient extends Plugin {
       title: tval('Feishu'),
       Component: FeishuConfigPage,
     });
+
+    try {
+      const AuthPlugin = this.app.pm.get('auth') as any;
+      if (AuthPlugin?.registerType) {
+        const { FeishuSignInForm, FeishuAdminSettingsForm } = await import('./SignInButton');
+        AuthPlugin.registerType('feishu-oauth', {
+          components: { SignInForm: FeishuSignInForm, AdminSettingsForm: FeishuAdminSettingsForm },
+        });
+      }
+    } catch { /* ignore */ }
   }
 }
 
