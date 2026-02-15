@@ -1,0 +1,17 @@
+export default {
+  'Messages': 'Messages',
+  'Notifications': 'Notifications',
+  'Mark all read': 'Mark all read',
+  'All marked as read': 'All marked as read',
+  'No messages': 'No messages',
+  'All': 'All',
+  'System': 'System',
+  'Approval': 'Approval',
+  'Comments': 'Comments',
+  'Workflow': 'Workflow',
+  'Notification Preferences': 'Notification Preferences',
+  'Preferences saved': 'Preferences saved',
+  'Channels': 'Channels',
+  'In-App': 'In-App',
+  'Do Not Disturb': 'Do Not Disturb',
+};
