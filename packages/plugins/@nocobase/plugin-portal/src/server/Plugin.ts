@@ -48,11 +48,13 @@ export default class PluginPortalServer extends Plugin {
         updateProfile: this.handleUpdateProfile.bind(this),
         changePassword: this.handleChangePassword.bind(this),
         getPortalInfo: this.handleGetPortalInfo.bind(this),
+        requestPasswordReset: this.handleRequestPasswordReset.bind(this),
+        resetPassword: this.handleResetPassword.bind(this),
       },
     });
 
     // Public endpoints (no auth required)
-    this.app.acl.allow('portalAuth', ['login', 'register', 'getPortalInfo'], 'public');
+    this.app.acl.allow('portalAuth', ['login', 'register', 'getPortalInfo', 'requestPasswordReset', 'resetPassword'], 'public');
     // Endpoints that require portal token
     this.app.acl.allow('portalAuth', ['getProfile', 'updateProfile', 'changePassword'], 'public');
 
@@ -374,6 +376,126 @@ export default class PluginPortalServer extends Plugin {
         allowWechatLogin: portal.authConfig?.allowWechatLogin ?? false,
       },
     };
+    await next();
+  }
+
+  /**
+   * POST /api/portalAuth:requestPasswordReset
+   * Body: { portalName, email }
+   * Generates a time-limited reset token and (in production) sends it via email.
+   */
+  private async handleRequestPasswordReset(ctx: any, next: any) {
+    const { portalName, email } = ctx.action.params.values || {};
+    if (!portalName || !email) return ctx.throw(400, 'portalName and email are required');
+
+    const portal = await ctx.db.getRepository('portals').findOne({
+      filter: { name: portalName, enabled: true },
+    });
+    if (!portal) return ctx.throw(404, 'Portal not found');
+
+    const user = await ctx.db.getRepository('externalUsers').findOne({
+      filter: { portalId: portal.id, email },
+    });
+
+    // Always return success to prevent email enumeration
+    if (!user) {
+      ctx.body = { success: true, message: 'If the email exists, a reset link has been sent.' };
+      return next();
+    }
+
+    // Generate reset token (valid for 1 hour)
+    const crypto = require('crypto');
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await ctx.db.getRepository('externalUsers').update({
+      filterByTk: user.id,
+      values: {
+        profile: {
+          ...(user.profile || {}),
+          resetToken: token,
+          resetTokenExpiry: expiry.toISOString(),
+        },
+      },
+    });
+
+    // In production: send email with reset link
+    // For now, log the token
+    this.app.logger.info(`[portal] Password reset token for ${email}: ${token}`);
+
+    // Try to send email notification
+    try {
+      const notificationPlugin = this.app.pm.get('notification-manager') as any;
+      if (notificationPlugin) {
+        // Find the internal user linked to this email (if any) or send directly
+        await notificationPlugin.send?.({
+          channelName: 'email',
+          message: {
+            to: email,
+            subject: `Password Reset — ${portal.title}`,
+            html: `<p>You requested a password reset for ${portal.title}.</p>
+                   <p>Your reset token is: <strong>${token}</strong></p>
+                   <p>This token expires in 1 hour.</p>
+                   <p>If you did not request this, please ignore this email.</p>`,
+          },
+        });
+      }
+    } catch {
+      // Email sending is best-effort
+    }
+
+    ctx.body = { success: true, message: 'If the email exists, a reset link has been sent.' };
+    await next();
+  }
+
+  /**
+   * POST /api/portalAuth:resetPassword
+   * Body: { portalName, email, token, newPassword }
+   */
+  private async handleResetPassword(ctx: any, next: any) {
+    const { portalName, email, token, newPassword } = ctx.action.params.values || {};
+    if (!portalName || !email || !token || !newPassword) {
+      return ctx.throw(400, 'portalName, email, token, and newPassword are required');
+    }
+    if (newPassword.length < 6) {
+      return ctx.throw(400, 'Password must be at least 6 characters');
+    }
+
+    const portal = await ctx.db.getRepository('portals').findOne({
+      filter: { name: portalName, enabled: true },
+    });
+    if (!portal) return ctx.throw(404, 'Portal not found');
+
+    const user = await ctx.db.getRepository('externalUsers').findOne({
+      filter: { portalId: portal.id, email },
+    });
+    if (!user) return ctx.throw(400, 'Invalid reset request');
+
+    // Verify token
+    const resetToken = user.profile?.resetToken;
+    const resetExpiry = user.profile?.resetTokenExpiry;
+
+    if (!resetToken || resetToken !== token) {
+      return ctx.throw(400, 'Invalid or expired reset token');
+    }
+    if (new Date(resetExpiry) < new Date()) {
+      return ctx.throw(400, 'Reset token has expired');
+    }
+
+    // Update password and clear token
+    await ctx.db.getRepository('externalUsers').update({
+      filterByTk: user.id,
+      values: {
+        password: this.hashPassword(newPassword),
+        profile: {
+          ...(user.profile || {}),
+          resetToken: null,
+          resetTokenExpiry: null,
+        },
+      },
+    });
+
+    ctx.body = { success: true, message: 'Password has been reset successfully' };
     await next();
   }
 

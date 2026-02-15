@@ -1,0 +1,16 @@
+{
+  "name": "@nocobase/plugin-field-rating",
+  "displayName": "Field: Rating",
+  "displayName.zh-CN": "字段：评分",
+  "description": "Star rating field with configurable max stars, half-star, and color.",
+  "description.zh-CN": "星级评分字段，支持自定义最大星数、半星和颜色。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/server": "1.x"
+  },
+  "keywords": ["Field", "Rating", "Stars"]
+}

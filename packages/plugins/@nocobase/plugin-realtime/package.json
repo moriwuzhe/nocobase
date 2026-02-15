@@ -1,0 +1,16 @@
+{
+  "name": "@nocobase/plugin-realtime",
+  "displayName": "Realtime Updates",
+  "displayName.zh-CN": "实时推送",
+  "description": "WebSocket-based real-time data push for live dashboards, notifications, and collaboration.",
+  "description.zh-CN": "基于 WebSocket 的实时数据推送，支持实时仪表盘、通知和协作。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/server": "1.x"
+  },
+  "keywords": ["Realtime", "WebSocket", "Push"]
+}
