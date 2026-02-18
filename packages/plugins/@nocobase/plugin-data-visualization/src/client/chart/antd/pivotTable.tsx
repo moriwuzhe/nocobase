@@ -7,6 +7,7 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
+import React from 'react';
 import { Chart, ChartType, RenderProps } from '../chart';
 
 /**
@@ -122,8 +123,6 @@ export class PivotTable extends Chart {
  * React component for rendering the pivot table.
  * Receives the processed pivot data from getProps().
  */
-import React from 'react';
-
 const PivotTableComponent: React.FC<any> = (props) => {
   const { rows, cols, cellMap, aggregate, rowField, columnField, valueField, aggregation, fieldProps } = props;
 

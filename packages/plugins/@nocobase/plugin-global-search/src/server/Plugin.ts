@@ -69,9 +69,9 @@ export default class PluginGlobalSearchServer extends Plugin {
 
     // Default: search title/name fields in all user-facing collections
     if (this.searchConfig.size === 0) {
-      const collections = this.db.getCollections();
+      const collections = Array.from(this.db.collections.values());
       for (const col of collections) {
-        if (col.options.dumpRules?.group === 'log') continue; // skip log tables
+        if (col.options.dumpRules?.group === 'log') continue;
         const searchableFields: string[] = [];
         for (const field of col.fields.values()) {
           if (['string', 'text'].includes(field.type) && !field.options.hidden) {
