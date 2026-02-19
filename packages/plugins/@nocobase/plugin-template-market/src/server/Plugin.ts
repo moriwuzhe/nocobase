@@ -56,6 +56,7 @@ export default class PluginTemplateMarketServer extends Plugin {
         getDetail: this.handleGetDetail.bind(this),
         activate: this.handleActivate.bind(this),
         deactivate: this.handleDeactivate.bind(this),
+        reseed: this.handleReseed.bind(this),
       },
     });
 
@@ -120,6 +121,31 @@ export default class PluginTemplateMarketServer extends Plugin {
     try {
       await this.app.pm.enable(template.pluginName);
       ctx.body = { success: true, message: `${template.title} activated` };
+    } catch (err: any) {
+      ctx.body = { success: false, error: err.message };
+    }
+    await next();
+  }
+
+  private async handleReseed(ctx: any, next: any) {
+    const { name } = ctx.action.params.values || ctx.action.params;
+    const template = TEMPLATE_CATALOG.find((t) => t.name === name);
+    if (!template) return ctx.throw(404, 'Template not found');
+
+    const plugin = this.app.pm.get(template.pluginName) as any;
+    if (!plugin) {
+      ctx.body = { success: false, error: 'Plugin not installed' };
+      await next();
+      return;
+    }
+
+    try {
+      if (typeof plugin.install === 'function') {
+        await plugin.install();
+        ctx.body = { success: true, message: `Sample data for ${template.title} has been re-seeded` };
+      } else {
+        ctx.body = { success: false, error: 'This template does not support re-seeding' };
+      }
     } catch (err: any) {
       ctx.body = { success: false, error: err.message };
     }
