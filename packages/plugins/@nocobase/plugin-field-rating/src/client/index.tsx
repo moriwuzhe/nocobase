@@ -30,37 +30,19 @@ const InternalRatingStars: React.FC<RatingStarsProps> = ({
   disabled = false,
 }) => {
   return (
-    <Rate
-      value={value}
-      onChange={onChange}
-      count={count}
-      allowHalf={allowHalf}
-      disabled={disabled}
-      style={{ color }}
-    />
+    <Rate value={value} onChange={onChange} count={count} allowHalf={allowHalf} disabled={disabled} style={{ color }} />
   );
 };
 
-const RatingReadPretty: React.FC<RatingStarsProps> = ({
-  value,
-  count = 5,
-  allowHalf = true,
-  color = '#fadb14',
-}) => {
-  return (
-    <Rate
-      value={value || 0}
-      count={count}
-      allowHalf={allowHalf}
-      disabled
-      style={{ color, fontSize: 16 }}
-    />
-  );
+const RatingReadPretty: React.FC<RatingStarsProps> = ({ value, count = 5, allowHalf = true, color = '#fadb14' }) => {
+  return <Rate value={value || 0} count={count} allowHalf={allowHalf} disabled style={{ color, fontSize: 16 }} />;
 };
 
 export const RatingStars = connect(
   InternalRatingStars,
-  mapProps({ dataSource: 'options' }),
+  mapProps((props: any) => ({
+    ...props,
+  })),
   mapReadPretty(RatingReadPretty),
 );
 

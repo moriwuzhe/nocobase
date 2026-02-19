@@ -19,7 +19,8 @@ export class GeminiProvider extends LLMProvider {
   }
 
   createModel() {
-    const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
+    const moduleName = '@langchain/google-genai';
+    const { ChatGoogleGenerativeAI } = require(moduleName);
     const { apiKey } = this.serviceOptions || {};
 
     return new ChatGoogleGenerativeAI({

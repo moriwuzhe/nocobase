@@ -19,7 +19,8 @@ export class ClaudeProvider extends LLMProvider {
   }
 
   createModel() {
-    const { ChatAnthropic } = require('@langchain/anthropic');
+    const moduleName = '@langchain/anthropic';
+    const { ChatAnthropic } = require(moduleName);
     const { baseURL, apiKey } = this.serviceOptions || {};
 
     return new ChatAnthropic({

@@ -28,6 +28,7 @@ interface DictionarySelectProps {
   allowMultiple?: boolean;
   disabled?: boolean;
   placeholder?: string;
+  items?: DictionaryItem[];
 }
 
 /**
@@ -42,13 +43,14 @@ const InternalDictionarySelect: React.FC<DictionarySelectProps> = ({
   allowMultiple = false,
   disabled = false,
   placeholder,
+  items: externalItems,
 }) => {
   const api = useAPIClient();
-  const [items, setItems] = useState<DictionaryItem[]>([]);
+  const [fetchedItems, setFetchedItems] = useState<DictionaryItem[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchItems = useCallback(async () => {
-    if (!dictionaryCode) return;
+    if (!dictionaryCode || externalItems?.length) return;
     setLoading(true);
     try {
       const res = await api.request({
@@ -56,7 +58,7 @@ const InternalDictionarySelect: React.FC<DictionarySelectProps> = ({
         params: { code: dictionaryCode },
       });
       const dict = res.data?.data;
-      setItems(
+      setFetchedItems(
         (dict?.items || []).map((item: any) => ({
           value: item.value,
           label: item.label,
@@ -66,14 +68,16 @@ const InternalDictionarySelect: React.FC<DictionarySelectProps> = ({
         })),
       );
     } catch {
-      setItems([]);
+      setFetchedItems([]);
     }
     setLoading(false);
-  }, [api, dictionaryCode]);
+  }, [api, dictionaryCode, externalItems]);
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
+
+  const items = externalItems?.length ? externalItems : fetchedItems;
 
   if (loading) return <Spin size="small" />;
 
@@ -104,8 +108,14 @@ const InternalDictionarySelect: React.FC<DictionarySelectProps> = ({
       options={items.map((item) => ({
         value: item.value,
         label: item.color ? (
-          <Space size={4}><Tag color={item.color} style={{ marginRight: 0 }}>{item.label}</Tag></Space>
-        ) : item.label,
+          <Space size={4}>
+            <Tag color={item.color} style={{ marginRight: 0 }}>
+              {item.label}
+            </Tag>
+          </Space>
+        ) : (
+          item.label
+        ),
       }))}
     />
   );
@@ -114,10 +124,7 @@ const InternalDictionarySelect: React.FC<DictionarySelectProps> = ({
 /**
  * Read-pretty mode: displays the dictionary value as a colored tag.
  */
-const DictionarySelectReadPretty: React.FC<DictionarySelectProps> = ({
-  value,
-  dictionaryCode,
-}) => {
+const DictionarySelectReadPretty: React.FC<DictionarySelectProps> = ({ value, dictionaryCode }) => {
   const api = useAPIClient();
   const [items, setItems] = useState<DictionaryItem[]>([]);
 
@@ -130,7 +137,9 @@ const DictionarySelectReadPretty: React.FC<DictionarySelectProps> = ({
           params: { code: dictionaryCode },
         });
         setItems(res.data?.data?.items || []);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     })();
   }, [api, dictionaryCode]);
 
@@ -142,7 +151,9 @@ const DictionarySelectReadPretty: React.FC<DictionarySelectProps> = ({
       {values.map((v) => {
         const item = items.find((i) => i.value === v);
         return item ? (
-          <Tag key={v} color={item.color}>{item.label}</Tag>
+          <Tag key={v} color={item.color}>
+            {item.label}
+          </Tag>
         ) : (
           <Tag key={v}>{v}</Tag>
         );
