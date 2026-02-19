@@ -10,12 +10,15 @@
 import { Plugin } from '@nocobase/server';
 import path from 'path';
 import { afterCreate, afterDestroy, afterUpdate } from './hooks';
+import { registerRecycleBinHooks, registerRecycleBinActions } from './recycle-bin';
 
 export default class PluginAuditLogsServer extends Plugin {
   async beforeLoad() {
     this.db.on('afterCreate', afterCreate);
     this.db.on('afterUpdate', afterUpdate);
     this.db.on('afterDestroy', afterDestroy);
+
+    registerRecycleBinHooks(this.db);
   }
 
   async load() {
@@ -28,5 +31,7 @@ export default class PluginAuditLogsServer extends Plugin {
         plugin: this,
       },
     });
+
+    registerRecycleBinActions(this.app);
   }
 }
