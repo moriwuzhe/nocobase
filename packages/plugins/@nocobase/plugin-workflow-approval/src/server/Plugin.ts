@@ -29,6 +29,7 @@ export default class PluginWorkflowApprovalServer extends Plugin {
         submit: approvalActions.submit,
         urge: approvalActions.urge,
         stats: approvalActions.stats,
+        batchSubmit: approvalActions.batchSubmit,
       },
     });
 
@@ -44,7 +45,7 @@ export default class PluginWorkflowApprovalServer extends Plugin {
     });
 
     // ACL: allow logged-in users to access their own tasks
-    this.app.acl.allow('approvalTasks', ['listMine', 'get', 'submit', 'urge', 'stats'], 'loggedIn');
+    this.app.acl.allow('approvalTasks', ['listMine', 'get', 'submit', 'urge', 'stats', 'batchSubmit'], 'loggedIn');
     this.app.acl.allow('approvalRecords', ['list', 'get', 'withdraw'], 'loggedIn');
     this.app.acl.allow('approvalDelegations', ['list', 'get', 'create', 'update', 'destroy'], 'loggedIn');
 
