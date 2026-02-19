@@ -11,6 +11,7 @@ import { Plugin } from '@nocobase/server';
 import path from 'path';
 import { afterCreate, afterDestroy, afterUpdate } from './hooks';
 import { registerRecycleBinHooks, registerRecycleBinActions } from './recycle-bin';
+import { registerFieldChangelogActions } from './field-changelog';
 
 export default class PluginAuditLogsServer extends Plugin {
   async beforeLoad() {
@@ -33,5 +34,6 @@ export default class PluginAuditLogsServer extends Plugin {
     });
 
     registerRecycleBinActions(this.app);
+    registerFieldChangelogActions(this.app);
   }
 }
