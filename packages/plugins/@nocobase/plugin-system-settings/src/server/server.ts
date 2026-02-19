@@ -11,6 +11,17 @@ import PluginFileManagerServer from '@nocobase/plugin-file-manager';
 import { InstallOptions, Plugin } from '@nocobase/server';
 import { resolve } from 'path';
 
+function formatUptime(seconds: number): string {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const parts: string[] = [];
+  if (d > 0) parts.push(`${d}d`);
+  if (h > 0) parts.push(`${h}h`);
+  parts.push(`${m}m`);
+  return parts.join(' ');
+}
+
 export class PluginSystemSettingsServer extends Plugin {
   getInitAppLang(options) {
     return options?.cliArgs?.[0]?.opts?.lang || process.env.INIT_APP_LANG || 'en-US';
@@ -102,6 +113,64 @@ export class PluginSystemSettingsServer extends Plugin {
       },
     });
     this.app.acl.allow('systemSettings', 'get', 'public');
+
+    this.app.resourceManager.define({
+      name: 'systemStatus',
+      actions: {
+        get: async (ctx, next) => {
+          const uptime = process.uptime();
+          const mem = process.memoryUsage();
+          const collections = Array.from(this.db.collections.keys());
+
+          let pluginCount = 0;
+          let enabledPlugins = 0;
+          try {
+            const plugins = await this.db.getRepository('applicationPlugins').find();
+            pluginCount = plugins.length;
+            enabledPlugins = plugins.filter((p: any) => p.enabled).length;
+          } catch { /* ignore */ }
+
+          let workflowStats = { total: 0, enabled: 0 };
+          try {
+            const wfRepo = this.db.getRepository('workflows');
+            if (wfRepo) {
+              workflowStats.total = await wfRepo.count();
+              workflowStats.enabled = await wfRepo.count({ filter: { enabled: true } });
+            }
+          } catch { /* ignore */ }
+
+          let userCount = 0;
+          try {
+            userCount = await this.db.getRepository('users').count();
+          } catch { /* ignore */ }
+
+          ctx.body = {
+            version: this.app.version.get(),
+            uptime: Math.floor(uptime),
+            uptimeFormatted: formatUptime(uptime),
+            memory: {
+              rss: Math.round(mem.rss / 1024 / 1024),
+              heapUsed: Math.round(mem.heapUsed / 1024 / 1024),
+              heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
+            },
+            database: {
+              dialect: (this.db as any).options?.dialect || 'unknown',
+              collectionsCount: collections.length,
+            },
+            plugins: { total: pluginCount, enabled: enabledPlugins },
+            workflows: workflowStats,
+            users: userCount,
+            node: process.version,
+            platform: process.platform,
+          };
+          await next();
+        },
+      },
+    });
+    this.app.acl.registerSnippet({
+      name: `pm.${this.name}.system-status`,
+      actions: ['systemStatus:get'],
+    });
   }
 }
 

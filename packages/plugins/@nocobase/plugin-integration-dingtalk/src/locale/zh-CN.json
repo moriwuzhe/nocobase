@@ -1,0 +1,16 @@
+{
+  "DingTalk": "钉钉",
+  "DingTalk Integration": "钉钉集成",
+  "App Key": "应用Key",
+  "App Secret": "应用Secret",
+  "Agent ID": "Agent ID",
+  "Corp ID": "企业ID",
+  "Save Configuration": "保存配置",
+  "Sync Contacts": "同步通讯录",
+  "Sync Complete": "同步完成",
+  "Configuration saved": "配置已保存",
+  "Contact sync started": "通讯录同步已启动",
+  "Sync failed": "同步失败",
+  "Connect your DingTalk organization for SSO, contact sync, and message push.": "连接您的钉钉组织，实现单点登录、通讯录同步和消息推送。",
+  "Sign in with DingTalk": "钉钉登录"
+}
