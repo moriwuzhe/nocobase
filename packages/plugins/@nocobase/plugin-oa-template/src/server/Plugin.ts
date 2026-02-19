@@ -1,14 +1,139 @@
+/**
+ * This file is part of the NocoBase (R) project.
+ * Copyright (c) 2020-2024 NocoBase Co., Ltd.
+ * Authors: NocoBase Team.
+ *
+ * This project is dual-licensed under AGPL-3.0 and NocoBase Commercial License.
+ * For more information, please refer to: https://www.nocobase.com/agreement.
+ */
+
 import { Plugin } from '@nocobase/server';
+
+const OA_COLLECTIONS = [
+  'oaAnnouncements',
+  'oaMeetingRooms',
+  'oaMeetingBookings',
+  'oaAssets',
+  'oaVisitors',
+  'oaWorkReports',
+];
 
 export default class PluginOaTemplateServer extends Plugin {
   async load() {
     this.app.acl.registerSnippet({
       name: `pm.${this.name}`,
-      actions: ['oaAnnouncements:*', 'oaMeetingRooms:*', 'oaMeetingBookings:*', 'oaAssets:*'],
+      actions: OA_COLLECTIONS.map((c) => `${c}:*`),
     });
     this.app.acl.allow('oaAnnouncements', ['list', 'get'], 'loggedIn');
     this.app.acl.allow('oaMeetingRooms', ['list', 'get'], 'loggedIn');
     this.app.acl.allow('oaMeetingBookings', '*', 'loggedIn');
     this.app.acl.allow('oaAssets', ['list', 'get'], 'loggedIn');
+    this.app.acl.allow('oaVisitors', '*', 'loggedIn');
+    this.app.acl.allow('oaWorkReports', '*', 'loggedIn');
+
+    this.registerDashboardAction();
+    this.registerHooks();
+  }
+
+  private registerDashboardAction() {
+    this.app.resourceManager.define({
+      name: 'oaDashboard',
+      actions: {
+        stats: async (ctx: any, next: any) => {
+          const db = ctx.db;
+          const now = new Date();
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+          const [announcements, meetingRooms, todayBookings, assets, visitors] =
+            await Promise.all([
+              db.getRepository('oaAnnouncements').find({
+                fields: ['status', 'priority'],
+              }),
+              db.getRepository('oaMeetingRooms').count(),
+              db.getRepository('oaMeetingBookings').find({
+                filter: {
+                  startTime: { $gte: todayStart, $lt: todayEnd },
+                },
+                fields: ['status', 'roomId'],
+              }),
+              db.getRepository('oaAssets').find({
+                fields: ['status', 'category'],
+              }),
+              db.getRepository('oaVisitors').find({
+                filter: {
+                  visitDate: { $gte: todayStart, $lt: todayEnd },
+                },
+                fields: ['status'],
+              }),
+            ]);
+
+          const announcementList = (announcements || []).map((a: any) =>
+            a.toJSON ? a.toJSON() : a,
+          );
+          const activeAnnouncements = announcementList.filter(
+            (a: any) => a.status === 'published',
+          ).length;
+
+          const bookingList = (todayBookings || []).map((b: any) =>
+            b.toJSON ? b.toJSON() : b,
+          );
+
+          const assetList = (assets || []).map((a: any) => (a.toJSON ? a.toJSON() : a));
+          const assetsByCategory: Record<string, number> = {};
+          for (const a of assetList) {
+            const cat = a.category || '其他';
+            assetsByCategory[cat] = (assetsByCategory[cat] || 0) + 1;
+          }
+
+          const visitorList = (visitors || []).map((v: any) => (v.toJSON ? v.toJSON() : v));
+
+          ctx.body = {
+            totalAnnouncements: announcementList.length,
+            activeAnnouncements,
+            totalMeetingRooms: meetingRooms,
+            todayBookings: bookingList.length,
+            totalAssets: assetList.length,
+            assetsByCategory,
+            todayVisitors: visitorList.length,
+          };
+          await next();
+        },
+      },
+    });
+    this.app.acl.allow('oaDashboard', 'stats', 'loggedIn');
+  }
+
+  private registerHooks() {
+    this.db.on('oaMeetingBookings.beforeCreate', async (model: any) => {
+      const startTime = model.get('startTime');
+      const endTime = model.get('endTime');
+      const roomId = model.get('roomId');
+
+      if (startTime && endTime && roomId) {
+        const conflicts = await this.db.getRepository('oaMeetingBookings').count({
+          filter: {
+            roomId,
+            status: { $ne: 'cancelled' },
+            $or: [
+              {
+                startTime: { $lt: endTime },
+                endTime: { $gt: startTime },
+              },
+            ],
+          },
+        });
+
+        if (conflicts > 0) {
+          throw new Error('该时间段会议室已被预约');
+        }
+      }
+    });
+
+    this.db.on('oaAnnouncements.beforeSave', async (model: any) => {
+      if (model.get('status') === 'published' && !model.get('publishedAt')) {
+        model.set('publishedAt', new Date());
+      }
+    });
   }
 }
