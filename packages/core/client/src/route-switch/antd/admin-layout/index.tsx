@@ -62,6 +62,8 @@ import { MenuSchemaToolbar, ResetThemeTokenAndKeepAlgorithm } from './menuItemSe
 import { userCenterSettings } from './userCenterSettings';
 
 export * from './useDeleteRouteSchema';
+export { installTemplate, TemplateSelector } from './TemplateSelector';
+export { builtInTemplates } from './templates';
 export { KeepAlive, NocoBaseDesktopRouteType, useKeepAlive };
 
 export const NocoBaseRouteContext = createContext<NocoBaseDesktopRoute | null>(null);

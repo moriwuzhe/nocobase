@@ -7,12 +7,16 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
-import { ISchema } from '@formily/react';
+import { ISchema, useForm } from '@formily/react';
+import { useField } from '@formily/react';
 import { uid } from '@formily/shared';
 import { tval } from '@nocobase/utils/client';
+import { message } from 'antd';
 import {
+  installTemplate,
   SchemaComponentOptions,
   useActionContext,
+  useAPIClient,
   useRecord,
   useRequest,
   useResourceActionContext,
@@ -167,6 +171,42 @@ export const formSchema: ISchema = {
   },
 };
 
+export const createFormSchema: ISchema = {
+  type: 'void',
+  'x-component': 'div',
+  properties: {
+    displayName: {
+      'x-component': 'CollectionField',
+      'x-decorator': 'FormItem',
+    },
+    name: {
+      'x-component': 'CollectionField',
+      'x-decorator': 'FormItem',
+    },
+    'options.templateKey': {
+      type: 'string',
+      title: '应用模板',
+      'x-decorator': 'FormItem',
+      'x-component': 'TemplateRadio',
+      default: '',
+    },
+    'options.autoStart': {
+      title: tval('Start mode', { ns: '@nocobase/plugin-multi-app-manager' }),
+      'x-component': 'Radio.Group',
+      'x-decorator': 'FormItem',
+      default: false,
+      enum: [
+        { label: tval('Start on first visit', { ns: '@nocobase/plugin-multi-app-manager' }), value: false },
+        { label: tval('Start with main application', { ns: '@nocobase/plugin-multi-app-manager' }), value: true },
+      ],
+    },
+    pinned: {
+      'x-component': 'CollectionField',
+      'x-decorator': 'FormItem',
+    },
+  },
+};
+
 export const tableActionColumnSchema: ISchema = {
   properties: {
     view: {
@@ -228,6 +268,71 @@ export const tableActionColumnSchema: ISchema = {
       },
     },
   },
+};
+
+export const useCreateActionWithTemplate = () => {
+  const form = useForm();
+  const field = useField();
+  const ctx = useActionContext();
+  const { refresh } = useResourceActionContext();
+  const { resource } = useResourceContext();
+  const api = useAPIClient();
+
+  return {
+    async run() {
+      try {
+        await form.submit();
+        field.data = field.data || {};
+        field.data.loading = true;
+
+        const values = { ...form.values };
+        const templateKey = values?.options?.templateKey;
+        if (values?.options?.templateKey) {
+          delete values.options.templateKey;
+        }
+
+        await resource.create({ values });
+        ctx.setVisible(false);
+        await form.reset();
+        refresh();
+
+        if (templateKey) {
+          const appName = values.name;
+          message.loading({ content: `正在等待应用 "${values.displayName}" 初始化...`, key: 'tpl-wait', duration: 0 });
+
+          let ready = false;
+          for (let i = 0; i < 40; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+            try {
+              const headers = { 'X-App': appName };
+              const infoRes = await api.request({
+                url: 'app:getInfo',
+                method: 'get',
+                headers,
+              });
+              if (infoRes?.data?.data?.version) {
+                ready = true;
+                break;
+              }
+            } catch (e) {
+              // not ready yet
+            }
+          }
+
+          message.destroy('tpl-wait');
+
+          if (ready) {
+            await installTemplate(api, appName, templateKey);
+            refresh();
+          } else {
+            message.warning('应用初始化超时，请稍后在应用中手动安装模板');
+          }
+        }
+      } finally {
+        field.data.loading = false;
+      }
+    },
+  };
 };
 
 export const useFilterActionProps = () => {
@@ -329,7 +434,7 @@ export const schema: ISchema = {
                   },
                   title: '{{t("Add new")}}',
                   properties: {
-                    formSchema,
+                    createFormSchema,
                     footer: {
                       type: 'void',
                       'x-component': 'Action.Drawer.Footer',
@@ -346,7 +451,7 @@ export const schema: ISchema = {
                           'x-component': 'Action',
                           'x-component-props': {
                             type: 'primary',
-                            useAction: '{{ cm.useCreateAction }}',
+                            useAction: useCreateActionWithTemplate,
                           },
                         },
                       },
