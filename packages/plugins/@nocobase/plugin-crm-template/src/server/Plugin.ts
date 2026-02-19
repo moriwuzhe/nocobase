@@ -7,7 +7,8 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
-import { Plugin } from '@nocobase/server';
+import { Plugin, InstallOptions } from '@nocobase/server';
+import { seedCrmData } from './seed-data';
 
 const CRM_COLLECTIONS = [
   'crmLeads',
@@ -36,6 +37,17 @@ const STAGE_PROBABILITY: Record<string, number> = {
 };
 
 export default class PluginCrmTemplateServer extends Plugin {
+  async install(options?: InstallOptions) {
+    try {
+      const result = await seedCrmData(this.db);
+      if (result.created > 0) {
+        this.app.logger.info(`[crm-template] Seeded ${result.created} sample records`);
+      }
+    } catch (err) {
+      this.app.logger.warn(`[crm-template] Seed data skipped: ${err.message}`);
+    }
+  }
+
   async load() {
     this.app.acl.registerSnippet({
       name: `pm.${this.name}`,

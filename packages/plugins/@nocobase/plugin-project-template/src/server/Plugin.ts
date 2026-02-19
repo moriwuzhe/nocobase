@@ -7,11 +7,23 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
-import { Plugin } from '@nocobase/server';
+import { Plugin, InstallOptions } from '@nocobase/server';
+import { seedProjectData } from './seed-data';
 
 const PM_COLLECTIONS = ['pmProjects', 'pmTasks', 'pmMilestones', 'pmTimesheets', 'pmRisks'];
 
 export default class PluginProjectTemplateServer extends Plugin {
+  async install(options?: InstallOptions) {
+    try {
+      const result = await seedProjectData(this.db);
+      if (result.created > 0) {
+        this.app.logger.info(`[project-template] Seeded ${result.created} sample records`);
+      }
+    } catch (err) {
+      this.app.logger.warn(`[project-template] Seed data skipped: ${err.message}`);
+    }
+  }
+
   async load() {
     for (const c of PM_COLLECTIONS) {
       this.app.acl.allow(c, '*', 'loggedIn');

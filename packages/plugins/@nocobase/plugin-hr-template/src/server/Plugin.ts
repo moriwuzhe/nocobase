@@ -7,7 +7,8 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
-import { Plugin } from '@nocobase/server';
+import { Plugin, InstallOptions } from '@nocobase/server';
+import { seedHrData } from './seed-data';
 
 const HR_COLLECTIONS = [
   'hrEmployees',
@@ -20,6 +21,17 @@ const HR_COLLECTIONS = [
 ];
 
 export default class PluginHrTemplateServer extends Plugin {
+  async install(options?: InstallOptions) {
+    try {
+      const result = await seedHrData(this.db);
+      if (result.created > 0) {
+        this.app.logger.info(`[hr-template] Seeded ${result.created} sample records`);
+      }
+    } catch (err) {
+      this.app.logger.warn(`[hr-template] Seed data skipped: ${err.message}`);
+    }
+  }
+
   async load() {
     this.app.acl.registerSnippet({
       name: `pm.${this.name}`,
