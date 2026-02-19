@@ -48,10 +48,76 @@ export default class PluginWorkflowApprovalServer extends Plugin {
     this.app.acl.allow('approvalRecords', ['list', 'get', 'withdraw'], 'loggedIn');
     this.app.acl.allow('approvalDelegations', ['list', 'get', 'create', 'update', 'destroy'], 'loggedIn');
 
+    this.app.resourceManager.define({
+      name: 'workflowMonitor',
+      actions: {
+        stats: async (ctx: any, next: any) => {
+          const db = ctx.db;
+          const [workflows, executions] = await Promise.all([
+            db.getRepository('workflows').find({ fields: ['id', 'title', 'type', 'enabled'] }),
+            db.getRepository('executions').find({
+              fields: ['id', 'status', 'workflowId', 'createdAt'],
+              sort: ['-createdAt'],
+              limit: 500,
+            }),
+          ]);
+
+          const wfList = (workflows || []).map((w: any) => (w.toJSON ? w.toJSON() : w));
+          const exList = (executions || []).map((e: any) => (e.toJSON ? e.toJSON() : e));
+
+          const totalWorkflows = wfList.length;
+          const enabledWorkflows = wfList.filter((w: any) => w.enabled).length;
+          const totalExecutions = exList.length;
+
+          const byStatus: Record<number, number> = {};
+          exList.forEach((e: any) => { byStatus[e.status] = (byStatus[e.status] || 0) + 1; });
+
+          const now = Date.now();
+          const oneDayAgo = now - 24 * 60 * 60 * 1000;
+          const todayExecutions = exList.filter((e: any) => new Date(e.createdAt).getTime() > oneDayAgo).length;
+          const errorExecutions = exList.filter((e: any) => e.status < 0).length;
+
+          const byWorkflow: Record<string, { title: string; count: number; errors: number }> = {};
+          exList.forEach((e: any) => {
+            const wf = wfList.find((w: any) => w.id === e.workflowId);
+            const key = String(e.workflowId);
+            if (!byWorkflow[key]) byWorkflow[key] = { title: wf?.title || `#${key}`, count: 0, errors: 0 };
+            byWorkflow[key].count++;
+            if (e.status < 0) byWorkflow[key].errors++;
+          });
+
+          const topWorkflows = Object.values(byWorkflow)
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10);
+
+          const recentErrors = exList
+            .filter((e: any) => e.status < 0)
+            .slice(0, 10)
+            .map((e: any) => {
+              const wf = wfList.find((w: any) => w.id === e.workflowId);
+              return { id: e.id, workflowTitle: wf?.title || `#${e.workflowId}`, status: e.status, createdAt: e.createdAt };
+            });
+
+          ctx.body = {
+            totalWorkflows,
+            enabledWorkflows,
+            totalExecutions,
+            todayExecutions,
+            errorExecutions,
+            byStatus,
+            topWorkflows,
+            recentErrors,
+          };
+          await next();
+        },
+      },
+    });
+    this.app.acl.allow('workflowMonitor', 'stats', 'loggedIn');
+
     // Register ACL snippets for admin management
     this.app.acl.registerSnippet({
       name: `pm.${this.name}.approval`,
-      actions: ['approvalTasks:*', 'approvalRecords:*', 'approvalDelegations:*'],
+      actions: ['approvalTasks:*', 'approvalRecords:*', 'approvalDelegations:*', 'workflowMonitor:*'],
     });
 
     // Database hooks for task stats updates
