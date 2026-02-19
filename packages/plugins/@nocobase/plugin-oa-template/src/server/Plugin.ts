@@ -7,7 +7,8 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
-import { Plugin } from '@nocobase/server';
+import { Plugin, InstallOptions } from '@nocobase/server';
+import { seedOaData } from './seed-data';
 
 const OA_COLLECTIONS = [
   'oaAnnouncements',
@@ -19,6 +20,15 @@ const OA_COLLECTIONS = [
 ];
 
 export default class PluginOaTemplateServer extends Plugin {
+  async install(options?: InstallOptions) {
+    try {
+      const result = await seedOaData(this.db);
+      if (result.created > 0) this.app.logger.info(`[oa-template] Seeded ${result.created} sample records`);
+    } catch (err) {
+      this.app.logger.warn(`[oa-template] Seed data skipped: ${err.message}`);
+    }
+  }
+
   async load() {
     this.app.acl.registerSnippet({
       name: `pm.${this.name}`,

@@ -7,11 +7,21 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
-import { Plugin } from '@nocobase/server';
+import { Plugin, InstallOptions } from '@nocobase/server';
+import { seedTicketData } from './seed-data';
 
 const COLLECTIONS = ['tickets', 'ticketKnowledgeBase', 'ticketCategories', 'ticketReplies'];
 
 export default class PluginTicketTemplateServer extends Plugin {
+  async install(options?: InstallOptions) {
+    try {
+      const result = await seedTicketData(this.db);
+      if (result.created > 0) this.app.logger.info(`[ticket-template] Seeded ${result.created} sample records`);
+    } catch (err) {
+      this.app.logger.warn(`[ticket-template] Seed data skipped: ${err.message}`);
+    }
+  }
+
   async load() {
     for (const c of COLLECTIONS) {
       this.app.acl.allow(c, '*', 'loggedIn');

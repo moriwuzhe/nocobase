@@ -7,11 +7,21 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
-import { Plugin } from '@nocobase/server';
+import { Plugin, InstallOptions } from '@nocobase/server';
+import { seedInventoryData } from './seed-data';
 
 const INV_COLLECTIONS = ['invProducts', 'invStockMovements', 'invStockCheck', 'invWarehouses'];
 
 export default class PluginInventoryTemplateServer extends Plugin {
+  async install(options?: InstallOptions) {
+    try {
+      const result = await seedInventoryData(this.db);
+      if (result.created > 0) this.app.logger.info(`[inventory-template] Seeded ${result.created} sample records`);
+    } catch (err) {
+      this.app.logger.warn(`[inventory-template] Seed data skipped: ${err.message}`);
+    }
+  }
+
   async load() {
     for (const c of INV_COLLECTIONS) {
       this.app.acl.allow(c, '*', 'loggedIn');
