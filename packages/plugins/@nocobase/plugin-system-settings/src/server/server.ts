@@ -171,6 +171,46 @@ export class PluginSystemSettingsServer extends Plugin {
       name: `pm.${this.name}.system-status`,
       actions: ['systemStatus:get'],
     });
+
+    // Health check endpoint (public, for load balancers and monitoring)
+    this.app.resourceManager.define({
+      name: 'healthCheck',
+      actions: {
+        get: async (ctx: any, next: any) => {
+          const checks: Record<string, { status: string; latency?: number }> = {};
+
+          // Database check
+          const dbStart = Date.now();
+          try {
+            await this.db.sequelize.query('SELECT 1');
+            checks.database = { status: 'ok', latency: Date.now() - dbStart };
+          } catch {
+            checks.database = { status: 'error', latency: Date.now() - dbStart };
+          }
+
+          // Memory check
+          const mem = process.memoryUsage();
+          const heapPercent = Math.round((mem.heapUsed / mem.heapTotal) * 100);
+          checks.memory = { status: heapPercent > 90 ? 'warning' : 'ok' };
+
+          // Uptime check
+          checks.uptime = { status: process.uptime() > 0 ? 'ok' : 'error' };
+
+          const allOk = Object.values(checks).every((c) => c.status === 'ok');
+
+          ctx.status = allOk ? 200 : 503;
+          ctx.body = {
+            status: allOk ? 'healthy' : 'degraded',
+            timestamp: new Date().toISOString(),
+            uptime: Math.floor(process.uptime()),
+            version: this.app.version.get(),
+            checks,
+          };
+          await next();
+        },
+      },
+    });
+    this.app.acl.allow('healthCheck', 'get', 'public');
   }
 }
 

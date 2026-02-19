@@ -9,6 +9,7 @@
 
 import { Plugin } from '@nocobase/server';
 import { create, destroy } from './actions/api-keys';
+import { rateLimiterMiddleware, getRateLimitStats } from './rate-limiter';
 
 export class PluginAPIKeysServer extends Plugin {
   resourceName = 'apiKeys';
@@ -30,6 +31,24 @@ export class PluginAPIKeysServer extends Plugin {
   }
 
   async load() {
+    // Register rate limiter middleware (runs before all API handlers)
+    this.app.resourcer.use(rateLimiterMiddleware(), { group: 'rate-limit', before: 'auth' });
+
+    // Rate limit stats API
+    this.app.resourceManager.define({
+      name: 'apiRateLimit',
+      actions: {
+        stats: async (ctx: any, next: any) => {
+          ctx.body = getRateLimitStats();
+          await next();
+        },
+      },
+    });
+    this.app.acl.registerSnippet({
+      name: 'pm.api-keys.rate-limit',
+      actions: ['apiRateLimit:stats'],
+    });
+
     this.app.resourcer.use(
       async (ctx, next) => {
         const { resourceName, actionName } = ctx.action;
