@@ -1,8 +1,39 @@
+/**
+ * This file is part of the NocoBase (R) project.
+ * Copyright (c) 2020-2024 NocoBase Co., Ltd.
+ * Authors: NocoBase Team.
+ *
+ * This project is dual-licensed under AGPL-3.0 and NocoBase Commercial License.
+ * For more information, please refer to: https://www.nocobase.com/agreement.
+ */
+
 import { Plugin } from '@nocobase/server';
-export default class extends Plugin {
+
+const COLLECTIONS = ['recJobPostings', 'recCandidates', 'recInterviews', 'recOffers'];
+
+export default class PluginRecruitmentTemplateServer extends Plugin {
   async load() {
-    const collections = 'recCandidates recJobPostings '.trim().split(' ').filter(Boolean);
-    for (const c of collections) { this.app.acl.allow(c, '*', 'loggedIn'); }
-    this.app.acl.registerSnippet({ name: `pm.${this.name}`, actions: collections.map(c => c + ':*') });
+    for (const c of COLLECTIONS) {
+      this.app.acl.allow(c, '*', 'loggedIn');
+    }
+    this.app.acl.registerSnippet({ name: `pm.${this.name}`, actions: COLLECTIONS.map((c) => `${c}:*`) });
+
+    this.db.on('recCandidates.beforeSave', async (model: any) => {
+      if (model.get('stage') === 'hired' && !model.get('hiredAt')) {
+        model.set('hiredAt', new Date());
+      }
+      if (model.get('stage') === 'rejected' && !model.get('rejectedAt')) {
+        model.set('rejectedAt', new Date());
+      }
+    });
+
+    this.db.on('recJobPostings.beforeSave', async (model: any) => {
+      if (model.get('status') === 'published' && !model.get('publishedAt')) {
+        model.set('publishedAt', new Date());
+      }
+      if (model.get('status') === 'closed' && !model.get('closedAt')) {
+        model.set('closedAt', new Date());
+      }
+    });
   }
 }

@@ -1,8 +1,66 @@
+/**
+ * This file is part of the NocoBase (R) project.
+ * Copyright (c) 2020-2024 NocoBase Co., Ltd.
+ * Authors: NocoBase Team.
+ *
+ * This project is dual-licensed under AGPL-3.0 and NocoBase Commercial License.
+ * For more information, please refer to: https://www.nocobase.com/agreement.
+ */
+
 import { Plugin } from '@nocobase/server';
-export default class extends Plugin {
+
+const COLLECTIONS = [
+  'procPurchaseOrders',
+  'procOrderItems',
+  'procSuppliers',
+  'procReceiving',
+  'procPayments',
+];
+
+export default class PluginProcurementTemplateServer extends Plugin {
   async load() {
-    const collections = 'procPurchaseOrders '.trim().split(' ').filter(Boolean);
-    for (const c of collections) { this.app.acl.allow(c, '*', 'loggedIn'); }
-    this.app.acl.registerSnippet({ name: `pm.${this.name}`, actions: collections.map(c => c + ':*') });
+    for (const c of COLLECTIONS) {
+      this.app.acl.allow(c, '*', 'loggedIn');
+    }
+    this.app.acl.registerSnippet({ name: `pm.${this.name}`, actions: COLLECTIONS.map((c) => `${c}:*`) });
+
+    this.db.on('procPurchaseOrders.beforeCreate', async (model: any) => {
+      if (!model.get('code')) {
+        const date = new Date();
+        const prefix = `PO-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const count = await this.db.getRepository('procPurchaseOrders').count();
+        model.set('code', `${prefix}-${String(count + 1).padStart(4, '0')}`);
+      }
+    });
+
+    this.db.on('procOrderItems.afterSave', async (model: any, options: any) => {
+      const orderId = model.get('orderId');
+      if (!orderId) return;
+      try {
+        const items = await this.db.getRepository('procOrderItems').find({
+          filter: { orderId },
+          fields: ['amount', 'quantity', 'unitPrice'],
+          transaction: options.transaction,
+        });
+        const totalAmount = items.reduce(
+          (s: number, i: any) => s + ((i.quantity || 0) * (i.unitPrice || 0)),
+          0,
+        );
+        await this.db.getRepository('procPurchaseOrders').update({
+          filterByTk: orderId,
+          values: { totalAmount },
+          transaction: options.transaction,
+        });
+      } catch { /* non-critical */ }
+    });
+
+    this.db.on('procPurchaseOrders.beforeSave', async (model: any) => {
+      if (model.get('status') === 'approved' && !model.get('approvedAt')) {
+        model.set('approvedAt', new Date());
+      }
+      if (model.get('status') === 'received' && !model.get('receivedAt')) {
+        model.set('receivedAt', new Date());
+      }
+    });
   }
 }
