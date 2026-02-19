@@ -7,11 +7,13 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
-import { Plugin } from '@nocobase/server';
+import { Plugin, InstallOptions } from '@nocobase/server';
+import { seedData } from './seed-data';
 
 const COLLECTIONS = ['recJobPostings', 'recCandidates', 'recInterviews', 'recOffers'];
 
 export default class PluginRecruitmentTemplateServer extends Plugin {
+  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[recruitment] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[recruitment] Seed skipped: ${(e as any).message}`); } }
   async load() {
     for (const c of COLLECTIONS) {
       this.app.acl.allow(c, '*', 'loggedIn');

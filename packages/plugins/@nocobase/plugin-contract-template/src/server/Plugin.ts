@@ -7,11 +7,16 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
-import { Plugin } from '@nocobase/server';
+import { Plugin, InstallOptions } from '@nocobase/server';
+import { seedContractData } from './seed-data';
 
 const COLLECTIONS = ['contracts', 'contractPayments', 'contractTemplates'];
 
 export default class PluginContractTemplateServer extends Plugin {
+  async install(options?: InstallOptions) {
+    try { const r = await seedContractData(this.db); if (r.created > 0) this.app.logger.info(`[contract] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[contract] Seed skipped: ${e.message}`); }
+  }
+
   async load() {
     for (const c of COLLECTIONS) {
       this.app.acl.allow(c, '*', 'loggedIn');

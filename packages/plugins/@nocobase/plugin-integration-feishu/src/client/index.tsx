@@ -98,6 +98,11 @@ const FeishuConfigPage: React.FC = () => {
 
 export class PluginIntegrationFeishuClient extends Plugin {
   async load() {
+    try {
+      const zhCN = (await import('../locale/zh-CN.json')).default;
+      this.app.i18n.addResources('zh-CN', 'integration-feishu', zhCN);
+    } catch { /* locale file may not exist */ }
+
     this.app.pluginSettingsManager.add('integration-feishu', {
       icon: 'LinkOutlined',
       title: tval('Feishu'),

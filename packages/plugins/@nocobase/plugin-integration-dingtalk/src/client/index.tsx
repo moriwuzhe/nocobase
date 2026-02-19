@@ -12,6 +12,7 @@ import { Card, Form, Input, Button, Space, message, Tag, Typography, Divider } f
 import { SyncOutlined, CheckCircleOutlined, LinkOutlined } from '@ant-design/icons';
 import { Plugin, useAPIClient } from '@nocobase/client';
 import { tval } from '@nocobase/utils/client';
+import { NAMESPACE } from '../common/constants';
 
 const { Text, Title } = Typography;
 
@@ -106,6 +107,11 @@ const DingtalkConfigPage: React.FC = () => {
 
 export class PluginIntegrationDingtalkClient extends Plugin {
   async load() {
+    try {
+      const zhCN = (await import('../locale/zh-CN.json')).default;
+      this.app.i18n.addResources('zh-CN', NAMESPACE, zhCN);
+    } catch { /* locale file may not exist */ }
+
     this.app.pluginSettingsManager.add('integration-dingtalk', {
       icon: 'LinkOutlined',
       title: tval('DingTalk'),
