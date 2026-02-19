@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'invStockCheck', title: 'Stock Check / Inventory Count', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'invStockCheck', title: 'Stock Check / Inventory Count', fields: [
   { type: 'string', name: 'checkNo', unique: true, interface: 'input', uiSchema: { type: 'string', title: 'Check No', 'x-component': 'Input' } },
   { type: 'string', name: 'warehouse', interface: 'input', uiSchema: { type: 'string', title: 'Warehouse', 'x-component': 'Input' } },
   { type: 'date', name: 'checkDate', interface: 'datetime', uiSchema: { type: 'string', title: 'Check Date', 'x-component': 'DatePicker' } },

@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'crmPayments', title: 'Payments / Receivables',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'crmPayments', title: 'Payments / Receivables',
   fields: [
     { type: 'string', name: 'paymentNo', unique: true, interface: 'input', uiSchema: { type: 'string', title: 'Payment No', 'x-component': 'Input' } },
     { type: 'belongsTo', name: 'customer', target: 'crmCustomers', foreignKey: 'customerId', interface: 'm2o', uiSchema: { type: 'object', title: 'Customer', 'x-component': 'AssociationField', 'x-component-props': { fieldNames: { label: 'name', value: 'id' } } } },

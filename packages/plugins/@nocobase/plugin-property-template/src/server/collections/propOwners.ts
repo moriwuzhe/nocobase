@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
 export default defineCollection({
+  sortable: true,
+  logging: true,
   name: 'propOwners', title: 'Owners',
   fields: [
     { type: 'string', name: 'name', interface: 'input', uiSchema: { type: 'string', title: 'Owner Name', 'x-component': 'Input' } },

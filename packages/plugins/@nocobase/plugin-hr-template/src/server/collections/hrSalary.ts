@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'hrSalary', title: 'Salary Records',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'hrSalary', title: 'Salary Records',
   fields: [
     { type: 'belongsTo', name: 'employee', target: 'hrEmployees', foreignKey: 'employeeId', interface: 'm2o', uiSchema: { type: 'object', title: 'Employee', 'x-component': 'AssociationField', 'x-component-props': { fieldNames: { label: 'name', value: 'id' } } } },
     { type: 'string', name: 'period', interface: 'input', uiSchema: { type: 'string', title: 'Period (YYYY-MM)', 'x-component': 'Input' } },

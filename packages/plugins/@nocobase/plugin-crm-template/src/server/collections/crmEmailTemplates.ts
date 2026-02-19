@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'crmEmailTemplates', title: 'Email Templates',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'crmEmailTemplates', title: 'Email Templates',
   fields: [
     { type: 'string', name: 'name', interface: 'input', uiSchema: { type: 'string', title: 'Template Name', 'x-component': 'Input' } },
     { type: 'string', name: 'subject', interface: 'input', uiSchema: { type: 'string', title: 'Subject', 'x-component': 'Input' } },

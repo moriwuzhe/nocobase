@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'recInterviews', title: 'Interviews', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'recInterviews', title: 'Interviews', fields: [
   { type: 'belongsTo', name: 'candidate', target: 'recCandidates', foreignKey: 'candidateId' },
   { type: 'belongsTo', name: 'job', target: 'recJobPostings', foreignKey: 'jobId' },
   { type: 'belongsTo', name: 'interviewer', target: 'users', foreignKey: 'interviewerId', interface: 'm2o', uiSchema: { type: 'object', title: 'Interviewer', 'x-component': 'AssociationField', 'x-component-props': { fieldNames: { label: 'nickname', value: 'id' } } } },

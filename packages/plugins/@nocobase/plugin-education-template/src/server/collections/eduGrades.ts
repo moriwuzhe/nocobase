@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
 export default defineCollection({
+  sortable: true,
+  logging: true,
   name: 'eduGrades', title: 'Grades',
   fields: [
     { type: 'belongsTo', name: 'student', target: 'eduStudents', foreignKey: 'studentId', interface: 'm2o', uiSchema: { type: 'object', title: 'Student', 'x-component': 'AssociationField', 'x-component-props': { fieldNames: { label: 'name', value: 'id' } } } },

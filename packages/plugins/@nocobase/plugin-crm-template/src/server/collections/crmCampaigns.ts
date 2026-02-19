@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'crmCampaigns', title: 'Campaigns',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'crmCampaigns', title: 'Campaigns',
   fields: [
     { type: 'string', name: 'name', interface: 'input', uiSchema: { type: 'string', title: 'Campaign Name', 'x-component': 'Input' } },
     { type: 'string', name: 'type', interface: 'select', uiSchema: { type: 'string', title: 'Type', 'x-component': 'Select', enum: [{ label: 'Email', value: 'email' }, { label: 'Social', value: 'social' }, { label: 'Content', value: 'content' }, { label: 'Event', value: 'event' }, { label: 'Webinar', value: 'webinar' }, { label: 'Advertisement', value: 'ad' }, { label: 'Referral', value: 'referral' }, { label: 'SEO', value: 'seo' }] } },
