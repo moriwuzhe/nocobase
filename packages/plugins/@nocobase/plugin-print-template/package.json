@@ -1,0 +1,18 @@
+{
+  "name": "@nocobase/plugin-print-template",
+  "displayName": "Print Templates",
+  "displayName.zh-CN": "打印模板",
+  "description": "WYSIWYG print template designer with Word/PDF/HTML output, variables, and batch printing.",
+  "description.zh-CN": "所见即所得的打印模板设计器，支持Word/PDF/HTML输出、变量插值和批量打印。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/plugin-file-manager": "1.x",
+    "@nocobase/server": "1.x",
+    "@nocobase/utils": "1.x"
+  },
+  "keywords": ["Print", "Template", "PDF"]
+}

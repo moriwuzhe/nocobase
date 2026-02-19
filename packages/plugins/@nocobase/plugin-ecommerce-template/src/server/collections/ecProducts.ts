@@ -1,0 +1,21 @@
+import { defineCollection } from '@nocobase/database';
+export default defineCollection({ name: 'ecProducts', title: 'Products',
+  fields: [
+    { type: 'string', name: 'sku', unique: true, interface: 'input', uiSchema: { type: 'string', title: 'SKU', 'x-component': 'Input' } },
+    { type: 'string', name: 'name', interface: 'input', uiSchema: { type: 'string', title: 'Product Name', 'x-component': 'Input' } },
+    { type: 'text', name: 'description', interface: 'richText', uiSchema: { type: 'string', title: 'Description', 'x-component': 'RichText' } },
+    { type: 'string', name: 'category', interface: 'select', uiSchema: { type: 'string', title: 'Category', 'x-component': 'Select', enum: [{ label: 'Electronics', value: 'electronics' }, { label: 'Clothing', value: 'clothing' }, { label: 'Food', value: 'food' }, { label: 'Home', value: 'home' }, { label: 'Beauty', value: 'beauty' }, { label: 'Sports', value: 'sports' }, { label: 'Books', value: 'books' }, { label: 'Other', value: 'other' }] } },
+    { type: 'float', name: 'price', interface: 'number', uiSchema: { type: 'number', title: 'Price', 'x-component': 'InputNumber', 'x-component-props': { precision: 2 } } },
+    { type: 'float', name: 'originalPrice', interface: 'number', uiSchema: { type: 'number', title: 'Original Price', 'x-component': 'InputNumber', 'x-component-props': { precision: 2 } } },
+    { type: 'float', name: 'costPrice', interface: 'number', uiSchema: { type: 'number', title: 'Cost Price', 'x-component': 'InputNumber', 'x-component-props': { precision: 2 } } },
+    { type: 'integer', name: 'stock', defaultValue: 0, interface: 'number', uiSchema: { type: 'number', title: 'Stock', 'x-component': 'InputNumber' } },
+    { type: 'integer', name: 'salesCount', defaultValue: 0, interface: 'number', uiSchema: { type: 'number', title: 'Sales Count', 'x-component': 'InputNumber' } },
+    { type: 'float', name: 'weight', interface: 'number', uiSchema: { type: 'number', title: 'Weight (kg)', 'x-component': 'InputNumber', 'x-component-props': { precision: 2 } } },
+    { type: 'string', name: 'status', defaultValue: 'active', interface: 'select', uiSchema: { type: 'string', title: 'Status', 'x-component': 'Select', enum: [{ label: 'Draft', value: 'draft' }, { label: 'Active', value: 'active' }, { label: 'Out of Stock', value: 'out_of_stock' }, { label: 'Discontinued', value: 'discontinued' }] } },
+    { type: 'boolean', name: 'featured', defaultValue: false },
+    { type: 'jsonb', name: 'images', defaultValue: [] },
+    { type: 'jsonb', name: 'specifications', defaultValue: {} },
+    { type: 'jsonb', name: 'tags', defaultValue: [] },
+    { type: 'hasMany', name: 'reviews', target: 'ecReviews', foreignKey: 'productId' },
+  ],
+});

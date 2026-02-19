@@ -1,0 +1,17 @@
+{
+  "name": "@nocobase/plugin-global-search",
+  "displayName": "Global Search",
+  "displayName.zh-CN": "全局搜索",
+  "description": "Cross-collection full-text search with recent history, favorites, and configurable search scope.",
+  "description.zh-CN": "跨集合全文搜索，支持搜索历史、收藏夹和可配置搜索范围。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/server": "1.x",
+    "@nocobase/utils": "1.x"
+  },
+  "keywords": ["Search", "Global Search", "Full-text"]
+}

@@ -1,0 +1,1 @@
+{ "name": "@nocobase/plugin-education-template", "displayName": "Education Template", "displayName.zh-CN": "教育管理模板", "version": "1.9.47", "license": "AGPL-3.0", "main": "./dist/server/index.js", "peerDependencies": { "@nocobase/database": "1.x", "@nocobase/server": "1.x" }, "keywords": ["Education", "Template"] }

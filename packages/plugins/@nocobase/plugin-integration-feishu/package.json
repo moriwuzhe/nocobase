@@ -1,0 +1,20 @@
+{
+  "name": "@nocobase/plugin-integration-feishu",
+  "displayName": "Integration: Feishu / Lark",
+  "displayName.zh-CN": "集成：飞书",
+  "description": "Feishu (Lark) integration: SSO, contacts sync, message push, approval sync.",
+  "description.zh-CN": "飞书集成：单点登录、通讯录同步、消息推送、审批同步。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/plugin-auth": "1.x",
+    "@nocobase/plugin-notification-manager": "1.x",
+    "@nocobase/plugin-users": "1.x",
+    "@nocobase/server": "1.x",
+    "@nocobase/utils": "1.x"
+  },
+  "keywords": ["Integration", "Feishu", "Lark"]
+}

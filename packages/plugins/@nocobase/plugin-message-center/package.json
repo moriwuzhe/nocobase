@@ -1,0 +1,18 @@
+{
+  "name": "@nocobase/plugin-message-center",
+  "displayName": "Message Center",
+  "displayName.zh-CN": "消息中心",
+  "description": "Unified notification center with multi-channel delivery, user preferences, and message categories.",
+  "description.zh-CN": "统一消息中心，支持多渠道投递、用户偏好设置和消息分类。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/plugin-notification-manager": "1.x",
+    "@nocobase/server": "1.x",
+    "@nocobase/utils": "1.x"
+  },
+  "keywords": ["Message", "Notification", "Center"]
+}

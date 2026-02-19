@@ -1,0 +1,15 @@
+{
+  "name": "@nocobase/plugin-hr-template",
+  "displayName": "HR Template",
+  "displayName.zh-CN": "HR 人事管理模板",
+  "description": "Pre-built HR collections: employees, attendance, leave requests, departments.",
+  "description.zh-CN": "预置 HR 集合：员工档案、考勤记录、请假申请、部门管理。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/database": "1.x",
+    "@nocobase/server": "1.x"
+  },
+  "keywords": ["HR", "Template", "Industry"]
+}

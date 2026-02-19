@@ -9,5 +9,6 @@
 
 import { Statistic } from './statistic';
 import { Table } from './table';
+import { PivotTable } from './pivotTable';
 
-export default [new Statistic(), new Table()];
+export default [new Statistic(), new Table(), new PivotTable()];

@@ -1,0 +1,22 @@
+{
+  "name": "@nocobase/plugin-workflow-sub-process",
+  "displayName": "Workflow: Sub-process node",
+  "displayName.zh-CN": "工作流：子流程节点",
+  "description": "Call another workflow as a sub-process, supporting sync and async modes.",
+  "description.zh-CN": "调用其他工作流作为子流程，支持同步和异步模式。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "devDependencies": {
+    "antd": "5.x",
+    "react": "18.x"
+  },
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/plugin-workflow": ">=1.0.0",
+    "@nocobase/server": "1.x",
+    "@nocobase/utils": "1.x"
+  },
+  "keywords": ["Workflow", "Sub-process"]
+}

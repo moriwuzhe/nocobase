@@ -1,0 +1,16 @@
+{
+  "name": "@nocobase/plugin-crm-template",
+  "displayName": "CRM Template",
+  "displayName.zh-CN": "CRM 客户管理模板",
+  "description": "Pre-built CRM collections: customers, contacts, deals, activities, with sample workflows.",
+  "description.zh-CN": "预置 CRM 集合：客户、联系人、商机、活动，含示例工作流。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/database": "1.x",
+    "@nocobase/server": "1.x",
+    "@nocobase/utils": "1.x"
+  },
+  "keywords": ["CRM", "Template", "Industry"]
+}

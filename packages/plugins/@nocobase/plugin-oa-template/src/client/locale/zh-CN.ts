@@ -1,0 +1,17 @@
+export default {
+  'OA': '办公自动化',
+  'Announcements': '公告管理',
+  'Meeting Rooms': '会议室',
+  'Meeting Bookings': '会议预约',
+  'Assets': '资产管理',
+  'New Announcement': '发布公告',
+  'Book Meeting': '预约会议',
+  'Room Name': '会议室名称',
+  'Capacity': '容纳人数',
+  'Asset Code': '资产编号',
+  'Asset Name': '资产名称',
+  'In Use': '使用中',
+  'In Stock': '闲置',
+  'Under Repair': '维修中',
+  'Retired': '已报废',
+};

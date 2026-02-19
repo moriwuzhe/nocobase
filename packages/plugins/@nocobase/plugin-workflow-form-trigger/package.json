@@ -1,0 +1,17 @@
+{
+  "name": "@nocobase/plugin-workflow-form-trigger",
+  "displayName": "Workflow: Form trigger",
+  "displayName.zh-CN": "工作流：表单触发",
+  "description": "Trigger workflows when specific forms are submitted, with form data as context.",
+  "description.zh-CN": "在指定表单提交时触发工作流，表单数据作为上下文。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/plugin-workflow": ">=1.0.0",
+    "@nocobase/server": "1.x"
+  },
+  "keywords": ["Workflow", "Form", "Trigger"]
+}

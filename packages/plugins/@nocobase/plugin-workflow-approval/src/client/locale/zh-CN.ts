@@ -1,0 +1,60 @@
+/**
+ * This file is part of the NocoBase (R) project.
+ * Copyright (c) 2020-2024 NocoBase Co., Ltd.
+ * Authors: NocoBase Team.
+ *
+ * This project is dual-licensed under AGPL-3.0 and NocoBase Commercial License.
+ * For more information, please refer to: https://www.nocobase.com/agreement.
+ */
+
+export default {
+  'Approval': '审批',
+  'Approval Center': '审批中心',
+  'Pending Approval': '待审批',
+  'Approved': '已通过',
+  'Rejected': '已拒绝',
+  'Returned': '已退回',
+  'Delegated': '已委托',
+  'Reassigned': '已转签',
+  'Withdrawn': '已撤回',
+  'Auto Approved': '自动通过',
+  'Skipped': '已跳过',
+  'My Approvals': '我的审批',
+  'Initiated by Me': '我发起的',
+  'Approve': '同意',
+  'Reject': '拒绝',
+  'Return': '退回',
+  'Transfer': '转签',
+  'Add Approver': '加签',
+  'Delegate': '委托',
+  'Urge': '催办',
+  'Withdraw': '撤回',
+  'Approval Comment': '审批意见',
+  'Approval Timeline': '审批时间线',
+  'Approval Mode': '审批模式',
+  'Sequential': '依次审批（逐个处理）',
+  'Countersign': '会签（全部通过）',
+  'Or Sign': '或签（一人通过即可）',
+  'Vote Percentage': '票签（按比例）',
+  'Vote Threshold': '投票阈值（%）',
+  'Assignees': '审批人',
+  'Allow Withdraw': '允许发起人撤回',
+  'Skip Self Approval': '审批人为发起人时自动跳过',
+  'Enable Timeout': '启用超时',
+  'Timeout Duration (minutes)': '超时时长（分钟）',
+  'Timeout Action': '超时动作',
+  'Auto Approve': '自动通过',
+  'Auto Reject': '自动拒绝',
+  'Escalate': '向上级上报',
+  'Send Reminder': '发送提醒',
+  'Approval Delegation': '审批委托',
+  'Delegation Rules': '委托规则',
+  'Delegator': '委托人',
+  'Delegatee': '被委托人',
+  'Start Date': '开始日期',
+  'End Date': '结束日期',
+  'Approver': '审批人',
+  'Task title': '任务标题',
+  'No pending approvals': '暂无待审批任务',
+  'Processing...': '处理中...',
+};

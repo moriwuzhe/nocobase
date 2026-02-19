@@ -1,0 +1,16 @@
+{
+  "name": "@nocobase/plugin-field-signature",
+  "displayName": "Field: Signature",
+  "displayName.zh-CN": "字段：手写签名",
+  "description": "Canvas-based hand signature field for forms, with image export.",
+  "description.zh-CN": "基于 Canvas 的手写签名字段，支持图片导出。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/server": "1.x"
+  },
+  "keywords": ["Field", "Signature"]
+}

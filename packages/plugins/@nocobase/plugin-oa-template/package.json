@@ -1,0 +1,15 @@
+{
+  "name": "@nocobase/plugin-oa-template",
+  "displayName": "OA Template",
+  "displayName.zh-CN": "OA 办公模板",
+  "description": "Pre-built OA collections: announcements, meeting rooms, meeting bookings, assets.",
+  "description.zh-CN": "预置 OA 集合：公告管理、会议室、会议预约、资产管理。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/database": "1.x",
+    "@nocobase/server": "1.x"
+  },
+  "keywords": ["OA", "Template", "Industry"]
+}

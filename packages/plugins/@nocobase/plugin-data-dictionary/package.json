@@ -1,0 +1,17 @@
+{
+  "name": "@nocobase/plugin-data-dictionary",
+  "displayName": "Data Dictionary",
+  "displayName.zh-CN": "数据字典",
+  "description": "Global data dictionary management with category, cascading, and field binding.",
+  "description.zh-CN": "全局数据字典管理，支持分类、级联和字段绑定。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/server": "1.x",
+    "@nocobase/utils": "1.x"
+  },
+  "keywords": ["Data Dictionary", "Enum"]
+}

@@ -686,6 +686,98 @@ export class PluginACLServer extends Plugin {
       dumpRules: 'required',
       origin: this.options.packageName,
     });
+
+    // --- Row-level and field-level ACL middleware (enhanced permissions) ---
+    // These provide fine-grained data access control beyond resource-level ACL.
+    // Row-level: injects filter conditions based on role + resource scope config.
+    // Field-level: strips hidden fields from responses, rejects readonly fields from writes.
+    this.app.dataSourceManager.use(async (ctx, next) => {
+      // Skip for admin/root roles
+      if (ctx.state?.currentRole === 'root' || ctx.state?.currentRole === 'admin') {
+        return next();
+      }
+
+      const { resourceName, actionName } = ctx.action || {};
+      const roleName = ctx.state?.currentRole;
+      if (!roleName || !resourceName || !actionName) {
+        return next();
+      }
+
+      try {
+        const resolvedAction = this.acl.resolveActionAlias(actionName);
+
+        // Look up the action config for this role + resource
+        const actionModel = await this.db.getRepository('rolesResourcesActions').findOne({
+          filter: {
+            name: resolvedAction,
+            resource: { name: resourceName, roleName },
+          },
+          appends: ['scope'],
+        });
+
+        if (actionModel) {
+          // --- Row-level filter injection ---
+          const scopeFilter = actionModel.scope?.filter;
+          if (scopeFilter) {
+            const resolvedFilter = JSON.parse(
+              JSON.stringify(scopeFilter)
+                .replace(/\{\{currentUser\.id\}\}/g, String(ctx.state.currentUser?.id || ''))
+                .replace(/\{\{currentUser\.departmentId\}\}/g, String(ctx.state.currentUser?.departmentId || ''))
+                .replace(/\{\{currentRole\}\}/g, roleName),
+            );
+            const existing = ctx.action.params.filter || {};
+            ctx.action.params.filter = {
+              $and: [existing, resolvedFilter].filter(
+                (f) => f && Object.keys(f).length > 0,
+              ),
+            };
+          }
+
+          // --- Field-level permission enforcement ---
+          const fieldPerms: Record<string, string> = actionModel.get('fieldPermissions') || {};
+          const hiddenFields = Object.entries(fieldPerms)
+            .filter(([, perm]) => perm === 'hidden')
+            .map(([field]) => field);
+          const readonlyFields = Object.entries(fieldPerms)
+            .filter(([, perm]) => perm === 'readonly')
+            .map(([field]) => field);
+
+          // For write actions: strip restricted fields
+          if (['create', 'update'].includes(resolvedAction) && ctx.action.params.values) {
+            for (const field of [...hiddenFields, ...readonlyFields]) {
+              delete ctx.action.params.values[field];
+            }
+          }
+
+          await next();
+
+          // For read actions: strip hidden fields from response
+          if (['view', 'list', 'get', 'export'].includes(resolvedAction) && hiddenFields.length > 0) {
+            const stripFields = (record: any) => {
+              if (!record) return record;
+              const data = record.toJSON ? record.toJSON() : { ...record };
+              for (const field of hiddenFields) {
+                delete data[field];
+              }
+              return data;
+            };
+
+            if (Array.isArray(ctx.body)) {
+              ctx.body = ctx.body.map(stripFields);
+            } else if (ctx.body?.data && Array.isArray(ctx.body.data)) {
+              ctx.body.data = ctx.body.data.map(stripFields);
+            } else if (ctx.body?.data) {
+              ctx.body.data = stripFields(ctx.body.data);
+            }
+          }
+          return;
+        }
+      } catch (err) {
+        this.app.logger.debug('[ACL] Enhanced permission check skipped:', err.message);
+      }
+
+      return next();
+    });
   }
 }
 

@@ -1,0 +1,15 @@
+{
+  "name": "@nocobase/plugin-template-market",
+  "displayName": "Template Market",
+  "displayName.zh-CN": "模板市场",
+  "description": "Browse and activate industry/business templates with one click.",
+  "description.zh-CN": "浏览并一键启用行业/业务场景模板。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/server": "1.x"
+  },
+  "keywords": ["Template", "Market"]
+}

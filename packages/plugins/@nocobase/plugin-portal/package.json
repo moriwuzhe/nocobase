@@ -1,0 +1,26 @@
+{
+  "name": "@nocobase/plugin-portal",
+  "displayName": "Portal & External Users",
+  "displayName.zh-CN": "企业门户与外部用户",
+  "description": "External-facing portals with independent auth, custom branding, and data isolation.",
+  "description.zh-CN": "面向外部用户的企业门户，支持独立认证、自定义品牌和数据隔离。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "devDependencies": {
+    "@ant-design/icons": "5.x",
+    "antd": "5.x",
+    "react": "18.x",
+    "react-i18next": "^11.15.1"
+  },
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/plugin-acl": "1.x",
+    "@nocobase/plugin-auth": "1.x",
+    "@nocobase/plugin-users": "1.x",
+    "@nocobase/server": "1.x",
+    "@nocobase/utils": "1.x"
+  },
+  "keywords": ["Portal", "External Users"]
+}

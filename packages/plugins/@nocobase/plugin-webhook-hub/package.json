@@ -1,0 +1,17 @@
+{
+  "name": "@nocobase/plugin-webhook-hub",
+  "displayName": "Webhook Hub",
+  "displayName.zh-CN": "Webhook 中心",
+  "description": "Inbound and outbound webhooks with event subscription, retry, and logging.",
+  "description.zh-CN": "入站和出站 Webhook，支持事件订阅、重试和日志。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/server": "1.x",
+    "@nocobase/utils": "1.x"
+  },
+  "keywords": ["Webhook", "Integration", "API"]
+}

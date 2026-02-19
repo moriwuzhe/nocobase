@@ -1,0 +1,15 @@
+export default {
+  'HR': '人事管理',
+  'Employees': '员工',
+  'Leave Requests': '请假申请',
+  'Attendance': '考勤记录',
+  'Add Employee': '添加员工',
+  'New Leave Request': '新建请假',
+  'Full Name': '姓名',
+  'Employee ID': '工号',
+  'Position': '职位',
+  'Hire Date': '入职日期',
+  'Annual Leave': '年假',
+  'Sick Leave': '病假',
+  'Personal Leave': '事假',
+};
