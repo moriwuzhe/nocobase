@@ -10,6 +10,8 @@
 import { defineCollection } from '@nocobase/database';
 
 export default defineCollection({
+  sortable: true,
+  logging: true,
   name: 'webhooks',
   dumpRules: { group: 'required' },
   shared: true,

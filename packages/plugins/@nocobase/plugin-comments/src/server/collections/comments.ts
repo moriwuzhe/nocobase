@@ -11,6 +11,8 @@ import { defineCollection } from '@nocobase/database';
 import { NAMESPACE } from '../../common/constants';
 
 export default defineCollection({
+  sortable: true,
+  logging: true,
   name: 'comments',
   dumpRules: { group: 'log' },
   migrationRules: ['schema-only'],
