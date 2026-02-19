@@ -866,7 +866,7 @@ function buildPageSchema(
     return {
       pageSchemaUid,
       enableTabs: false,
-      tabs: [{ schemaUid: tabSchemaUid, tabSchemaName }],
+      tabs: [{ schemaUid: tabSchemaUid, tabSchemaName, title: undefined as string | undefined }],
       schema: {
         type: 'void',
         'x-component': 'Page',
