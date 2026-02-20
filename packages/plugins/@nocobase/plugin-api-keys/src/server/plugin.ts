@@ -10,6 +10,7 @@
 import { Plugin } from '@nocobase/server';
 import { create, destroy } from './actions/api-keys';
 import { rateLimiterMiddleware, getRateLimitStats } from './rate-limiter';
+import { apiCacheMiddleware, getApiCacheStats, clearApiCache } from './api-cache';
 
 export class PluginAPIKeysServer extends Plugin {
   resourceName = 'apiKeys';
@@ -34,7 +35,10 @@ export class PluginAPIKeysServer extends Plugin {
     // Register rate limiter middleware (runs before all API handlers)
     this.app.resourcer.use(rateLimiterMiddleware(), { group: 'rate-limit', before: 'auth' });
 
-    // Rate limit stats API
+    // API response cache middleware (after rate limiter, before handlers)
+    this.app.resourcer.use(apiCacheMiddleware(), { group: 'api-cache', after: 'rate-limit', before: 'acl' });
+
+    // Rate limit & cache stats API
     this.app.resourceManager.define({
       name: 'apiRateLimit',
       actions: {
@@ -44,9 +48,23 @@ export class PluginAPIKeysServer extends Plugin {
         },
       },
     });
+    this.app.resourceManager.define({
+      name: 'apiCache',
+      actions: {
+        stats: async (ctx: any, next: any) => {
+          ctx.body = getApiCacheStats();
+          await next();
+        },
+        clear: async (ctx: any, next: any) => {
+          clearApiCache();
+          ctx.body = { success: true, message: 'API cache cleared' };
+          await next();
+        },
+      },
+    });
     this.app.acl.registerSnippet({
       name: 'pm.api-keys.rate-limit',
-      actions: ['apiRateLimit:stats'],
+      actions: ['apiRateLimit:stats', 'apiCache:*'],
     });
 
     this.app.resourcer.use(
