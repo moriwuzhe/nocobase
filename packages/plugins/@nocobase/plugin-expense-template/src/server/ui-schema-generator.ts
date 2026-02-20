@@ -55,29 +55,46 @@ function buildFormField(fieldName: string) {
   };
 }
 
-function buildEditFormBlock(collectionName: string, formFields: string[]) {
+function buildFormBlock(collectionName: string, formFields: string[], mode: 'create' | 'edit') {
   const fp: Record<string, any> = {};
   for (const f of formFields) fp[uid()] = buildFormField(f);
+
+  const isCreate = mode === 'create';
   return {
     type: 'void',
-    'x-acl-action': `${collectionName}:update`,
+    'x-acl-action': `${collectionName}:${isCreate ? 'create' : 'update'}`,
     'x-decorator': 'FormBlockProvider',
-    'x-use-decorator-props': 'useEditFormBlockDecoratorProps',
-    'x-decorator-props': { dataSource: 'main', collection: collectionName, action: 'get', useParams: '{{ useParamsFromRecord }}' },
+    'x-use-decorator-props': isCreate ? 'useCreateFormBlockDecoratorProps' : 'useEditFormBlockDecoratorProps',
+    'x-decorator-props': {
+      dataSource: 'main',
+      collection: collectionName,
+      ...(isCreate ? {} : { action: 'get', useParams: '{{ useParamsFromRecord }}' }),
+    },
     'x-toolbar': 'BlockSchemaToolbar',
-    'x-settings': 'blockSettings:editForm',
+    'x-settings': isCreate ? 'blockSettings:createForm' : 'blockSettings:editForm',
     'x-component': 'CardItem',
     properties: {
       [uid()]: {
         type: 'void',
         'x-component': 'FormV2',
-        'x-use-component-props': 'useEditFormBlockProps',
+        'x-use-component-props': isCreate ? 'useCreateFormBlockProps' : 'useEditFormBlockProps',
         properties: {
           grid: { type: 'void', 'x-component': 'Grid', 'x-initializer': 'form:configureFields', properties: fp },
           [uid()]: {
-            type: 'void', 'x-initializer': 'editForm:configureActions', 'x-component': 'ActionBar', 'x-component-props': { layout: 'one-column' },
+            type: 'void',
+            'x-initializer': isCreate ? 'createForm:configureActions' : 'editForm:configureActions',
+            'x-component': 'ActionBar',
+            'x-component-props': { layout: 'one-column' },
             properties: {
-              [uid()]: { title: '{{ t("Submit") }}', 'x-action': 'submit', 'x-component': 'Action', 'x-toolbar': 'ActionSchemaToolbar', 'x-settings': 'actionSettings:updateSubmit', 'x-use-component-props': 'useUpdateActionProps', 'x-component-props': { type: 'primary', htmlType: 'submit' }, type: 'void' },
+              [uid()]: {
+                title: '{{ t("Submit") }}',
+                'x-action': 'submit',
+                'x-component': 'Action',
+                'x-use-component-props': isCreate ? 'useCreateActionProps' : 'useUpdateActionProps',
+                'x-component-props': { type: 'primary', htmlType: 'submit' },
+                'x-settings': isCreate ? 'actionSettings:createSubmit' : 'actionSettings:updateSubmit',
+                type: 'void',
+              },
             },
           },
         },
@@ -86,28 +103,39 @@ function buildEditFormBlock(collectionName: string, formFields: string[]) {
   };
 }
 
-function buildCreateFormBlock(collectionName: string, formFields: string[]) {
-  const fp: Record<string, any> = {};
-  for (const f of formFields) fp[uid()] = buildFormField(f);
+function buildDrawer(title: string, content: any) {
   return {
     type: 'void',
-    'x-acl-action-props': { skipScopeCheck: true },
-    'x-acl-action': `${collectionName}:create`,
-    'x-decorator': 'FormBlockProvider',
-    'x-use-decorator-props': 'useCreateFormBlockDecoratorProps',
-    'x-decorator-props': { dataSource: 'main', collection: collectionName },
-    'x-toolbar': 'BlockSchemaToolbar',
-    'x-settings': 'blockSettings:createForm',
-    'x-component': 'CardItem',
+    title,
+    'x-component': 'Action.Container',
+    'x-component-props': { className: 'nb-action-popup' },
     properties: {
-      [uid()]: {
-        type: 'void', 'x-component': 'FormV2', 'x-use-component-props': 'useCreateFormBlockProps',
+      tabs: {
+        type: 'void',
+        'x-component': 'Tabs',
         properties: {
-          grid: { type: 'void', 'x-component': 'Grid', 'x-initializer': 'form:configureFields', properties: fp },
-          [uid()]: {
-            type: 'void', 'x-initializer': 'createForm:configureActions', 'x-component': 'ActionBar', 'x-component-props': { layout: 'one-column' },
+          tab1: {
+            type: 'void',
+            title,
+            'x-component': 'Tabs.TabPane',
             properties: {
-              [uid()]: { title: '{{ t("Submit") }}', 'x-action': 'submit', 'x-component': 'Action', 'x-toolbar': 'ActionSchemaToolbar', 'x-settings': 'actionSettings:createSubmit', 'x-use-component-props': 'useCreateActionProps', 'x-component-props': { type: 'primary', htmlType: 'submit' }, 'x-action-settings': { triggerWorkflows: [] }, type: 'void' },
+              grid: {
+                type: 'void',
+                'x-component': 'Grid',
+                properties: {
+                  [uid()]: {
+                    type: 'void',
+                    'x-component': 'Grid.Row',
+                    properties: {
+                      [uid()]: {
+                        type: 'void',
+                        'x-component': 'Grid.Col',
+                        properties: { [uid()]: content },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -119,34 +147,35 @@ function buildCreateFormBlock(collectionName: string, formFields: string[]) {
 function buildTableBlock(collectionName: string, columnFields: string[], formFields: string[]) {
   const colProps: Record<string, any> = {};
   for (const f of columnFields) colProps[uid()] = buildColumn(f);
+
   colProps[uid()] = {
-    type: 'void', title: '{{ t("Actions") }}', 'x-decorator': 'TableV2.Column.Decorator', 'x-component': 'TableV2.Column',
-    'x-toolbar': 'TableColumnSchemaToolbar', 'x-settings': 'fieldSettings:TableColumn', 'x-initializer': 'table:configureItemActions', 'x-action-column': 'actions',
+    type: 'void',
+    title: '{{ t("Actions") }}',
+    'x-decorator': 'TableV2.Column.Decorator',
+    'x-component': 'TableV2.Column',
+    'x-initializer': 'table:configureItemActions',
+    'x-action-column': 'actions',
     properties: {
       [uid()]: {
-        type: 'void', 'x-decorator': 'DndContext', 'x-component': 'Space', 'x-component-props': { split: '|' },
+        type: 'void',
+        'x-decorator': 'DndContext',
+        'x-component': 'Space',
+        'x-component-props': { split: '|' },
         properties: {
           [uid()]: {
-            type: 'void', title: '{{ t("Edit") }}', 'x-action': 'update', 'x-toolbar': 'ActionSchemaToolbar', 'x-settings': 'actionSettings:edit',
-            'x-component': 'Action.Link', 'x-component-props': { openMode: 'drawer', icon: 'EditOutlined' },
-            properties: {
-              drawer: {
-                type: 'void', title: '{{ t("Edit record") }}', 'x-component': 'Action.Container', 'x-component-props': { className: 'nb-action-popup' },
-                properties: {
-                  tabs: { type: 'void', 'x-component': 'Tabs', properties: {
-                    tab1: { type: 'void', title: '{{ t("Edit") }}', 'x-component': 'Tabs.TabPane', properties: {
-                      grid: { type: 'void', 'x-component': 'Grid', properties: {
-                        [uid()]: { type: 'void', 'x-component': 'Grid.Row', properties: { [uid()]: { type: 'void', 'x-component': 'Grid.Col', properties: { [uid()]: buildEditFormBlock(collectionName, formFields) } } } },
-                      } },
-                    } },
-                  } },
-                },
-              },
-            },
+            type: 'void',
+            title: '{{ t("Edit") }}',
+            'x-action': 'update',
+            'x-component': 'Action.Link',
+            'x-component-props': { openMode: 'drawer', icon: 'EditOutlined' },
+            properties: { drawer: buildDrawer('{{ t("Edit record") }}', buildFormBlock(collectionName, formFields, 'edit')) },
           },
           [uid()]: {
-            type: 'void', title: '{{ t("Delete") }}', 'x-action': 'destroy', 'x-toolbar': 'ActionSchemaToolbar', 'x-settings': 'actionSettings:delete',
-            'x-component': 'Action.Link', 'x-component-props': { icon: 'DeleteOutlined', confirm: { title: "{{t('Delete record')}}", content: "{{t('Are you sure you want to delete it?')}}" } },
+            type: 'void',
+            title: '{{ t("Delete") }}',
+            'x-action': 'destroy',
+            'x-component': 'Action.Link',
+            'x-component-props': { icon: 'DeleteOutlined', confirm: { title: "{{t('Delete record')}}", content: "{{t('Are you sure you want to delete it?')}}" } },
             'x-use-component-props': 'useDestroyActionProps',
           },
         },
@@ -156,38 +185,44 @@ function buildTableBlock(collectionName: string, columnFields: string[], formFie
 
   return {
     type: 'void',
-    'x-decorator': 'TableBlockProvider', 'x-acl-action': `${collectionName}:list`,
+    'x-decorator': 'TableBlockProvider',
+    'x-acl-action': `${collectionName}:list`,
     'x-use-decorator-props': 'useTableBlockDecoratorProps',
     'x-decorator-props': { collection: collectionName, dataSource: 'main', action: 'list', params: { pageSize: 20, sort: ['-createdAt'] }, showIndex: true, dragSort: false },
-    'x-toolbar': 'BlockSchemaToolbar', 'x-settings': 'blockSettings:table', 'x-component': 'CardItem',
+    'x-toolbar': 'BlockSchemaToolbar',
+    'x-settings': 'blockSettings:table',
+    'x-component': 'CardItem',
     properties: {
       actions: {
-        type: 'void', 'x-initializer': 'table:configureActions', 'x-component': 'ActionBar',
+        type: 'void',
+        'x-initializer': 'table:configureActions',
+        'x-component': 'ActionBar',
         'x-component-props': { style: { marginBottom: 'var(--nb-spacing)' } },
         properties: {
-          filter: { type: 'void', title: '{{ t("Filter") }}', 'x-action': 'filter', 'x-toolbar': 'ActionSchemaToolbar', 'x-settings': 'actionSettings:filter', 'x-component': 'Filter.Action', 'x-use-component-props': 'useFilterActionProps', 'x-component-props': { icon: 'FilterOutlined' }, 'x-align': 'left' },
+          filter: {
+            type: 'void',
+            title: '{{ t("Filter") }}',
+            'x-action': 'filter',
+            'x-component': 'Filter.Action',
+            'x-use-component-props': 'useFilterActionProps',
+            'x-component-props': { icon: 'FilterOutlined' },
+            'x-align': 'left',
+          },
           [uid()]: {
-            type: 'void', title: '{{ t("Add new") }}', 'x-action': 'create', 'x-toolbar': 'ActionSchemaToolbar', 'x-settings': 'actionSettings:addNew',
-            'x-component': 'Action', 'x-component-props': { openMode: 'drawer', type: 'primary', icon: 'PlusOutlined' },
-            properties: {
-              drawer: {
-                type: 'void', title: '{{ t("Add record") }}', 'x-component': 'Action.Container', 'x-component-props': { className: 'nb-action-popup' },
-                properties: {
-                  tabs: { type: 'void', 'x-component': 'Tabs', properties: {
-                    tab1: { type: 'void', title: '{{ t("Add new") }}', 'x-component': 'Tabs.TabPane', properties: {
-                      grid: { type: 'void', 'x-component': 'Grid', properties: {
-                        [uid()]: { type: 'void', 'x-component': 'Grid.Row', properties: { [uid()]: { type: 'void', 'x-component': 'Grid.Col', properties: { [uid()]: buildCreateFormBlock(collectionName, formFields) } } } },
-                      } },
-                    } },
-                  } },
-                },
-              },
-            },
+            type: 'void',
+            title: '{{ t("Add new") }}',
+            'x-action': 'create',
+            'x-component': 'Action',
+            'x-component-props': { openMode: 'drawer', type: 'primary', icon: 'PlusOutlined' },
+            properties: { drawer: buildDrawer('{{ t("Add record") }}', buildFormBlock(collectionName, formFields, 'create')) },
           },
         },
       },
       [uid()]: {
-        type: 'array', 'x-initializer': 'table:configureColumns', 'x-component': 'TableV2', 'x-use-component-props': 'useTableBlockProps',
+        type: 'array',
+        'x-initializer': 'table:configureColumns',
+        'x-component': 'TableV2',
+        'x-use-component-props': 'useTableBlockProps',
         'x-component-props': { rowKey: 'id', rowSelection: { type: 'checkbox' } },
         properties: colProps,
       },
@@ -200,35 +235,85 @@ export async function createTemplateUI(app: any, groupTitle: string, groupIcon: 
   const uiSchemaRepo = db.getRepository('uiSchemas');
   const routeRepo = db.getRepository('desktopRoutes');
   if (!uiSchemaRepo || !routeRepo) {
-    app.logger.warn('[template-ui] uiSchemas or desktopRoutes not available');
+    app.logger.warn('[template-ui] Required repositories not available');
     return;
   }
 
   try {
     const existingRoute = await routeRepo.findOne({ filter: { title: groupTitle, type: 'group' } });
     if (existingRoute) {
-      app.logger.info(`[template-ui] Menu group "${groupTitle}" already exists, skipping`);
+      app.logger.info(`[template-ui] "${groupTitle}" already exists, skipping`);
       return;
     }
 
-    const groupRoute = await routeRepo.create({
-      values: { type: 'group', title: groupTitle, icon: groupIcon },
-    });
-    const groupRouteId = groupRoute?.id;
+    // Step 1: Create menu group schema node under admin
+    const groupMenuUid = uid();
+    try {
+      await uiSchemaRepo.insertAdjacent('beforeEnd', 'admin', {
+        schema: {
+          type: 'void',
+          title: groupTitle,
+          'x-component': 'Menu.SubMenu',
+          'x-component-props': { icon: groupIcon },
+          'x-uid': groupMenuUid,
+        },
+      });
+    } catch (e) {
+      app.logger.debug(`[template-ui] Menu schema insert fallback: ${(e as any).message}`);
+    }
 
+    // Step 2: Create group route
+    const groupRoute = await routeRepo.create({
+      values: { type: 'group', title: groupTitle, icon: groupIcon, menuSchemaUid: groupMenuUid },
+    });
+
+    // Step 3: Create pages
     for (const page of pages) {
       try {
         const pageSchemaUid = uid();
-        const tabUid = uid();
+        const tabSchemaUid = uid();
+        const tabSchemaName = uid();
+        const menuItemUid = uid();
 
+        // 3a: Create menu item schema under group
+        try {
+          await uiSchemaRepo.insertAdjacent('beforeEnd', groupMenuUid, {
+            schema: {
+              type: 'void',
+              title: page.title,
+              'x-component': 'Menu.Item',
+              'x-component-props': { icon: page.icon },
+              'x-uid': menuItemUid,
+            },
+          });
+        } catch (e) {
+          app.logger.debug(`[template-ui] Menu item fallback: ${(e as any).message}`);
+        }
+
+        // 3b: Create page schema with table block
         const tableBlock = buildTableBlock(page.collectionName, page.fields, page.formFields || page.fields);
         const pageSchema = {
-          type: 'void', 'x-component': 'Page', 'x-uid': pageSchemaUid,
+          type: 'void',
+          'x-component': 'Page',
+          'x-uid': pageSchemaUid,
           properties: {
-            [uid()]: {
-              type: 'void', 'x-component': 'Grid', 'x-initializer': 'page:addBlock', 'x-uid': tabUid,
+            [tabSchemaName]: {
+              type: 'void',
+              'x-component': 'Grid',
+              'x-initializer': 'page:addBlock',
+              'x-uid': tabSchemaUid,
               properties: {
-                [uid()]: { type: 'void', 'x-component': 'Grid.Row', properties: { [uid()]: { type: 'void', 'x-component': 'Grid.Col', properties: { [uid()]: tableBlock } } } },
+                [uid()]: {
+                  type: 'void',
+                  'x-component': 'Grid.Row',
+                  properties: {
+                    [uid()]: {
+                      type: 'void',
+                      'x-component': 'Grid.Col',
+                      properties: { [uid()]: tableBlock },
+                    },
+                  },
+                },
               },
             },
           },
@@ -236,16 +321,25 @@ export async function createTemplateUI(app: any, groupTitle: string, groupIcon: 
 
         await uiSchemaRepo.insert(pageSchema);
 
+        // 3c: Create page route
         await routeRepo.create({
-          values: { type: 'page', title: page.title, icon: page.icon, schemaUid: pageSchemaUid, parentId: groupRouteId },
+          values: {
+            type: 'page',
+            title: page.title,
+            icon: page.icon,
+            schemaUid: pageSchemaUid,
+            menuSchemaUid: menuItemUid,
+            enableTabs: false,
+            parentId: groupRoute?.id,
+          },
         });
 
-        app.logger.info(`[template-ui] Created page: ${page.title}`);
+        app.logger.info(`[template-ui] Created: ${page.title}`);
       } catch (err) {
-        app.logger.warn(`[template-ui] Page "${page.title}" skipped: ${(err as any).message}`);
+        app.logger.warn(`[template-ui] "${page.title}" failed: ${(err as any).message}`);
       }
     }
   } catch (err) {
-    app.logger.warn(`[template-ui] Failed: ${(err as any).message}`);
+    app.logger.warn(`[template-ui] Error: ${(err as any).message}`);
   }
 }
