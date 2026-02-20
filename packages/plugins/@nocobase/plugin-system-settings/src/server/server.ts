@@ -10,6 +10,7 @@
 import PluginFileManagerServer from '@nocobase/plugin-file-manager';
 import { InstallOptions, Plugin } from '@nocobase/server';
 import { resolve } from 'path';
+import { registerSchedulerActions, loadScheduledTasks, stopAllTasks } from './scheduler';
 
 function formatUptime(seconds: number): string {
   const d = Math.floor(seconds / 86400);
@@ -81,6 +82,8 @@ export class PluginSystemSettingsServer extends Plugin {
   }
 
   async load() {
+    await this.importCollections(resolve(__dirname, 'collections'));
+
     this.app.acl.addFixedParams('systemSettings', 'destroy', () => {
       return {
         'id.$ne': 1,
@@ -211,6 +214,17 @@ export class PluginSystemSettingsServer extends Plugin {
       },
     });
     this.app.acl.allow('healthCheck', 'get', 'public');
+
+    // Task scheduler
+    registerSchedulerActions(this.app);
+
+    this.app.on('afterStart', async () => {
+      await loadScheduledTasks(this.app);
+    });
+  }
+
+  async remove() {
+    stopAllTasks();
   }
 }
 
