@@ -10,6 +10,7 @@
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedInventoryData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
+import { createInventoryWorkflows } from './workflows';
 
 const INV_COLLECTIONS = ['invProducts', 'invStockMovements', 'invStockCheck', 'invWarehouses'];
 

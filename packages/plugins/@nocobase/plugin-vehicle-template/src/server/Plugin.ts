@@ -10,11 +10,13 @@
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
+import { createVehicleWorkflows } from './workflows';
 
 const COLLECTIONS = ['vehicles', 'vehicleInsurance', 'vehicleMaintenance'];
 
 export default class PluginVehicleTemplateServer extends Plugin {
   async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[vehicle] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[vehicle] Seed skipped: ${(e as any).message}`); }
+    try { const wf = await createVehicleWorkflows(this.app); if (wf > 0) this.app.logger.info(`[vehicle] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[vehicle] Workflows skipped: ${(e as any).message}`); }
     try { await createTemplateUI(this.app, '车辆管理', 'CarOutlined', [
       { title: '车辆台账', icon: 'CarOutlined', collectionName: 'vehicles', fields: ['plateNumber','brand','model','status','department','insuranceExpiry'], formFields: ['plateNumber','brand','model','status','department','insuranceExpiry','nextInspectionDate'] },
       { title: '维保记录', icon: 'ToolOutlined', collectionName: 'vehicleMaintenance', fields: ['type','date','mileage','cost','description'], formFields: ['type','date','mileage','cost','description'] },
