@@ -9,6 +9,7 @@
 
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedTicketData } from './seed-data';
+import { createTemplateUI } from './ui-schema-generator';
 
 const COLLECTIONS = ['tickets', 'ticketKnowledgeBase', 'ticketCategories', 'ticketReplies'];
 
@@ -16,10 +17,14 @@ export default class PluginTicketTemplateServer extends Plugin {
   async install(options?: InstallOptions) {
     try {
       const result = await seedTicketData(this.db);
-      if (result.created > 0) this.app.logger.info(`[ticket-template] Seeded ${result.created} sample records`);
-    } catch (err) {
-      this.app.logger.warn(`[ticket-template] Seed data skipped: ${err.message}`);
-    }
+      if (result.created > 0) this.app.logger.info(`[ticket-template] Seeded ${result.created} records`);
+    } catch (err) { this.app.logger.warn(`[ticket-template] Seed skipped: ${err.message}`); }
+    try {
+      await createTemplateUI(this.app, '工单系统', 'FileTextOutlined', [
+        { title: '工单管理', icon: 'FileTextOutlined', collectionName: 'tickets', fields: ['code', 'title', 'priority', 'status', 'category', 'createdAt'], formFields: ['title', 'description', 'priority', 'category'] },
+        { title: '知识库', icon: 'BookOutlined', collectionName: 'ticketKnowledgeBase', fields: ['title', 'category', 'status'], formFields: ['title', 'content', 'category', 'status'] },
+      ]);
+    } catch (err) { this.app.logger.warn(`[ticket-template] UI creation skipped: ${(err as any).message}`); }
   }
 
   async load() {

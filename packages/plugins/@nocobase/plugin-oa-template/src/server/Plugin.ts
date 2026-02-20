@@ -9,6 +9,7 @@
 
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedOaData } from './seed-data';
+import { createTemplateUI } from './ui-schema-generator';
 
 const OA_COLLECTIONS = [
   'oaAnnouncements',
@@ -23,10 +24,17 @@ export default class PluginOaTemplateServer extends Plugin {
   async install(options?: InstallOptions) {
     try {
       const result = await seedOaData(this.db);
-      if (result.created > 0) this.app.logger.info(`[oa-template] Seeded ${result.created} sample records`);
-    } catch (err) {
-      this.app.logger.warn(`[oa-template] Seed data skipped: ${err.message}`);
-    }
+      if (result.created > 0) this.app.logger.info(`[oa-template] Seeded ${result.created} records`);
+    } catch (err) { this.app.logger.warn(`[oa-template] Seed skipped: ${err.message}`); }
+    try {
+      await createTemplateUI(this.app, 'OA 协同办公', 'DesktopOutlined', [
+        { title: '公告管理', icon: 'NotificationOutlined', collectionName: 'oaAnnouncements', fields: ['title', 'priority', 'status', 'publishedAt'], formFields: ['title', 'content', 'priority', 'status'] },
+        { title: '会议室', icon: 'VideoCameraOutlined', collectionName: 'oaMeetingRooms', fields: ['name', 'capacity', 'floor', 'equipment', 'status'], formFields: ['name', 'capacity', 'floor', 'equipment', 'status'] },
+        { title: '会议预约', icon: 'CalendarOutlined', collectionName: 'oaMeetingBookings', fields: ['subject', 'startTime', 'endTime', 'status'], formFields: ['subject', 'startTime', 'endTime', 'attendees'] },
+        { title: '固定资产', icon: 'LaptopOutlined', collectionName: 'oaAssets', fields: ['name', 'category', 'serialNumber', 'status', 'department', 'purchasePrice'], formFields: ['name', 'category', 'serialNumber', 'status', 'department', 'purchaseDate', 'purchasePrice'] },
+        { title: '访客登记', icon: 'UserSwitchOutlined', collectionName: 'oaVisitors', fields: ['name', 'company', 'visitDate', 'purpose', 'status'], formFields: ['name', 'company', 'phone', 'visitDate', 'purpose', 'hostEmployee'] },
+      ]);
+    } catch (err) { this.app.logger.warn(`[oa-template] UI creation skipped: ${(err as any).message}`); }
   }
 
   async load() {

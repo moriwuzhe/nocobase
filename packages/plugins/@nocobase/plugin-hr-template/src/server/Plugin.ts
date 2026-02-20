@@ -9,6 +9,7 @@
 
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedHrData } from './seed-data';
+import { createTemplateUI } from './ui-schema-generator';
 
 const HR_COLLECTIONS = [
   'hrEmployees',
@@ -24,12 +25,19 @@ export default class PluginHrTemplateServer extends Plugin {
   async install(options?: InstallOptions) {
     try {
       const result = await seedHrData(this.db);
-      if (result.created > 0) {
-        this.app.logger.info(`[hr-template] Seeded ${result.created} sample records`);
-      }
+      if (result.created > 0) this.app.logger.info(`[hr-template] Seeded ${result.created} records`);
     } catch (err) {
-      this.app.logger.warn(`[hr-template] Seed data skipped: ${err.message}`);
+      this.app.logger.warn(`[hr-template] Seed skipped: ${err.message}`);
     }
+    try {
+      await createTemplateUI(this.app, '人事管理 HR', 'TeamOutlined', [
+        { title: '员工档案', icon: 'IdcardOutlined', collectionName: 'hrEmployees', fields: ['employeeId', 'name', 'department', 'position', 'level', 'status', 'phone', 'email'], formFields: ['name', 'gender', 'department', 'position', 'level', 'employmentType', 'status', 'phone', 'email', 'hireDate', 'education', 'address', 'idNumber', 'bankAccount', 'emergencyContact', 'emergencyPhone'] },
+        { title: '请假管理', icon: 'CalendarOutlined', collectionName: 'hrLeaveRequests', fields: ['type', 'startDate', 'endDate', 'days', 'status', 'reason'], formFields: ['type', 'startDate', 'endDate', 'reason'] },
+        { title: '考勤记录', icon: 'ClockCircleOutlined', collectionName: 'hrAttendance', fields: ['date', 'checkIn', 'checkOut', 'status'], formFields: ['date', 'checkIn', 'checkOut', 'status', 'remark'] },
+        { title: '培训管理', icon: 'ReadOutlined', collectionName: 'hrTraining', fields: ['title', 'type', 'startDate', 'endDate', 'status'], formFields: ['title', 'type', 'startDate', 'endDate', 'location', 'description'] },
+        { title: '绩效评估', icon: 'TrophyOutlined', collectionName: 'hrPerformance', fields: ['period', 'score', 'grade', 'status'], formFields: ['period', 'score', 'grade', 'selfEvaluation', 'managerComment'] },
+      ]);
+    } catch (err) { this.app.logger.warn(`[hr-template] UI creation skipped: ${(err as any).message}`); }
   }
 
   async load() {
