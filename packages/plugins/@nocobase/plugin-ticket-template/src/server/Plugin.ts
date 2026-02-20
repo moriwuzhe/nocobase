@@ -10,6 +10,7 @@
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedTicketData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
+import { createTicketWorkflows } from './workflows';
 
 const COLLECTIONS = ['tickets', 'ticketKnowledgeBase', 'ticketCategories', 'ticketReplies'];
 
@@ -19,6 +20,8 @@ export default class PluginTicketTemplateServer extends Plugin {
       const result = await seedTicketData(this.db);
       if (result.created > 0) this.app.logger.info(`[ticket-template] Seeded ${result.created} records`);
     } catch (err) { this.app.logger.warn(`[ticket-template] Seed skipped: ${err.message}`); }
+    try { const wf = await createTicketWorkflows(this.app); if (wf > 0) this.app.logger.info(`[ticket] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[ticket] Workflows skipped: ${(e as any).message}`); }
+
     try {
       await createTemplateUI(this.app, '工单系统', 'FileTextOutlined', [
         { title: '工单管理', icon: 'FileTextOutlined', collectionName: 'tickets', fields: ['code', 'title', 'priority', 'status', 'category', 'createdAt'], formFields: ['title', 'description', 'priority', 'category'] },

@@ -10,6 +10,7 @@
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedContractData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
+import { createContractWorkflows } from './workflows';
 
 const COLLECTIONS = ['contracts', 'contractPayments', 'contractTemplates'];
 

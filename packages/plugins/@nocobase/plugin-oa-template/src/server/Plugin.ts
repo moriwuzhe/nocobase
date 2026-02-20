@@ -10,6 +10,7 @@
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedOaData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
+import { createOaWorkflows } from './workflows';
 
 const OA_COLLECTIONS = [
   'oaAnnouncements',
@@ -26,6 +27,8 @@ export default class PluginOaTemplateServer extends Plugin {
       const result = await seedOaData(this.db);
       if (result.created > 0) this.app.logger.info(`[oa-template] Seeded ${result.created} records`);
     } catch (err) { this.app.logger.warn(`[oa-template] Seed skipped: ${err.message}`); }
+    try { const wf = await createOaWorkflows(this.app); if (wf > 0) this.app.logger.info(`[oa] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[oa] Workflows skipped: ${(e as any).message}`); }
+
     try {
       await createTemplateUI(this.app, 'OA 协同办公', 'DesktopOutlined', [
         { title: '公告管理', icon: 'NotificationOutlined', collectionName: 'oaAnnouncements', fields: ['title', 'priority', 'status', 'publishedAt'], formFields: ['title', 'content', 'priority', 'status'] },

@@ -10,6 +10,7 @@
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
+import { createExpenseWorkflows } from './workflows';
 
 const COLLECTIONS = ['expenseClaims', 'expenseItems', 'expenseCategories'];
 
