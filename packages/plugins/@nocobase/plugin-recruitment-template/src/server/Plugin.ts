@@ -9,11 +9,14 @@
 
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedData } from './seed-data';
+import { createTemplateUI } from './ui-schema-generator';
 
 const COLLECTIONS = ['recJobPostings', 'recCandidates', 'recInterviews', 'recOffers'];
 
 export default class PluginRecruitmentTemplateServer extends Plugin {
-  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[recruitment] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[recruitment] Seed skipped: ${(e as any).message}`); } }
+  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[recruitment] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[recruitment] Seed skipped: ${(e as any).message}`); }
+    try { await createTemplateUI(this.app, '招聘管理', 'SolutionOutlined', [{ title: '职位发布', icon: 'SolutionOutlined', collectionName: 'recJobPostings', fields: ['title','department','location','salary','status','headcount'], formFields: ['title','department','location','salary','status','headcount'] }, { title: '候选人', icon: 'UserAddOutlined', collectionName: 'recCandidates', fields: ['name','phone','email','stage','source'], formFields: ['name','phone','email','stage','source'] }]); } catch (e) { this.app.logger.warn(`[recruitment] UI skipped: ${(e as any).message}`); }
+  }
   async load() {
     for (const c of COLLECTIONS) {
       this.app.acl.allow(c, '*', 'loggedIn');

@@ -9,12 +9,14 @@
 
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedContractData } from './seed-data';
+import { createTemplateUI } from './ui-schema-generator';
 
 const COLLECTIONS = ['contracts', 'contractPayments', 'contractTemplates'];
 
 export default class PluginContractTemplateServer extends Plugin {
   async install(options?: InstallOptions) {
-    try { const r = await seedContractData(this.db); if (r.created > 0) this.app.logger.info(`[contract] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[contract] Seed skipped: ${e.message}`); }
+    try { const r = await seedContractData(this.db); if (r.created > 0) this.app.logger.info(`[contract] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[contract] Seed skipped: ${(e as any).message}`); }
+    try { await createTemplateUI(this.app, '合同管理', 'FileProtectOutlined', [{ title: '合同列表', icon: 'FileProtectOutlined', collectionName: 'contracts', fields: ['contractNo', 'title', 'type', 'partyB', 'amount', 'status', 'startDate', 'endDate'], formFields: ['title', 'type', 'partyA', 'partyB', 'amount', 'signDate', 'startDate', 'endDate', 'status'] }, { title: '合同付款', icon: 'DollarOutlined', collectionName: 'contractPayments', fields: ['amount', 'paymentDate', 'status', 'method'], formFields: ['amount', 'paymentDate', 'status', 'method', 'remark'] }]); } catch (e) { this.app.logger.warn(`[contract] UI skipped: ${(e as any).message}`); }
   }
 
   async load() {

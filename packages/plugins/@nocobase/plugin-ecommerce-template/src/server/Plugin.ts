@@ -9,11 +9,14 @@
 
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedData } from './seed-data';
+import { createTemplateUI } from './ui-schema-generator';
 
 const COLLECTIONS = ['ecOrders', 'ecOrderItems', 'ecProducts', 'ecCategories', 'ecShipping', 'ecRefunds'];
 
 export default class PluginEcommerceTemplateServer extends Plugin {
-  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[ecommerce] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[ecommerce] Seed skipped: ${(e as any).message}`); } }
+  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[ecommerce] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[ecommerce] Seed skipped: ${(e as any).message}`); }
+    try { await createTemplateUI(this.app, '电商订单', 'ShopOutlined', [{ title: '订单管理', icon: 'ShoppingOutlined', collectionName: 'ecOrders', fields: ['orderNo','totalAmount','status','paymentMethod','createdAt'], formFields: ['totalAmount','status','paymentMethod'] }]); } catch (e) { this.app.logger.warn(`[ecommerce] UI skipped: ${(e as any).message}`); }
+  }
   async load() {
     for (const c of COLLECTIONS) {
       this.app.acl.allow(c, '*', 'loggedIn');

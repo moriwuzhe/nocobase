@@ -9,11 +9,14 @@
 
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedData } from './seed-data';
+import { createTemplateUI } from './ui-schema-generator';
 
 const COLLECTIONS = ['eduStudents', 'eduCourses', 'eduGrades', 'eduEnrollments', 'eduTeachers'];
 
 export default class PluginEducationTemplateServer extends Plugin {
-  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[education] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[education] Seed skipped: ${(e as any).message}`); } }
+  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[education] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[education] Seed skipped: ${(e as any).message}`); }
+    try { await createTemplateUI(this.app, '教务管理', 'ReadOutlined', [{ title: '学生管理', icon: 'UserOutlined', collectionName: 'eduStudents', fields: ['studentId','name','grade','className','gender','status'], formFields: ['name','grade','className','gender','phone','status'] }, { title: '课程管理', icon: 'BookOutlined', collectionName: 'eduCourses', fields: ['name','code','teacher','credits','status'], formFields: ['name','code','teacher','credits','status'] }]); } catch (e) { this.app.logger.warn(`[education] UI skipped: ${(e as any).message}`); }
+  }
   async load() {
     for (const c of COLLECTIONS) {
       this.app.acl.allow(c, '*', 'loggedIn');

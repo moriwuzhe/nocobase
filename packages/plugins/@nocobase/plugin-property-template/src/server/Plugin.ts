@@ -9,11 +9,14 @@
 
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedData } from './seed-data';
+import { createTemplateUI } from './ui-schema-generator';
 
 const COLLECTIONS = ['propOwners', 'propRepairRequests', 'propFees', 'propUnits'];
 
 export default class PluginPropertyTemplateServer extends Plugin {
-  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[property] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[property] Seed skipped: ${(e as any).message}`); } }
+  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[property] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[property] Seed skipped: ${(e as any).message}`); }
+    try { await createTemplateUI(this.app, '物业管理', 'HomeOutlined', [{ title: '业主管理', icon: 'UserOutlined', collectionName: 'propOwners', fields: ['name','phone','unit','building','area','status'], formFields: ['name','phone','unit','building','area','status'] }, { title: '报修工单', icon: 'ToolOutlined', collectionName: 'propRepairRequests', fields: ['code','description','category','status','priority'], formFields: ['description','category','priority'] }]); } catch (e) { this.app.logger.warn(`[property] UI skipped: ${(e as any).message}`); }
+  }
   async load() {
     for (const c of COLLECTIONS) {
       this.app.acl.allow(c, '*', 'loggedIn');

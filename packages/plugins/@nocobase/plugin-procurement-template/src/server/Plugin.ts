@@ -9,6 +9,7 @@
 
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedData } from './seed-data';
+import { createTemplateUI } from './ui-schema-generator';
 
 const COLLECTIONS = [
   'procPurchaseOrders',
@@ -19,7 +20,9 @@ const COLLECTIONS = [
 ];
 
 export default class PluginProcurementTemplateServer extends Plugin {
-  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[procurement] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[procurement] Seed skipped: ${(e as any).message}`); } }
+  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[procurement] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[procurement] Seed skipped: ${(e as any).message}`); }
+    try { await createTemplateUI(this.app, '采购管理', 'ShoppingCartOutlined', [{ title: '采购订单', icon: 'ShoppingCartOutlined', collectionName: 'procPurchaseOrders', fields: ['code','title','totalAmount','status','createdAt'], formFields: ['title','totalAmount','status'] }, { title: '供应商', icon: 'ShopOutlined', collectionName: 'procSuppliers', fields: ['name','contactPerson','phone','email','category','rating'], formFields: ['name','contactPerson','phone','email','category','rating'] }]); } catch (e) { this.app.logger.warn(`[procurement] UI skipped: ${(e as any).message}`); }
+  }
   async load() {
     for (const c of COLLECTIONS) {
       this.app.acl.allow(c, '*', 'loggedIn');

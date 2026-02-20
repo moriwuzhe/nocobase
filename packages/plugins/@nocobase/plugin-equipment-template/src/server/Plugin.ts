@@ -9,11 +9,14 @@
 
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedData } from './seed-data';
+import { createTemplateUI } from './ui-schema-generator';
 
 const COLLECTIONS = ['eqEquipment', 'eqMaintenancePlans', 'eqMaintenanceRecords'];
 
 export default class PluginEquipmentTemplateServer extends Plugin {
-  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[equipment] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[equipment] Seed skipped: ${(e as any).message}`); } }
+  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[equipment] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[equipment] Seed skipped: ${(e as any).message}`); }
+    try { await createTemplateUI(this.app, '设备维保', 'ToolOutlined', [{ title: '设备台账', icon: 'ToolOutlined', collectionName: 'eqEquipment', fields: ['assetCode','name','model','status','location','lastMaintenanceDate'], formFields: ['name','model','status','location','purchaseDate'] }]); } catch (e) { this.app.logger.warn(`[equipment] UI skipped: ${(e as any).message}`); }
+  }
   async load() {
     for (const c of COLLECTIONS) {
       this.app.acl.allow(c, '*', 'loggedIn');
