@@ -35,8 +35,8 @@ const isDev = process.env.APP_ENV === 'development' || process.env.NODE_ENV === 
 
 const DEFAULTS = {
   anonymous: { limit: isDev ? 600 : 60, windowMs: 60000 },
-  authenticated: { limit: isDev ? 1200 : 300, windowMs: 60000 },
-  apiKey: { limit: isDev ? 3000 : 600, windowMs: 60000 },
+  authenticated: { limit: isDev ? 6000 : 300, windowMs: 60000 },
+  apiKey: { limit: isDev ? 6000 : 600, windowMs: 60000 },
 };
 
 let cleanupTimer: NodeJS.Timeout | null = null;
@@ -94,10 +94,12 @@ export function rateLimiterMiddleware() {
       ctx.set('Retry-After', String(resetSeconds));
       ctx.status = 429;
       ctx.body = {
-        errors: [{
-          message: `Rate limit exceeded. Try again in ${resetSeconds} seconds.`,
-          code: 'RATE_LIMIT_EXCEEDED',
-        }],
+        errors: [
+          {
+            message: `Rate limit exceeded. Try again in ${resetSeconds} seconds.`,
+            code: 'RATE_LIMIT_EXCEEDED',
+          },
+        ],
       };
       return;
     }
