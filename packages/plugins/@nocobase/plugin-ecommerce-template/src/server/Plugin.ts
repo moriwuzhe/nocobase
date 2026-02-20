@@ -15,7 +15,11 @@ const COLLECTIONS = ['ecOrders', 'ecOrderItems', 'ecProducts', 'ecCategories', '
 
 export default class PluginEcommerceTemplateServer extends Plugin {
   async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[ecommerce] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[ecommerce] Seed skipped: ${(e as any).message}`); }
-    try { await createTemplateUI(this.app, '电商订单', 'ShopOutlined', [{ title: '订单管理', icon: 'ShoppingOutlined', collectionName: 'ecOrders', fields: ['orderNo','totalAmount','status','paymentMethod','createdAt'], formFields: ['totalAmount','status','paymentMethod'] }]); } catch (e) { this.app.logger.warn(`[ecommerce] UI skipped: ${(e as any).message}`); }
+    try { await createTemplateUI(this.app, '电商订单', 'ShopOutlined', [
+      { title: '订单管理', icon: 'ShoppingOutlined', collectionName: 'ecOrders', fields: ['orderNo','totalAmount','status','paymentMethod','createdAt'], formFields: ['totalAmount','status','paymentMethod'] },
+      { title: '商品管理', icon: 'GiftOutlined', collectionName: 'ecProducts', fields: ['name','price','category','stock','status'], formFields: ['name','price','category','stock','status','description'] },
+      { title: '退款管理', icon: 'RollbackOutlined', collectionName: 'ecRefunds', fields: ['reason','amount','status','createdAt'], formFields: ['reason','amount','status'] },
+    ]); } catch (e) { this.app.logger.warn(`[ecommerce] UI skipped: ${(e as any).message}`); }
   }
   async load() {
     for (const c of COLLECTIONS) {

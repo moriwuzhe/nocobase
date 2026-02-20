@@ -15,7 +15,11 @@ const COLLECTIONS = ['eqEquipment', 'eqMaintenancePlans', 'eqMaintenanceRecords'
 
 export default class PluginEquipmentTemplateServer extends Plugin {
   async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[equipment] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[equipment] Seed skipped: ${(e as any).message}`); }
-    try { await createTemplateUI(this.app, '设备维保', 'ToolOutlined', [{ title: '设备台账', icon: 'ToolOutlined', collectionName: 'eqEquipment', fields: ['assetCode','name','model','status','location','lastMaintenanceDate'], formFields: ['name','model','status','location','purchaseDate'] }]); } catch (e) { this.app.logger.warn(`[equipment] UI skipped: ${(e as any).message}`); }
+    try { await createTemplateUI(this.app, '设备维保', 'ToolOutlined', [
+      { title: '设备台账', icon: 'ToolOutlined', collectionName: 'eqEquipment', fields: ['assetCode','name','model','status','location','lastMaintenanceDate'], formFields: ['name','model','status','location','purchaseDate'] },
+      { title: '维修工单', icon: 'FileTextOutlined', collectionName: 'eqWorkOrders', fields: ['title','type','priority','status','createdAt'], formFields: ['title','type','priority','description'] },
+      { title: '备件管理', icon: 'InboxOutlined', collectionName: 'eqSpareParts', fields: ['name','partNo','quantity','minStock','unitPrice'], formFields: ['name','partNo','quantity','minStock','unitPrice'] },
+    ]); } catch (e) { this.app.logger.warn(`[equipment] UI skipped: ${(e as any).message}`); }
   }
   async load() {
     for (const c of COLLECTIONS) {
