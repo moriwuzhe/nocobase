@@ -10,6 +10,7 @@
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedProjectData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
+import { createProjectWorkflows } from './workflows';
 
 const PM_COLLECTIONS = ['pmProjects', 'pmTasks', 'pmMilestones', 'pmTimesheets', 'pmRisks'];
 
@@ -21,6 +22,8 @@ export default class PluginProjectTemplateServer extends Plugin {
     } catch (err) {
       this.app.logger.warn(`[project-template] Seed skipped: ${err.message}`);
     }
+    try { const wf = await createProjectWorkflows(this.app); if (wf > 0) this.app.logger.info(`[project] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[project] Workflows skipped: ${(e as any).message}`); }
+
     try {
       await createTemplateUI(this.app, '项目管理', 'ProjectOutlined', [
         { title: '项目列表', icon: 'ProjectOutlined', collectionName: 'pmProjects', fields: ['name', 'code', 'status', 'priority', 'progress', 'startDate', 'endDate', 'budget'], formFields: ['name', 'type', 'status', 'priority', 'startDate', 'endDate', 'budget', 'description', 'notes'] },

@@ -10,6 +10,7 @@
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedHrData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
+import { createHrWorkflows } from './workflows';
 
 const HR_COLLECTIONS = [
   'hrEmployees',
@@ -29,6 +30,8 @@ export default class PluginHrTemplateServer extends Plugin {
     } catch (err) {
       this.app.logger.warn(`[hr-template] Seed skipped: ${err.message}`);
     }
+    try { const wf = await createHrWorkflows(this.app); if (wf > 0) this.app.logger.info(`[hr] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[hr] Workflows skipped: ${(e as any).message}`); }
+
     try {
       await createTemplateUI(this.app, '人事管理 HR', 'TeamOutlined', [
         { title: '员工档案', icon: 'IdcardOutlined', collectionName: 'hrEmployees', fields: ['employeeId', 'name', 'department', 'position', 'level', 'status', 'phone', 'email'], formFields: ['name', 'gender', 'department', 'position', 'level', 'employmentType', 'status', 'phone', 'email', 'hireDate', 'education', 'address', 'idNumber', 'bankAccount', 'emergencyContact', 'emergencyPhone'] },

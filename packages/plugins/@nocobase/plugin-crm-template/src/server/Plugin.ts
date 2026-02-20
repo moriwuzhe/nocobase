@@ -10,6 +10,7 @@
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedCrmData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
+import { createCrmWorkflows } from './workflows';
 
 const CRM_COLLECTIONS = [
   'crmLeads',
@@ -47,6 +48,11 @@ export default class PluginCrmTemplateServer extends Plugin {
     } catch (err) {
       this.app.logger.warn(`[crm-template] Seed data skipped: ${err.message}`);
     }
+
+    try {
+      const wfCount = await createCrmWorkflows(this.app);
+      if (wfCount > 0) this.app.logger.info(`[crm-template] Created ${wfCount} workflows`);
+    } catch (err) { this.app.logger.warn(`[crm-template] Workflows skipped: ${(err as any).message}`); }
 
     try {
       await createTemplateUI(this.app, '客户管理 CRM', 'TeamOutlined', [
