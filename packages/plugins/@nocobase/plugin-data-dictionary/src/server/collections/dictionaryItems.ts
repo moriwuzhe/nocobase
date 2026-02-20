@@ -14,7 +14,6 @@ import { defineCollection } from '@nocobase/database';
  * Supports parent-child cascading via parentId.
  */
 export default defineCollection({
-  sortable: true,
   logging: true,
   name: 'dictionaryItems',
   dumpRules: { group: 'required' },

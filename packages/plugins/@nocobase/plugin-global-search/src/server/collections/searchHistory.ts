@@ -10,7 +10,6 @@
 import { defineCollection } from '@nocobase/database';
 
 export default defineCollection({
-  sortable: true,
   logging: true,
   name: 'searchHistory',
   dumpRules: { group: 'log' },

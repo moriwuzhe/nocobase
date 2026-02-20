@@ -16,7 +16,6 @@ import { NAMESPACE } from '../../common/constants';
  * within a date range (e.g., during leave / business travel).
  */
 export default defineCollection({
-  sortable: true,
   logging: true,
   name: 'approvalDelegations',
   dumpRules: { group: 'required' },

@@ -11,7 +11,6 @@ import { defineCollection } from '@nocobase/database';
 import { NAMESPACE } from '../../common/constants';
 
 export default defineCollection({
-  sortable: true,
   logging: true,
   name: 'approvalTasks',
   dumpRules: { group: 'log' },

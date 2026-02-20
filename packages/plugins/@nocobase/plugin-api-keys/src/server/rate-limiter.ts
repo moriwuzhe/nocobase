@@ -31,10 +31,12 @@ interface BucketEntry {
 
 const buckets = new Map<string, BucketEntry>();
 
+const isDev = process.env.APP_ENV === 'development' || process.env.NODE_ENV === 'development';
+
 const DEFAULTS = {
-  anonymous: { limit: 30, windowMs: 60000 },
-  authenticated: { limit: 120, windowMs: 60000 },
-  apiKey: { limit: 300, windowMs: 60000 },
+  anonymous: { limit: isDev ? 600 : 60, windowMs: 60000 },
+  authenticated: { limit: isDev ? 1200 : 300, windowMs: 60000 },
+  apiKey: { limit: isDev ? 3000 : 600, windowMs: 60000 },
 };
 
 let cleanupTimer: NodeJS.Timeout | null = null;
