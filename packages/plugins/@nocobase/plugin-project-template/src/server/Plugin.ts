@@ -11,6 +11,7 @@ import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedProjectData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
 import { createProjectWorkflows } from './workflows';
+import { createProjectRoles } from './roles';
 
 const PM_COLLECTIONS = ['pmProjects', 'pmTasks', 'pmMilestones', 'pmTimesheets', 'pmRisks'];
 
@@ -22,6 +23,7 @@ export default class PluginProjectTemplateServer extends Plugin {
     } catch (err) {
       this.app.logger.warn(`[project-template] Seed skipped: ${err.message}`);
     }
+    try { const rc = await createProjectRoles(this.app); if (rc > 0) this.app.logger.info(`[project] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[project] Roles skipped: ${(e as any).message}`); }
     try { const wf = await createProjectWorkflows(this.app); if (wf > 0) this.app.logger.info(`[project] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[project] Workflows skipped: ${(e as any).message}`); }
 
     try {

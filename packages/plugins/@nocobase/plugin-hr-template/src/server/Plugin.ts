@@ -11,6 +11,7 @@ import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedHrData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
 import { createHrWorkflows } from './workflows';
+import { createHrRoles } from './roles';
 
 const HR_COLLECTIONS = [
   'hrEmployees',
@@ -30,6 +31,7 @@ export default class PluginHrTemplateServer extends Plugin {
     } catch (err) {
       this.app.logger.warn(`[hr-template] Seed skipped: ${err.message}`);
     }
+    try { const rc = await createHrRoles(this.app); if (rc > 0) this.app.logger.info(`[hr] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[hr] Roles skipped: ${(e as any).message}`); }
     try { const wf = await createHrWorkflows(this.app); if (wf > 0) this.app.logger.info(`[hr] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[hr] Workflows skipped: ${(e as any).message}`); }
 
     try {

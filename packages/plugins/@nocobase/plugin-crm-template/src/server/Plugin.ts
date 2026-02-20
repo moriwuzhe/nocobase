@@ -11,6 +11,7 @@ import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedCrmData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
 import { createCrmWorkflows } from './workflows';
+import { createCrmRoles } from './roles';
 
 const CRM_COLLECTIONS = [
   'crmLeads',
@@ -48,6 +49,8 @@ export default class PluginCrmTemplateServer extends Plugin {
     } catch (err) {
       this.app.logger.warn(`[crm-template] Seed data skipped: ${err.message}`);
     }
+
+    try { const rc = await createCrmRoles(this.app); if (rc > 0) this.app.logger.info(`[crm] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[crm] Roles skipped: ${(e as any).message}`); }
 
     try {
       const wfCount = await createCrmWorkflows(this.app);
