@@ -15,10 +15,27 @@ import {
   generateBackupCodes,
 } from '../totp-service';
 
+const TOTP_REPO = 'userTotpSettings';
+
+async function getTotpSettings(ctx: Context, userId: number) {
+  const repo = ctx.db.getRepository(TOTP_REPO);
+  if (!repo) return null;
+  return repo.findOne({ filter: { userId } });
+}
+
+async function upsertTotpSettings(ctx: Context, userId: number, values: Record<string, any>) {
+  const repo = ctx.db.getRepository(TOTP_REPO);
+  if (!repo) return;
+  const existing = await repo.findOne({ filter: { userId } });
+  if (existing) {
+    await repo.update({ filter: { userId }, values });
+  } else {
+    await repo.create({ values: { userId, ...values } });
+  }
+}
+
 /**
  * POST /api/auth:setupTOTP
- * Generates a new TOTP secret and returns the QR code URI.
- * Does NOT enable 2FA yet — user must verify first.
  */
 export async function setupTOTP(ctx: Context, next: Next) {
   const userId = ctx.state.currentUser?.id;
@@ -27,19 +44,19 @@ export async function setupTOTP(ctx: Context, next: Next) {
   const secret = generateSecret();
   const email = ctx.state.currentUser?.email || `user-${userId}`;
 
-  const systemSettings = await ctx.db.getRepository('systemSettings').findOne({ filterByTk: 1 });
-  const appTitle = systemSettings?.title || 'NocoBase';
+  let appTitle = 'NocoBase';
+  try {
+    const systemSettings = await ctx.db.getRepository('systemSettings').findOne({ filterByTk: 1 });
+    appTitle = systemSettings?.title || 'NocoBase';
+  } catch { /* ignore */ }
 
   const uri = generateTOTPUri(secret, email, appTitle);
   const backupCodes = generateBackupCodes(8);
 
-  await ctx.db.getRepository('users').update({
-    filterByTk: userId,
-    values: {
-      totpSecret: secret,
-      totpBackupCodes: backupCodes,
-      totpEnabled: false,
-    },
+  await upsertTotpSettings(ctx, userId, {
+    totpSecret: secret,
+    totpBackupCodes: backupCodes,
+    totpEnabled: false,
   });
 
   ctx.body = {
@@ -54,7 +71,6 @@ export async function setupTOTP(ctx: Context, next: Next) {
 /**
  * POST /api/auth:verifyTOTPSetup
  * Body: { code }
- * Verifies the TOTP code and enables 2FA for the user.
  */
 export async function verifyTOTPSetup(ctx: Context, next: Next) {
   const userId = ctx.state.currentUser?.id;
@@ -63,19 +79,16 @@ export async function verifyTOTPSetup(ctx: Context, next: Next) {
   const { code } = ctx.action.params.values || {};
   if (!code) return ctx.throw(400, 'Verification code is required');
 
-  const user = await ctx.db.getRepository('users').findOne({ filterByTk: userId });
-  if (!user?.totpSecret) {
+  const settings = await getTotpSettings(ctx, userId);
+  if (!settings?.totpSecret) {
     return ctx.throw(400, 'Please call setupTOTP first');
   }
 
-  if (!verifyTOTP(user.totpSecret, code)) {
+  if (!verifyTOTP(settings.totpSecret, code)) {
     return ctx.throw(400, 'Invalid verification code. Please try again.');
   }
 
-  await ctx.db.getRepository('users').update({
-    filterByTk: userId,
-    values: { totpEnabled: true },
-  });
+  await upsertTotpSettings(ctx, userId, { totpEnabled: true });
 
   ctx.body = {
     success: true,
@@ -87,7 +100,6 @@ export async function verifyTOTPSetup(ctx: Context, next: Next) {
 /**
  * POST /api/auth:disableTOTP
  * Body: { code }
- * Disables 2FA for the current user (requires valid TOTP code).
  */
 export async function disableTOTP(ctx: Context, next: Next) {
   const userId = ctx.state.currentUser?.id;
@@ -96,31 +108,25 @@ export async function disableTOTP(ctx: Context, next: Next) {
   const { code } = ctx.action.params.values || {};
   if (!code) return ctx.throw(400, 'Verification code is required');
 
-  const user = await ctx.db.getRepository('users').findOne({ filterByTk: userId });
-  if (!user?.totpEnabled) {
+  const settings = await getTotpSettings(ctx, userId);
+  if (!settings?.totpEnabled) {
     return ctx.throw(400, '2FA is not enabled');
   }
 
-  if (!verifyTOTP(user.totpSecret, code)) {
-    const backupCodes: string[] = user.totpBackupCodes || [];
+  if (!verifyTOTP(settings.totpSecret, code)) {
+    const backupCodes: string[] = settings.totpBackupCodes || [];
     const codeIdx = backupCodes.indexOf(code);
     if (codeIdx === -1) {
       return ctx.throw(400, 'Invalid code');
     }
     backupCodes.splice(codeIdx, 1);
-    await ctx.db.getRepository('users').update({
-      filterByTk: userId,
-      values: { totpBackupCodes: backupCodes },
-    });
+    await upsertTotpSettings(ctx, userId, { totpBackupCodes: backupCodes });
   }
 
-  await ctx.db.getRepository('users').update({
-    filterByTk: userId,
-    values: {
-      totpEnabled: false,
-      totpSecret: null,
-      totpBackupCodes: null,
-    },
+  await upsertTotpSettings(ctx, userId, {
+    totpEnabled: false,
+    totpSecret: null,
+    totpBackupCodes: null,
   });
 
   ctx.body = {
@@ -132,33 +138,28 @@ export async function disableTOTP(ctx: Context, next: Next) {
 
 /**
  * POST /api/auth:verifyTOTP
- * Body: { code, token }
- * Verifies TOTP code during login flow.
- * Called after initial password authentication.
+ * Body: { code, userId }
  */
 export async function verifyTOTPLogin(ctx: Context, next: Next) {
   const { code, userId } = ctx.action.params.values || {};
   if (!code || !userId) return ctx.throw(400, 'code and userId are required');
 
-  const user = await ctx.db.getRepository('users').findOne({ filterByTk: userId });
-  if (!user?.totpEnabled || !user?.totpSecret) {
+  const settings = await getTotpSettings(ctx, userId);
+  if (!settings?.totpEnabled || !settings?.totpSecret) {
     ctx.body = { success: true, skip: true };
     return next();
   }
 
-  if (verifyTOTP(user.totpSecret, code)) {
+  if (verifyTOTP(settings.totpSecret, code)) {
     ctx.body = { success: true };
     return next();
   }
 
-  const backupCodes: string[] = user.totpBackupCodes || [];
+  const backupCodes: string[] = settings.totpBackupCodes || [];
   const codeIdx = backupCodes.indexOf(code);
   if (codeIdx !== -1) {
     backupCodes.splice(codeIdx, 1);
-    await ctx.db.getRepository('users').update({
-      filterByTk: userId,
-      values: { totpBackupCodes: backupCodes },
-    });
+    await upsertTotpSettings(ctx, userId, { totpBackupCodes: backupCodes });
     ctx.body = { success: true, usedBackupCode: true };
     return next();
   }
@@ -168,20 +169,16 @@ export async function verifyTOTPLogin(ctx: Context, next: Next) {
 
 /**
  * GET /api/auth:getTOTPStatus
- * Returns the current 2FA status for the logged-in user.
  */
 export async function getTOTPStatus(ctx: Context, next: Next) {
   const userId = ctx.state.currentUser?.id;
   if (!userId) return ctx.throw(401, 'Not authenticated');
 
-  const user = await ctx.db.getRepository('users').findOne({
-    filterByTk: userId,
-    fields: ['totpEnabled', 'totpBackupCodes'],
-  });
+  const settings = await getTotpSettings(ctx, userId);
 
   ctx.body = {
-    enabled: !!user?.totpEnabled,
-    backupCodesRemaining: (user?.totpBackupCodes || []).length,
+    enabled: !!settings?.totpEnabled,
+    backupCodesRemaining: (settings?.totpBackupCodes || []).length,
   };
   await next();
 }

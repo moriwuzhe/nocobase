@@ -117,16 +117,6 @@ export class PluginAuthServer extends Plugin {
     Object.entries(authenticatorsActions).forEach(([action, handler]) =>
       this.app.resourceManager.registerActionHandler(`authenticators:${action}`, handler),
     );
-    // Extend users collection with TOTP fields
-    this.db.extendCollection({
-      name: 'users',
-      fields: [
-        { type: 'string', name: 'totpSecret', hidden: true },
-        { type: 'boolean', name: 'totpEnabled', defaultValue: false },
-        { type: 'json', name: 'totpBackupCodes', hidden: true },
-      ],
-    });
-
     // Register TOTP 2FA actions
     const authResource = this.app.resourceManager.getResource('auth');
     if (authResource) {
