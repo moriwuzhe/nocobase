@@ -172,14 +172,32 @@ export default class PluginWorkflowApprovalServer extends Plugin {
    * Periodically check for timed-out approval tasks and apply timeout actions.
    */
   startTimeoutChecker() {
-    // Check every 60 seconds
     this.timeoutChecker = setInterval(async () => {
+      if (this.app.stopped || !this.db?.sequelize) {
+        this.stopTimeoutChecker();
+        return;
+      }
       try {
+        await this.db.sequelize.query('SELECT 1');
         await this.processTimeouts();
-      } catch (err) {
-        this.app.logger.error('[approval] Timeout checker error:', err);
+      } catch (err: any) {
+        if (err.message?.includes('connection manager was closed') || err.message?.includes('ConnectionManager')) {
+          this.stopTimeoutChecker();
+          return;
+        }
+        this.app.logger.error('[approval] Timeout checker error:', err.message);
       }
     }, 60 * 1000);
+
+    this.app.on('beforeStop', () => this.stopTimeoutChecker());
+    this.app.on('beforeDestroy', () => this.stopTimeoutChecker());
+  }
+
+  private stopTimeoutChecker() {
+    if (this.timeoutChecker) {
+      clearInterval(this.timeoutChecker);
+      this.timeoutChecker = null;
+    }
   }
 
   async processTimeouts() {
@@ -244,9 +262,6 @@ export default class PluginWorkflowApprovalServer extends Plugin {
   }
 
   async remove() {
-    if (this.timeoutChecker) {
-      clearInterval(this.timeoutChecker);
-      this.timeoutChecker = null;
-    }
+    this.stopTimeoutChecker();
   }
 }
