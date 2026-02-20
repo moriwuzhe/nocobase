@@ -250,13 +250,11 @@ export async function createTemplateUI(app: any, groupTitle: string, groupIcon: 
     const groupMenuUid = uid();
     try {
       await uiSchemaRepo.insertAdjacent('beforeEnd', 'admin', {
-        schema: {
-          type: 'void',
-          title: groupTitle,
-          'x-component': 'Menu.SubMenu',
-          'x-component-props': { icon: groupIcon },
-          'x-uid': groupMenuUid,
-        },
+        type: 'void',
+        title: groupTitle,
+        'x-component': 'Menu.SubMenu',
+        'x-component-props': { icon: groupIcon },
+        'x-uid': groupMenuUid,
       });
     } catch (e) {
       app.logger.debug(`[template-ui] Menu schema insert fallback: ${(e as any).message}`);
@@ -278,13 +276,11 @@ export async function createTemplateUI(app: any, groupTitle: string, groupIcon: 
         // 3a: Create menu item schema under group
         try {
           await uiSchemaRepo.insertAdjacent('beforeEnd', groupMenuUid, {
-            schema: {
-              type: 'void',
-              title: page.title,
-              'x-component': 'Menu.Item',
-              'x-component-props': { icon: page.icon },
-              'x-uid': menuItemUid,
-            },
+            type: 'void',
+            title: page.title,
+            'x-component': 'Menu.Item',
+            'x-component-props': { icon: page.icon },
+            'x-uid': menuItemUid,
           });
         } catch (e) {
           app.logger.debug(`[template-ui] Menu item fallback: ${(e as any).message}`);
