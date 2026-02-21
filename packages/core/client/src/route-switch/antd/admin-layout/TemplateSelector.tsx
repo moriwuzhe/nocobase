@@ -1232,20 +1232,25 @@ export async function installTemplate(api: any, appName: string, templateKey: st
               },
             });
 
-            const routeUid = uid();
-            await api.request({
-              url: 'routes:create',
-              method: 'post',
-              headers: authHeaders,
-              data: {
-                type: 'page',
-                title: page.title,
-                icon: page.icon,
-                schemaUid: pageResult.pageSchemaUid,
-                menuSchemaUid: menuItemSchemaUid,
-                enableTabs: pageResult.enableTabs,
-              },
-            });
+            const routeData = {
+              type: 'page',
+              title: page.title,
+              icon: page.icon,
+              schemaUid: pageResult.pageSchemaUid,
+              menuSchemaUid: menuItemSchemaUid,
+              enableTabs: pageResult.enableTabs,
+            };
+
+            // Try desktopRoutes first, fallback to routes
+            try {
+              await api.request({ url: 'desktopRoutes:create', method: 'post', headers: authHeaders, data: routeData });
+            } catch {
+              try {
+                await api.request({ url: 'routes:create', method: 'post', headers: authHeaders, data: routeData });
+              } catch {
+                // Route creation not available in this app version
+              }
+            }
 
             await api.request({
               url: 'uiSchemas:insert',
@@ -1257,19 +1262,13 @@ export async function installTemplate(api: any, appName: string, templateKey: st
             if (pageResult.enableTabs && pageResult.tabs.length > 0) {
               for (const tab of pageResult.tabs) {
                 try {
-                  await api.request({
-                    url: 'routes:create',
-                    method: 'post',
-                    headers: authHeaders,
-                    data: {
-                      type: 'tabs',
-                      title: tab.title,
-                      schemaUid: tab.schemaUid,
-                      tabSchemaName: tab.tabSchemaName,
-                    },
-                  });
-                } catch (e) {
-                  // tab routes may not be supported in all versions
+                  await api.request({ url: 'desktopRoutes:create', method: 'post', headers: authHeaders, data: { type: 'tabs', title: tab.title, schemaUid: tab.schemaUid, tabSchemaName: tab.tabSchemaName } });
+                } catch {
+                  try {
+                    await api.request({ url: 'routes:create', method: 'post', headers: authHeaders, data: { type: 'tabs', title: tab.title, schemaUid: tab.schemaUid, tabSchemaName: tab.tabSchemaName } });
+                  } catch {
+                    // tab routes not supported
+                  }
                 }
               }
             }
