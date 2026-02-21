@@ -25,6 +25,9 @@ const HR_COLLECTIONS = [
 
 export default class PluginHrTemplateServer extends Plugin {
   async install(options?: InstallOptions) {
+    // Skip heavy operations for sub-apps
+    if (this.app.name && this.app.name !== 'main') return;
+
     try {
       const result = await seedHrData(this.db);
       if (result.created > 0) this.app.logger.info(`[hr-template] Seeded ${result.created} records`);

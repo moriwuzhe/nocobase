@@ -22,7 +22,10 @@ const COLLECTIONS = [
 ];
 
 export default class PluginProcurementTemplateServer extends Plugin {
-  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[procurement] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[procurement] Seed skipped: ${(e as any).message}`); }
+  async install(options?: InstallOptions) {
+    // Skip heavy operations for sub-apps
+    if (this.app.name && this.app.name !== 'main') return;
+ try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[procurement] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[procurement] Seed skipped: ${(e as any).message}`); }
     try { const rc = await createProcurementRoles(this.app); if (rc > 0) this.app.logger.info(`[procurement] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[procurement] Roles skipped: ${(e as any).message}`); }
     try { await createTemplateUI(this.app, '采购管理', 'ShoppingCartOutlined', [{ title: '采购订单', icon: 'ShoppingCartOutlined', collectionName: 'procPurchaseOrders', fields: ['code','title','totalAmount','status','createdAt'], formFields: ['title','totalAmount','status'] }, { title: '供应商', icon: 'ShopOutlined', collectionName: 'procSuppliers', fields: ['name','contactPerson','phone','email','category','rating'], formFields: ['name','contactPerson','phone','email','category','rating'] }]); } catch (e) { this.app.logger.warn(`[procurement] UI skipped: ${(e as any).message}`); }
   }

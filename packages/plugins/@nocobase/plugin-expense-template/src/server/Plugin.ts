@@ -16,7 +16,10 @@ import { createExpenseWorkflows } from './workflows';
 const COLLECTIONS = ['expenseClaims', 'expenseItems', 'expenseCategories'];
 
 export default class PluginExpenseTemplateServer extends Plugin {
-  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[expense] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[expense] Seed skipped: ${(e as any).message}`); }
+  async install(options?: InstallOptions) {
+    // Skip heavy operations for sub-apps
+    if (this.app.name && this.app.name !== 'main') return;
+ try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[expense] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[expense] Seed skipped: ${(e as any).message}`); }
     try { const rc = await createExpenseRoles(this.app); if (rc > 0) this.app.logger.info(`[expense] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[expense] Roles skipped: ${(e as any).message}`); }
     try { await createTemplateUI(this.app, '报销管理', 'AccountBookOutlined', [{ title: '报销单', icon: 'AccountBookOutlined', collectionName: 'expenseClaims', fields: ['code','title','totalAmount','status','createdAt'], formFields: ['title','totalAmount','status'] }, { title: '费用类别', icon: 'TagOutlined', collectionName: 'expenseCategories', fields: ['name','code'], formFields: ['name','code'] }]); } catch (e) { this.app.logger.warn(`[expense] UI skipped: ${(e as any).message}`); }
   }

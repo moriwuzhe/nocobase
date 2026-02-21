@@ -41,6 +41,9 @@ const STAGE_PROBABILITY: Record<string, number> = {
 
 export default class PluginCrmTemplateServer extends Plugin {
   async install(options?: InstallOptions) {
+    // Skip heavy operations for sub-apps
+    if (this.app.name && this.app.name !== 'main') return;
+
     try {
       const result = await seedCrmData(this.db);
       if (result.created > 0) {

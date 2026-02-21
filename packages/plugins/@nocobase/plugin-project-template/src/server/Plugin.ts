@@ -17,6 +17,9 @@ const PM_COLLECTIONS = ['pmProjects', 'pmTasks', 'pmMilestones', 'pmTimesheets',
 
 export default class PluginProjectTemplateServer extends Plugin {
   async install(options?: InstallOptions) {
+    // Skip heavy operations for sub-apps
+    if (this.app.name && this.app.name !== 'main') return;
+
     try {
       const result = await seedProjectData(this.db);
       if (result.created > 0) this.app.logger.info(`[project-template] Seeded ${result.created} records`);

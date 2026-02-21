@@ -17,6 +17,9 @@ const INV_COLLECTIONS = ['invProducts', 'invStockMovements', 'invStockCheck', 'i
 
 export default class PluginInventoryTemplateServer extends Plugin {
   async install(options?: InstallOptions) {
+    // Skip heavy operations for sub-apps
+    if (this.app.name && this.app.name !== 'main') return;
+
     try {
       const result = await seedInventoryData(this.db);
       if (result.created > 0) this.app.logger.info(`[inventory-template] Seeded ${result.created} records`);

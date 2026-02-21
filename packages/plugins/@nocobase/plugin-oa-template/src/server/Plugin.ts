@@ -24,6 +24,9 @@ const OA_COLLECTIONS = [
 
 export default class PluginOaTemplateServer extends Plugin {
   async install(options?: InstallOptions) {
+    // Skip heavy operations for sub-apps
+    if (this.app.name && this.app.name !== 'main') return;
+
     try {
       const result = await seedOaData(this.db);
       if (result.created > 0) this.app.logger.info(`[oa-template] Seeded ${result.created} records`);

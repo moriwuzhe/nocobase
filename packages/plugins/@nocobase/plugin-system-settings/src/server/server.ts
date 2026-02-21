@@ -219,7 +219,9 @@ export class PluginSystemSettingsServer extends Plugin {
     registerSchedulerActions(this.app);
 
     this.app.on('afterStart', async () => {
-      await loadScheduledTasks(this.app);
+      if (!this.app.name || this.app.name === 'main') {
+        await loadScheduledTasks(this.app);
+      }
     });
   }
 

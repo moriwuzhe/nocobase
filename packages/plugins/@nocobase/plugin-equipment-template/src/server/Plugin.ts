@@ -16,7 +16,10 @@ import { createEquipmentWorkflows } from './workflows';
 const COLLECTIONS = ['eqEquipment', 'eqMaintenancePlans', 'eqMaintenanceRecords'];
 
 export default class PluginEquipmentTemplateServer extends Plugin {
-  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[equipment] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[equipment] Seed skipped: ${(e as any).message}`); }
+  async install(options?: InstallOptions) {
+    // Skip heavy operations for sub-apps
+    if (this.app.name && this.app.name !== 'main') return;
+ try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[equipment] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[equipment] Seed skipped: ${(e as any).message}`); }
         try { const rc = await createEquipmentRoles(this.app); if (rc > 0) this.app.logger.info(`[equipment] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[equipment] Roles skipped: ${(e as any).message}`); }
 try { const wf = await createEquipmentWorkflows(this.app); if (wf > 0) this.app.logger.info(`[equipment] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[equipment] Workflows skipped: ${(e as any).message}`); }
     try { await createTemplateUI(this.app, '设备维保', 'ToolOutlined', [

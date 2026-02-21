@@ -17,6 +17,9 @@ const COLLECTIONS = ['tickets', 'ticketKnowledgeBase', 'ticketCategories', 'tick
 
 export default class PluginTicketTemplateServer extends Plugin {
   async install(options?: InstallOptions) {
+    // Skip heavy operations for sub-apps
+    if (this.app.name && this.app.name !== 'main') return;
+
     try {
       const result = await seedTicketData(this.db);
       if (result.created > 0) this.app.logger.info(`[ticket-template] Seeded ${result.created} records`);

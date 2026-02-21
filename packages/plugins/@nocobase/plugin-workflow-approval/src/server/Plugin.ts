@@ -125,8 +125,10 @@ export default class PluginWorkflowApprovalServer extends Plugin {
     this.db.on('approvalTasks.afterSave', this.onTaskSave);
     this.db.on('approvalTasks.afterDestroy', this.onTaskSave);
 
-    // Start the timeout checker
-    this.startTimeoutChecker();
+    // Start the timeout checker (main app only)
+    if (!this.app.name || this.app.name === 'main') {
+      this.startTimeoutChecker();
+    }
   }
 
   /**

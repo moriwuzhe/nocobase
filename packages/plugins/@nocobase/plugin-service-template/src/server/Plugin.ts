@@ -16,7 +16,10 @@ import { createServiceWorkflows } from './workflows';
 const COLLECTIONS = ['serviceRequests', 'serviceWarranties', 'serviceReturns'];
 
 export default class PluginServiceTemplateServer extends Plugin {
-  async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[service] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[service] Seed skipped: ${(e as any).message}`); }
+  async install(options?: InstallOptions) {
+    // Skip heavy operations for sub-apps
+    if (this.app.name && this.app.name !== 'main') return;
+ try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[service] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[service] Seed skipped: ${(e as any).message}`); }
         try { const rc = await createServiceRoles(this.app); if (rc > 0) this.app.logger.info(`[service] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[service] Roles skipped: ${(e as any).message}`); }
 try { const wf = await createServiceWorkflows(this.app); if (wf > 0) this.app.logger.info(`[service] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[service] Workflows skipped: ${(e as any).message}`); }
     try { await createTemplateUI(this.app, '售后服务', 'CustomerServiceOutlined', [
