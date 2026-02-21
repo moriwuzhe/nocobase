@@ -10,6 +10,7 @@
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedOaData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
+import { createOaRoles } from './roles';
 import { createOaWorkflows } from './workflows';
 
 const OA_COLLECTIONS = [
@@ -27,7 +28,8 @@ export default class PluginOaTemplateServer extends Plugin {
       const result = await seedOaData(this.db);
       if (result.created > 0) this.app.logger.info(`[oa-template] Seeded ${result.created} records`);
     } catch (err) { this.app.logger.warn(`[oa-template] Seed skipped: ${err.message}`); }
-    try { const wf = await createOaWorkflows(this.app); if (wf > 0) this.app.logger.info(`[oa] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[oa] Workflows skipped: ${(e as any).message}`); }
+        try { const rc = await createOaRoles(this.app); if (rc > 0) this.app.logger.info(`[oa] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[oa] Roles skipped: ${(e as any).message}`); }
+try { const wf = await createOaWorkflows(this.app); if (wf > 0) this.app.logger.info(`[oa] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[oa] Workflows skipped: ${(e as any).message}`); }
 
     try {
       await createTemplateUI(this.app, 'OA 协同办公', 'DesktopOutlined', [
