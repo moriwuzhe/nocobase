@@ -262,6 +262,12 @@ function buildTableBlock(collectionName: string, columnFields: string[], formFie
 }
 
 export async function createTemplateUI(app: any, groupTitle: string, groupIcon: string, pages: PageDef[]): Promise<void> {
+  // Skip UI creation for sub-apps (they use the main app's UI)
+  if (app.name && app.name !== 'main') {
+    app.logger.info(`[template-ui] Skipping UI for sub-app "${app.name}"`);
+    return;
+  }
+
   const db = app.db;
   const uiSchemaRepo = db.getRepository('uiSchemas');
   const routeRepo = db.getRepository('desktopRoutes');
