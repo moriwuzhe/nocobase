@@ -30,7 +30,7 @@ export default class PluginOaTemplateServer extends Plugin {
     try {
       const result = await seedOaData(this.db);
       if (result.created > 0) this.app.logger.info(`[oa-template] Seeded ${result.created} records`);
-    } catch (err) { this.app.logger.warn(`[oa-template] Seed skipped: ${err.message}`); }
+    } catch (err) { this.app.logger.warn(`[oa-template] Seed skipped: ${(err as any).message}`); }
         try { const rc = await createOaRoles(this.app); if (rc > 0) this.app.logger.info(`[oa] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[oa] Roles skipped: ${(e as any).message}`); }
 try { const wf = await createOaWorkflows(this.app); if (wf > 0) this.app.logger.info(`[oa] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[oa] Workflows skipped: ${(e as any).message}`); }
 

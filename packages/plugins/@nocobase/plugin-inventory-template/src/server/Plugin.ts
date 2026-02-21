@@ -23,7 +23,7 @@ export default class PluginInventoryTemplateServer extends Plugin {
     try {
       const result = await seedInventoryData(this.db);
       if (result.created > 0) this.app.logger.info(`[inventory-template] Seeded ${result.created} records`);
-    } catch (err) { this.app.logger.warn(`[inventory-template] Seed skipped: ${err.message}`); }
+    } catch (err) { this.app.logger.warn(`[inventory-template] Seed skipped: ${(err as any).message}`); }
     try {
       await createTemplateUI(this.app, '进销存管理', 'DatabaseOutlined', [
         { title: '商品管理', icon: 'ShoppingOutlined', collectionName: 'invProducts', fields: ['sku', 'name', 'category', 'unitPrice', 'quantity', 'minStock', 'unit'], formFields: ['name', 'sku', 'category', 'unitPrice', 'costPrice', 'quantity', 'minStock', 'unit', 'description'] },

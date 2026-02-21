@@ -23,7 +23,7 @@ export default class PluginTicketTemplateServer extends Plugin {
     try {
       const result = await seedTicketData(this.db);
       if (result.created > 0) this.app.logger.info(`[ticket-template] Seeded ${result.created} records`);
-    } catch (err) { this.app.logger.warn(`[ticket-template] Seed skipped: ${err.message}`); }
+    } catch (err) { this.app.logger.warn(`[ticket-template] Seed skipped: ${(err as any).message}`); }
         try { const rc = await createTicketRoles(this.app); if (rc > 0) this.app.logger.info(`[ticket] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[ticket] Roles skipped: ${(e as any).message}`); }
 try { const wf = await createTicketWorkflows(this.app); if (wf > 0) this.app.logger.info(`[ticket] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[ticket] Workflows skipped: ${(e as any).message}`); }
 

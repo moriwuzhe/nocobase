@@ -50,7 +50,7 @@ export default class PluginCrmTemplateServer extends Plugin {
         this.app.logger.info(`[crm-template] Seeded ${result.created} sample records`);
       }
     } catch (err) {
-      this.app.logger.warn(`[crm-template] Seed data skipped: ${err.message}`);
+      this.app.logger.warn(`[crm-template] Seed data skipped: ${(err as any).message}`);
     }
 
     try { const rc = await createCrmRoles(this.app); if (rc > 0) this.app.logger.info(`[crm] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[crm] Roles skipped: ${(e as any).message}`); }

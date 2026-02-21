@@ -32,7 +32,7 @@ export default class PluginHrTemplateServer extends Plugin {
       const result = await seedHrData(this.db);
       if (result.created > 0) this.app.logger.info(`[hr-template] Seeded ${result.created} records`);
     } catch (err) {
-      this.app.logger.warn(`[hr-template] Seed skipped: ${err.message}`);
+      this.app.logger.warn(`[hr-template] Seed skipped: ${(err as any).message}`);
     }
     try { const rc = await createHrRoles(this.app); if (rc > 0) this.app.logger.info(`[hr] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[hr] Roles skipped: ${(e as any).message}`); }
     try { const wf = await createHrWorkflows(this.app); if (wf > 0) this.app.logger.info(`[hr] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[hr] Workflows skipped: ${(e as any).message}`); }
