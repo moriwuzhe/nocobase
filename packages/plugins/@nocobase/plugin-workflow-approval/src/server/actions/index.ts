@@ -304,3 +304,76 @@ export async function stats(context: Context, next: Next) {
   context.body = { pending, approved, rejected, initiated };
   await next();
 }
+
+/**
+ * POST /api/approvalTasks:batchSubmit
+ * Body: { taskIds: number[], action: 'approve' | 'reject', comment?: string }
+ *
+ * Process multiple approval tasks at once.
+ */
+export async function batchSubmit(context: Context, next: Next) {
+  const { currentUser } = context.state;
+  const { taskIds, action, comment } = context.action.params.values || {};
+
+  if (!taskIds?.length) return context.throw(400, 'taskIds is required');
+  if (!['approve', 'reject'].includes(action)) return context.throw(400, 'action must be approve or reject');
+
+  const repository = context.db.getRepository('approvalTasks');
+  const tasks = await repository.find({
+    filter: {
+      id: { $in: taskIds },
+      userId: currentUser.id,
+      status: APPROVAL_STATUS.PENDING,
+    },
+    appends: ['job', 'node'],
+  });
+
+  if (tasks.length === 0) {
+    context.body = { success: false, processed: 0, message: 'No pending tasks found' };
+    return next();
+  }
+
+  const workflowPlugin = context.app.pm.get('workflow') as WorkflowPlugin;
+  let processed = 0;
+  const errors: string[] = [];
+
+  for (const task of tasks) {
+    try {
+      const newStatus = action === APPROVAL_ACTION.APPROVE
+        ? APPROVAL_STATUS.APPROVED
+        : APPROVAL_STATUS.REJECTED;
+
+      await repository.update({
+        filterByTk: task.id,
+        values: {
+          status: newStatus,
+          comment: comment || `Batch ${action}`,
+          processedAt: new Date(),
+          result: { action, comment: comment || `Batch ${action}` },
+        },
+      });
+
+      const job = task.job;
+      if (job) {
+        job.set({
+          status: JOB_STATUS.PENDING,
+          result: { ...job.result, latestAction: action, latestUserId: currentUser.id },
+        });
+        job.latestTask = { result: { action, comment }, status: newStatus };
+        workflowPlugin.resume(job);
+      }
+
+      processed++;
+    } catch (err: any) {
+      errors.push(`Task #${task.id}: ${err.message}`);
+    }
+  }
+
+  context.body = {
+    success: true,
+    processed,
+    total: taskIds.length,
+    errors: errors.length > 0 ? errors : undefined,
+  };
+  await next();
+}

@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'procPayments', title: 'Supplier Payments', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'procPayments', title: 'Supplier Payments', fields: [
   { type: 'string', name: 'paymentNo', unique: true, interface: 'input', uiSchema: { type: 'string', title: 'Payment No', 'x-component': 'Input' } },
   { type: 'belongsTo', name: 'supplier', target: 'procSuppliers', foreignKey: 'supplierId' },
   { type: 'belongsTo', name: 'purchaseOrder', target: 'procPurchaseOrders', foreignKey: 'purchaseOrderId' },

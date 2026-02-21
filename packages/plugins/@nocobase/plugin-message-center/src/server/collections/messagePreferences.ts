@@ -14,6 +14,7 @@ import { defineCollection } from '@nocobase/database';
  * Controls which categories are delivered via which channels.
  */
 export default defineCollection({
+  logging: true,
   name: 'messagePreferences',
   dumpRules: { group: 'required' },
   shared: true,

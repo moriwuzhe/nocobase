@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'recOffers', title: 'Offer Letters', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'recOffers', title: 'Offer Letters', fields: [
   { type: 'belongsTo', name: 'candidate', target: 'recCandidates', foreignKey: 'candidateId' },
   { type: 'belongsTo', name: 'job', target: 'recJobPostings', foreignKey: 'jobId' },
   { type: 'float', name: 'salary', interface: 'number', uiSchema: { type: 'number', title: 'Monthly Salary', 'x-component': 'InputNumber', 'x-component-props': { precision: 2 } } },

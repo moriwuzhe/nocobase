@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'ecRefunds', title: 'Refunds',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'ecRefunds', title: 'Refunds',
   fields: [
     { type: 'string', name: 'refundNo', unique: true, interface: 'input', uiSchema: { type: 'string', title: 'Refund No', 'x-component': 'Input' } },
     { type: 'belongsTo', name: 'order', target: 'ecOrders', foreignKey: 'orderId', interface: 'm2o', uiSchema: { type: 'object', title: 'Order', 'x-component': 'AssociationField' } },

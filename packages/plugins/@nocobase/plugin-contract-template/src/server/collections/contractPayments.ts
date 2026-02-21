@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'contractPayments', title: 'Contract Payments', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'contractPayments', title: 'Contract Payments', fields: [
   { type: 'belongsTo', name: 'contract', target: 'contracts', foreignKey: 'contractId' },
   { type: 'string', name: 'milestone', interface: 'input', uiSchema: { type: 'string', title: 'Payment Milestone', 'x-component': 'Input' } },
   { type: 'float', name: 'amount', interface: 'number', uiSchema: { type: 'number', title: 'Amount', 'x-component': 'InputNumber', 'x-component-props': { precision: 2 } } },

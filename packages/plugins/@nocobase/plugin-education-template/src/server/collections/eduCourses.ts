@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
 export default defineCollection({
+  sortable: true,
+  logging: true,
   name: 'eduCourses', title: 'Courses',
   fields: [
     { type: 'string', name: 'courseCode', unique: true, interface: 'input', uiSchema: { type: 'string', title: 'Course Code', 'x-component': 'Input' } },

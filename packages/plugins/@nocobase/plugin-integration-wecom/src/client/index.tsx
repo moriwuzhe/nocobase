@@ -101,6 +101,11 @@ const WecomConfigPage: React.FC = () => {
 
 export class PluginIntegrationWecomClient extends Plugin {
   async load() {
+    try {
+      const zhCN = (await import('../locale/zh-CN.json')).default;
+      this.app.i18n.addResources('zh-CN', 'integration-wecom', zhCN);
+    } catch { /* locale file may not exist */ }
+
     this.app.pluginSettingsManager.add('integration-wecom', {
       icon: 'LinkOutlined',
       title: tval('WeCom'),

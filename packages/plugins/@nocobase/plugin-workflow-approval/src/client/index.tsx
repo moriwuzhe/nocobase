@@ -19,6 +19,7 @@ import zhCN from './locale/zh-CN';
 
 const { ApprovalCenter } = lazy(() => import('./components/ApprovalCenter'), 'ApprovalCenter');
 const { DelegationManager } = lazy(() => import('./components/DelegationManager'), 'DelegationManager');
+const { WorkflowMonitor } = lazy(() => import('./components/WorkflowMonitor'), 'WorkflowMonitor');
 
 export class PluginWorkflowApprovalClient extends Plugin {
   async load() {
@@ -50,6 +51,10 @@ export class PluginWorkflowApprovalClient extends Plugin {
       title: tval('Delegation Rules', { ns: namespace }),
       Component: DelegationManager,
     });
+    this.app.pluginSettingsManager.add('workflow-approval.monitor', {
+      title: tval('Workflow Monitor', { ns: namespace }),
+      Component: WorkflowMonitor,
+    });
 
     // Add ApprovalBlock to page block initializers
     this.app.schemaInitializerManager.addItem(
@@ -68,3 +73,4 @@ export { ApprovalCenter } from './components/ApprovalCenter';
 export { ApprovalTimeline } from './components/ApprovalTimeline';
 export { ApprovalBlock } from './components/ApprovalBlock';
 export { DelegationManager } from './components/DelegationManager';
+export { WorkflowMonitor } from './components/WorkflowMonitor';

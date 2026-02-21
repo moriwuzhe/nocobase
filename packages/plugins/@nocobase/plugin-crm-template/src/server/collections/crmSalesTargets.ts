@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'crmSalesTargets', title: 'Sales Targets / Forecasts',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'crmSalesTargets', title: 'Sales Targets / Forecasts',
   fields: [
     { type: 'belongsTo', name: 'user', target: 'users', foreignKey: 'userId', interface: 'm2o', uiSchema: { type: 'object', title: 'Sales Rep', 'x-component': 'AssociationField', 'x-component-props': { fieldNames: { label: 'nickname', value: 'id' } } } },
     { type: 'string', name: 'period', interface: 'input', uiSchema: { type: 'string', title: 'Period (e.g. 2025-Q1)', 'x-component': 'Input' } },

@@ -1,0 +1,14 @@
+{
+  "WeCom": "企业微信",
+  "WeCom Integration": "企业微信集成",
+  "Corp ID": "企业ID",
+  "Agent ID": "应用AgentId",
+  "App Secret": "应用Secret",
+  "Token": "回调Token",
+  "Encoding AES Key": "回调EncodingAESKey",
+  "Save Configuration": "保存配置",
+  "Sync Contacts": "同步通讯录",
+  "Sync Complete": "同步完成",
+  "Connect your WeCom organization for SSO, contact sync, and message push.": "连接您的企业微信组织，实现单点登录、通讯录同步和消息推送。",
+  "Sign in with WeCom": "企业微信登录"
+}

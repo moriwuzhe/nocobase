@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'vehicleMaintenance', title: 'Maintenance Records', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'vehicleMaintenance', title: 'Maintenance Records', fields: [
   { type: 'belongsTo', name: 'vehicle', target: 'vehicles', foreignKey: 'vehicleId' },
   { type: 'string', name: 'type', interface: 'select', uiSchema: { type: 'string', title: 'Type', 'x-component': 'Select', enum: [{ label: 'Regular Service', value: 'regular' }, { label: 'Repair', value: 'repair' }, { label: 'Tire Change', value: 'tire' }, { label: 'Accident', value: 'accident' }, { label: 'Inspection', value: 'inspection' }] } },
   { type: 'date', name: 'date', interface: 'datetime', uiSchema: { type: 'string', title: 'Date', 'x-component': 'DatePicker' } },

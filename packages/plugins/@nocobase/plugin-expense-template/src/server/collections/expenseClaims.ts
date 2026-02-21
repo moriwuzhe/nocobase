@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'expenseClaims', title: 'Expense Claims', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'expenseClaims', title: 'Expense Claims', fields: [
   { type: 'string', name: 'claimNo', unique: true, interface: 'input', uiSchema: { type: 'string', title: 'Claim No', 'x-component': 'Input' } },
   { type: 'string', name: 'title', interface: 'input', uiSchema: { type: 'string', title: 'Title', 'x-component': 'Input' } },
   { type: 'string', name: 'category', interface: 'select', uiSchema: { type: 'string', title: 'Category', 'x-component': 'Select', enum: [{ label: 'Travel', value: 'travel' }, { label: 'Meal', value: 'meal' }, { label: 'Transport', value: 'transport' }, { label: 'Office', value: 'office' }, { label: 'Communication', value: 'communication' }, { label: 'Other', value: 'other' }] } },

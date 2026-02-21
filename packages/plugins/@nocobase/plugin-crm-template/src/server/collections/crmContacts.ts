@@ -10,6 +10,8 @@
 import { defineCollection } from '@nocobase/database';
 
 export default defineCollection({
+  sortable: true,
+  logging: true,
   name: 'crmContacts',
   title: 'Contacts',
   fields: [

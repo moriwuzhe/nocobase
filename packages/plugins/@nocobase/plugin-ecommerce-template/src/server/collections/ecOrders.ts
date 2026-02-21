@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'ecOrders', title: 'Orders', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'ecOrders', title: 'Orders', fields: [
   { type: 'string', name: 'orderNo', unique: true, interface: 'input', uiSchema: { type: 'string', title: 'Order No', 'x-component': 'Input' } },
   { type: 'string', name: 'customerName', interface: 'input', uiSchema: { type: 'string', title: 'Customer', 'x-component': 'Input' } },
   { type: 'string', name: 'customerPhone', interface: 'phone', uiSchema: { type: 'string', title: 'Phone', 'x-component': 'Input' } },

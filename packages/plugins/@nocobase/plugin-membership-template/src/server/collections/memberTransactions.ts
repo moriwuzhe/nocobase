@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'memberTransactions', title: 'Member Transactions', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'memberTransactions', title: 'Member Transactions', fields: [
   { type: 'belongsTo', name: 'member', target: 'members', foreignKey: 'memberId' },
   { type: 'string', name: 'type', interface: 'select', uiSchema: { type: 'string', title: 'Type', 'x-component': 'Select', enum: [{ label: 'Top-up', value: 'topup' }, { label: 'Spend', value: 'spend' }, { label: 'Points Earn', value: 'points_earn' }, { label: 'Points Redeem', value: 'points_redeem' }, { label: 'Refund', value: 'refund' }, { label: 'Upgrade', value: 'upgrade' }] } },
   { type: 'float', name: 'amount', interface: 'number', uiSchema: { type: 'number', title: 'Amount', 'x-component': 'InputNumber', 'x-component-props': { precision: 2 } } },

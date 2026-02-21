@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'eduPayments', title: 'Tuition Payments', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'eduPayments', title: 'Tuition Payments', fields: [
   { type: 'belongsTo', name: 'student', target: 'eduStudents', foreignKey: 'studentId' },
   { type: 'string', name: 'semester', interface: 'input', uiSchema: { type: 'string', title: 'Semester', 'x-component': 'Input' } },
   { type: 'float', name: 'tuition', interface: 'number', uiSchema: { type: 'number', title: 'Tuition', 'x-component': 'InputNumber', 'x-component-props': { precision: 2 } } },

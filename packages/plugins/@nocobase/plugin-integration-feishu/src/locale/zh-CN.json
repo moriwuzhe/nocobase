@@ -1,0 +1,13 @@
+{
+  "Feishu": "飞书",
+  "Feishu Integration": "飞书集成",
+  "App ID": "应用ID",
+  "App Secret": "应用Secret",
+  "Encrypt Key": "加密密钥",
+  "Verification Token": "验证Token",
+  "Save Configuration": "保存配置",
+  "Sync Contacts": "同步通讯录",
+  "Sync Complete": "同步完成",
+  "Connect your Feishu organization for SSO, contact sync, and message push.": "连接您的飞书组织，实现单点登录、通讯录同步和消息推送。",
+  "Sign in with Feishu": "飞书登录"
+}

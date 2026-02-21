@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'ticketReplies', title: 'Ticket Replies',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'ticketReplies', title: 'Ticket Replies',
   fields: [
     { type: 'belongsTo', name: 'ticket', target: 'tickets', foreignKey: 'ticketId' },
     { type: 'text', name: 'content', interface: 'richText', uiSchema: { type: 'string', title: 'Reply', 'x-component': 'RichText' } },

@@ -18,6 +18,8 @@ import { ollamaProviderOptions } from './llm-providers/ollama';
 import { chatglmProviderOptions } from './llm-providers/chatglm';
 import aiResource from './resource/ai';
 import aiSearchResource from './resource/ai-search';
+import aiAnalyticsResource from './resource/ai-analytics';
+import aiFormAssistResource from './resource/ai-form-assist';
 import PluginWorkflowServer from '@nocobase/plugin-workflow';
 import { LLMInstruction } from './workflow/nodes/llm';
 
@@ -39,11 +41,15 @@ export class PluginAIServer extends Plugin {
 
     this.app.resourceManager.define(aiResource);
     this.app.resourceManager.define(aiSearchResource);
+    this.app.resourceManager.define(aiAnalyticsResource);
+    this.app.resourceManager.define(aiFormAssistResource);
     this.app.acl.registerSnippet({
       name: `pm.${this.name}.llm-services`,
-      actions: ['ai:*', 'llmServices:*', 'aiSearch:*'],
+      actions: ['ai:*', 'llmServices:*', 'aiSearch:*', 'aiAnalytics:*', 'aiFormAssist:*'],
     });
     this.app.acl.allow('aiSearch', ['query', 'getSchema'], 'loggedIn');
+    this.app.acl.allow('aiAnalytics', ['analyze', 'summarize'], 'loggedIn');
+    this.app.acl.allow('aiFormAssist', ['suggest', 'classify'], 'loggedIn');
     const workflowSnippet = this.app.acl.snippetManager.snippets.get('pm.workflow.workflows');
     if (workflowSnippet) {
       workflowSnippet.actions.push('ai:listModels');

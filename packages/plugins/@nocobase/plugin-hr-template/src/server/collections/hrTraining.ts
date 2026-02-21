@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'hrTraining', title: 'Training Programs',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'hrTraining', title: 'Training Programs',
   fields: [
     { type: 'string', name: 'title', interface: 'input', uiSchema: { type: 'string', title: 'Training Title', 'x-component': 'Input' } },
     { type: 'string', name: 'type', interface: 'select', uiSchema: { type: 'string', title: 'Type', 'x-component': 'Select', enum: [{ label: 'Onboarding', value: 'onboarding' }, { label: 'Technical', value: 'technical' }, { label: 'Soft Skills', value: 'soft_skills' }, { label: 'Compliance', value: 'compliance' }, { label: 'Safety', value: 'safety' }, { label: 'Leadership', value: 'leadership' }] } },

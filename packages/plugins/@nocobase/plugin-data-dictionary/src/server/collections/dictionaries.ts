@@ -14,6 +14,7 @@ import { defineCollection } from '@nocobase/database';
  * e.g., "Gender", "Order Status", "Priority Level"
  */
 export default defineCollection({
+  logging: true,
   name: 'dictionaries',
   dumpRules: { group: 'required' },
   migrationRules: ['overwrite'],

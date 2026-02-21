@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'serviceWarranties', title: 'Warranties', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'serviceWarranties', title: 'Warranties', fields: [
   { type: 'string', name: 'warrantyNo', unique: true, interface: 'input', uiSchema: { type: 'string', title: 'Warranty No', 'x-component': 'Input' } },
   { type: 'string', name: 'customerName', interface: 'input', uiSchema: { type: 'string', title: 'Customer', 'x-component': 'Input' } },
   { type: 'string', name: 'productName', interface: 'input', uiSchema: { type: 'string', title: 'Product', 'x-component': 'Input' } },

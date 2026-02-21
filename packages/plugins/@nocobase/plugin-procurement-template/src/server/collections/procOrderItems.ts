@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'procOrderItems', title: 'PO Line Items', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'procOrderItems', title: 'PO Line Items', fields: [
   { type: 'belongsTo', name: 'purchaseOrder', target: 'procPurchaseOrders', foreignKey: 'purchaseOrderId' },
   { type: 'string', name: 'itemName', interface: 'input', uiSchema: { type: 'string', title: 'Item', 'x-component': 'Input' } },
   { type: 'string', name: 'specification', interface: 'input', uiSchema: { type: 'string', title: 'Spec', 'x-component': 'Input' } },

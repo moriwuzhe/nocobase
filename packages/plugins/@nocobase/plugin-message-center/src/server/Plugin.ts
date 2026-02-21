@@ -8,6 +8,7 @@
  */
 
 import { Plugin } from '@nocobase/server';
+import { registerDataChangeNotifier } from './data-change-notifier';
 
 const CATEGORIES = ['system', 'approval', 'comment', 'workflow', 'mention', 'custom'];
 
@@ -20,6 +21,13 @@ const CATEGORIES = ['system', 'approval', 'comment', 'workflow', 'mention', 'cus
  */
 export default class PluginMessageCenterServer extends Plugin {
   async load() {
+    registerDataChangeNotifier(this.db, this.app);
+
+    this.app.acl.registerSnippet({
+      name: 'pm.message-center.change-rules',
+      actions: ['dataChangeRules:*'],
+    });
+
     this.app.resourceManager.define({
       name: 'messageCenter',
       actions: {

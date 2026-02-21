@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'pmTimesheets', title: 'Timesheets',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'pmTimesheets', title: 'Timesheets',
   fields: [
     { type: 'belongsTo', name: 'project', target: 'pmProjects', foreignKey: 'projectId' },
     { type: 'belongsTo', name: 'task', target: 'pmTasks', foreignKey: 'taskId' },

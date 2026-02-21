@@ -45,22 +45,16 @@ export class DingtalkNotificationChannel extends BaseNotificationChannel {
    */
   async send(params: {
     channel: any;
-    message: {
-      title?: string;
-      content: string;
-      url?: string;
-    };
-    receivers?: {
-      userIds?: (string | number)[];
-    };
-  }) {
+    message: any;
+    receivers?: any;
+  }): Promise<{ message: any; status: 'success' | 'fail'; reason?: string }> {
     const { message, receivers } = params;
 
     try {
       const accessToken = await this.getAccessToken();
 
-      // Resolve NocoBase user IDs to DingTalk user IDs
-      const dingtalkUserIds = await this.resolveDingtalkUserIds(receivers?.userIds || []);
+      const userIds = receivers?.type === 'userId' ? receivers.value : [];
+      const dingtalkUserIds = await this.resolveDingtalkUserIds(userIds);
 
       if (!dingtalkUserIds.length) {
         return {

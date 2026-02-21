@@ -25,6 +25,7 @@ import { RoleResourceModel } from './model/RoleResourceModel';
 import { setSystemRoleMode } from './actions/union-role';
 import { checkAssociationOperate } from './middlewares/check-association-operate';
 import { checkChangesWithAssociation } from './middlewares/check-change-with-association';
+import { dataMaskingMiddleware, clearMaskingCache } from './middlewares/data-masking';
 
 export class PluginACLServer extends Plugin {
   get acl() {
@@ -777,6 +778,19 @@ export class PluginACLServer extends Plugin {
       }
 
       return next();
+    });
+
+    // Data masking middleware: masks sensitive fields based on rules
+    this.app.resourcer.use(dataMaskingMiddleware());
+
+    // Clear masking cache when rules are updated
+    this.db.on('dataMaskingRules.afterSave', () => clearMaskingCache());
+    this.db.on('dataMaskingRules.afterDestroy', () => clearMaskingCache());
+
+    // Register masking rules management actions
+    this.app.acl.registerSnippet({
+      name: 'pm.acl.data-masking',
+      actions: ['dataMaskingRules:*'],
     });
   }
 }

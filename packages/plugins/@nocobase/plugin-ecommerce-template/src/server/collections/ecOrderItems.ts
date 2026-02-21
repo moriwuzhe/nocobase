@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'ecOrderItems', title: 'Order Items',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'ecOrderItems', title: 'Order Items',
   fields: [
     { type: 'belongsTo', name: 'order', target: 'ecOrders', foreignKey: 'orderId' },
     { type: 'belongsTo', name: 'product', target: 'ecProducts', foreignKey: 'productId', interface: 'm2o', uiSchema: { type: 'object', title: 'Product', 'x-component': 'AssociationField', 'x-component-props': { fieldNames: { label: 'name', value: 'id' } } } },

@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'crmQuoteItems', title: 'Quote Line Items',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'crmQuoteItems', title: 'Quote Line Items',
   fields: [
     { type: 'belongsTo', name: 'quote', target: 'crmQuotes', foreignKey: 'quoteId' },
     { type: 'belongsTo', name: 'product', target: 'crmProducts', foreignKey: 'productId', interface: 'm2o', uiSchema: { type: 'object', title: 'Product', 'x-component': 'AssociationField', 'x-component-props': { fieldNames: { label: 'name', value: 'id' } } } },

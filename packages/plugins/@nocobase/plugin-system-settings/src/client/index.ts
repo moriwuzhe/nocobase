@@ -7,10 +7,19 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
-import { Plugin } from '@nocobase/client';
+import { Plugin, lazy } from '@nocobase/client';
+
+const { SystemStatus } = lazy(() => import('./SystemStatus'), 'SystemStatus');
 
 class PluginSystemSettingClient extends Plugin {
-  async load() {}
+  async load() {
+    this.app.pluginSettingsManager.add('system-settings.status', {
+      title: '{{t("System Status")}}',
+      icon: 'DashboardOutlined',
+      Component: SystemStatus,
+      aclSnippet: 'pm.system-settings.system-status',
+    });
+  }
 }
 
 export default PluginSystemSettingClient;

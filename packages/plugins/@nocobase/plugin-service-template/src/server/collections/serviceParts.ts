@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'serviceParts', title: 'Service Parts Used', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'serviceParts', title: 'Service Parts Used', fields: [
   { type: 'belongsTo', name: 'serviceRequest', target: 'serviceRequests', foreignKey: 'serviceRequestId' },
   { type: 'string', name: 'partName', interface: 'input', uiSchema: { type: 'string', title: 'Part', 'x-component': 'Input' } },
   { type: 'integer', name: 'quantity', defaultValue: 1, interface: 'number', uiSchema: { type: 'number', title: 'Qty', 'x-component': 'InputNumber' } },

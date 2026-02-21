@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'eqWorkOrders', title: 'Work Orders', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'eqWorkOrders', title: 'Work Orders', fields: [
   { type: 'string', name: 'orderNo', unique: true, interface: 'input', uiSchema: { type: 'string', title: 'Order No', 'x-component': 'Input' } },
   { type: 'belongsTo', name: 'equipment', target: 'eqEquipment', foreignKey: 'equipmentId', interface: 'm2o', uiSchema: { type: 'object', title: 'Equipment', 'x-component': 'AssociationField', 'x-component-props': { fieldNames: { label: 'name', value: 'id' } } } },
   { type: 'string', name: 'type', interface: 'select', uiSchema: { type: 'string', title: 'Type', 'x-component': 'Select', enum: [{ label: 'Preventive', value: 'preventive' }, { label: 'Corrective', value: 'corrective' }, { label: 'Emergency', value: 'emergency' }, { label: 'Inspection', value: 'inspection' }] } },

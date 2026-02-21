@@ -78,9 +78,10 @@ export default class PluginPrintTemplateServer extends Plugin {
 
     const html = this.renderFullHtml(template, record.toJSON(), ctx.state.currentUser);
 
-    // Try to use puppeteer for PDF generation
+    // Try to use puppeteer for PDF generation (optional dependency)
     try {
-      const puppeteer = require('puppeteer');
+      const puppeteerModuleName = 'puppeteer';
+      const puppeteer = require(puppeteerModuleName);
       const browser = await puppeteer.launch({
         headless: 'new',
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -157,8 +158,9 @@ export default class PluginPrintTemplateServer extends Plugin {
 
     // Step 4: Wrap in full HTML with print styles
     const margins = template.margins || { top: 20, right: 20, bottom: 20, left: 20 };
-    const watermarkCss = template.showWatermark && template.watermarkText
-      ? `
+    const watermarkCss =
+      template.showWatermark && template.watermarkText
+        ? `
         body::after {
           content: '${template.watermarkText}';
           position: fixed;
@@ -172,7 +174,7 @@ export default class PluginPrintTemplateServer extends Plugin {
           white-space: nowrap;
         }
       `
-      : '';
+        : '';
 
     return `<!DOCTYPE html>
 <html>
@@ -212,28 +214,25 @@ ${content}
    * Renders the inner template for each item in the array field.
    */
   private processLoops(html: string, data: Record<string, any>): string {
-    return html.replace(
-      /\{\{#each\s+(\w+(?:\.\w+)*)\}\}([\s\S]*?)\{\{\/each\}\}/g,
-      (match, path, innerTemplate) => {
-        const items = path.split('.').reduce((obj: any, key: string) => obj?.[key], data);
-        if (!Array.isArray(items)) return '';
+    return html.replace(/\{\{#each\s+(\w+(?:\.\w+)*)\}\}([\s\S]*?)\{\{\/each\}\}/g, (match, path, innerTemplate) => {
+      const items = path.split('.').reduce((obj: any, key: string) => obj?.[key], data);
+      if (!Array.isArray(items)) return '';
 
-        return items
-          .map((item: any, index: number) => {
-            let rendered = innerTemplate;
-            // Replace {{@index}} with the loop index
-            rendered = rendered.replace(/\{\{@index\}\}/g, String(index + 1));
-            // Replace {{fieldName}} within the loop context
-            rendered = rendered.replace(/\{\{(\w+)\}\}/g, (_: string, key: string) => {
-              const val = item[key];
-              if (val === null || val === undefined) return '';
-              return String(val);
-            });
-            return rendered;
-          })
-          .join('');
-      },
-    );
+      return items
+        .map((item: any, index: number) => {
+          let rendered = innerTemplate;
+          // Replace {{@index}} with the loop index
+          rendered = rendered.replace(/\{\{@index\}\}/g, String(index + 1));
+          // Replace {{fieldName}} within the loop context
+          rendered = rendered.replace(/\{\{(\w+)\}\}/g, (_: string, key: string) => {
+            const val = item[key];
+            if (val === null || val === undefined) return '';
+            return String(val);
+          });
+          return rendered;
+        })
+        .join('');
+    });
   }
 
   /**
@@ -249,24 +248,17 @@ ${content}
       },
     );
     // Without else
-    html = html.replace(
-      /\{\{#if\s+(\w+(?:\.\w+)*)\}\}([\s\S]*?)\{\{\/if\}\}/g,
-      (match, path, truePart) => {
-        const value = path.split('.').reduce((obj: any, key: string) => obj?.[key], data);
-        return value ? truePart : '';
-      },
-    );
+    html = html.replace(/\{\{#if\s+(\w+(?:\.\w+)*)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, path, truePart) => {
+      const value = path.split('.').reduce((obj: any, key: string) => obj?.[key], data);
+      return value ? truePart : '';
+    });
     return html;
   }
 
   /**
    * Interpolate {{variable}} placeholders.
    */
-  private interpolate(
-    html: string,
-    data: Record<string, any>,
-    context: { currentUser: any; now: Date },
-  ): string {
+  private interpolate(html: string, data: Record<string, any>, context: { currentUser: any; now: Date }): string {
     return html.replace(/\{\{([^#/}][^}]*)\}\}/g, (match, path) => {
       const trimmed = path.trim();
 

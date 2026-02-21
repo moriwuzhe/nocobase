@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'ecReviews', title: 'Product Reviews',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'ecReviews', title: 'Product Reviews',
   fields: [
     { type: 'belongsTo', name: 'product', target: 'ecProducts', foreignKey: 'productId' },
     { type: 'belongsTo', name: 'order', target: 'ecOrders', foreignKey: 'orderId' },
