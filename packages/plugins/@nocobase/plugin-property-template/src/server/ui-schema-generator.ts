@@ -366,6 +366,27 @@ export async function createTemplateUI(app: any, groupTitle: string, groupIcon: 
         app.logger.warn(`[template-ui] "${page.title}" failed: ${(err as any).message}`);
       }
     }
+
+    // Step 4: Create mobile routes
+    try {
+      const mobileRouteRepo = db.getRepository('mobileRoutes');
+      if (mobileRouteRepo) {
+        const existingMobile = await mobileRouteRepo.findOne({ filter: { title: groupTitle, type: 'group' } });
+        if (!existingMobile) {
+          const mobileGroup = await mobileRouteRepo.create({
+            values: { title: groupTitle, icon: groupIcon, type: 'group' },
+          });
+          for (const page of pages) {
+            try {
+              await mobileRouteRepo.create({
+                values: { title: page.title, icon: page.icon, type: 'page', parentId: mobileGroup?.id },
+              });
+            } catch { /* skip */ }
+          }
+          app.logger.info(`[template-ui] Created ${pages.length} mobile routes`);
+        }
+      }
+    } catch { /* mobile plugin may not be installed */ }
   } catch (err) {
     app.logger.warn(`[template-ui] Error: ${(err as any).message}`);
   }
