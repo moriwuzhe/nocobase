@@ -57,6 +57,7 @@ export default class PluginTemplateMarketServer extends Plugin {
         activate: this.handleActivate.bind(this),
         deactivate: this.handleDeactivate.bind(this),
         reseed: this.handleReseed.bind(this),
+        stats: this.handleStats.bind(this),
       },
     });
 
@@ -149,6 +150,29 @@ export default class PluginTemplateMarketServer extends Plugin {
     } catch (err: any) {
       ctx.body = { success: false, error: err.message };
     }
+    await next();
+  }
+
+  private async handleStats(ctx: any, next: any) {
+    const enabled = TEMPLATE_CATALOG.filter((t) => {
+      const plugin = this.app.pm.get(t.pluginName) as any;
+      return !!plugin?.enabled;
+    });
+
+    const byCategory: Record<string, { total: number; enabled: number }> = {};
+    TEMPLATE_CATALOG.forEach((t) => {
+      if (!byCategory[t.category]) byCategory[t.category] = { total: 0, enabled: 0 };
+      byCategory[t.category].total++;
+      const plugin = this.app.pm.get(t.pluginName) as any;
+      if (plugin?.enabled) byCategory[t.category].enabled++;
+    });
+
+    ctx.body = {
+      total: TEMPLATE_CATALOG.length,
+      enabled: enabled.length,
+      byCategory,
+      templates: enabled.map((t) => ({ name: t.name, title: t.titleZh, category: t.category })),
+    };
     await next();
   }
 
