@@ -1054,14 +1054,38 @@ export async function installTemplate(api: any, appName: string, templateKey: st
       onOk: async () => {
         try {
           const headers = { 'X-App': appName };
-          const authRes = await api.request({
-            url: 'auth:signIn',
-            method: 'post',
-            data: { account: 'admin@nocobase.com', password: 'admin123' },
-            headers,
-          });
-          const subToken = authRes?.data?.data?.token;
-          const authHeaders = subToken ? { ...headers, Authorization: `Bearer ${subToken}` } : headers;
+
+          // Wait for sub-app to be ready with retry
+          message.loading({ content: '等待应用启动...', key: 'tpl', duration: 0 });
+          let appReady = false;
+          for (let attempt = 0; attempt < 15; attempt++) {
+            try {
+              await api.request({ url: 'app:getInfo', headers });
+              appReady = true;
+              break;
+            } catch {
+              await new Promise((r) => setTimeout(r, 2000));
+            }
+          }
+          if (!appReady) {
+            message.error({ content: '应用启动超时，请稍后重试', key: 'tpl' });
+            resolve(false);
+            return;
+          }
+
+          let authHeaders: Record<string, string> = { ...headers };
+          try {
+            const authRes = await api.request({
+              url: 'auth:signIn',
+              method: 'post',
+              data: { account: 'admin@nocobase.com', password: 'admin123' },
+              headers,
+            });
+            const subToken = authRes?.data?.data?.token;
+            if (subToken) authHeaders = { ...headers, Authorization: `Bearer ${subToken}` };
+          } catch {
+            // Auth may fail if password changed, continue with main app token
+          }
 
           message.loading({ content: '正在创建数据表...', key: 'tpl', duration: 0 });
 
