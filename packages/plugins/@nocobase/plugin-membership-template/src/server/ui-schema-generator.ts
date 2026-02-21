@@ -292,7 +292,7 @@ export async function createTemplateUI(app: any, groupTitle: string, groupIcon: 
         'x-component': 'Menu.SubMenu',
         'x-component-props': { icon: groupIcon },
         'x-uid': groupMenuUid,
-      });
+      }, {});
     } catch (e) {
       app.logger.debug(`[template-ui] Menu schema insert fallback: ${(e as any).message}`);
     }
@@ -318,7 +318,7 @@ export async function createTemplateUI(app: any, groupTitle: string, groupIcon: 
             'x-component': 'Menu.Item',
             'x-component-props': { icon: page.icon },
             'x-uid': menuItemUid,
-          });
+          }, {});
         } catch (e) {
           app.logger.debug(`[template-ui] Menu item fallback: ${(e as any).message}`);
         }
