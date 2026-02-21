@@ -10,13 +10,15 @@
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
+import { createServiceRoles } from './roles';
 import { createServiceWorkflows } from './workflows';
 
 const COLLECTIONS = ['serviceRequests', 'serviceWarranties', 'serviceReturns'];
 
 export default class PluginServiceTemplateServer extends Plugin {
   async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[service] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[service] Seed skipped: ${(e as any).message}`); }
-    try { const wf = await createServiceWorkflows(this.app); if (wf > 0) this.app.logger.info(`[service] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[service] Workflows skipped: ${(e as any).message}`); }
+        try { const rc = await createServiceRoles(this.app); if (rc > 0) this.app.logger.info(`[service] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[service] Roles skipped: ${(e as any).message}`); }
+try { const wf = await createServiceWorkflows(this.app); if (wf > 0) this.app.logger.info(`[service] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[service] Workflows skipped: ${(e as any).message}`); }
     try { await createTemplateUI(this.app, '售后服务', 'CustomerServiceOutlined', [
       { title: '售后工单', icon: 'ToolOutlined', collectionName: 'serviceRequests', fields: ['code','title','type','status','priority','createdAt'], formFields: ['title','type','priority','description'] },
       { title: '保修记录', icon: 'SafetyCertificateOutlined', collectionName: 'serviceWarranties', fields: ['productName','warrantyNo','startDate','endDate','status'], formFields: ['productName','warrantyNo','startDate','endDate','status'] },

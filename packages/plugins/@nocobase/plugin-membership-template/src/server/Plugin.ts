@@ -10,13 +10,15 @@
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
+import { createMembershipRoles } from './roles';
 import { createMembershipWorkflows } from './workflows';
 
 const COLLECTIONS = ['members', 'memberCards', 'memberPointsLog'];
 
 export default class PluginMembershipTemplateServer extends Plugin {
   async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[membership] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[membership] Seed skipped: ${(e as any).message}`); }
-    try { const wf = await createMembershipWorkflows(this.app); if (wf > 0) this.app.logger.info(`[membership] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[membership] Workflows skipped: ${(e as any).message}`); }
+        try { const rc = await createMembershipRoles(this.app); if (rc > 0) this.app.logger.info(`[membership] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[membership] Roles skipped: ${(e as any).message}`); }
+try { const wf = await createMembershipWorkflows(this.app); if (wf > 0) this.app.logger.info(`[membership] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[membership] Workflows skipped: ${(e as any).message}`); }
     try { await createTemplateUI(this.app, '会员管理', 'CrownOutlined', [
       { title: '会员列表', icon: 'CrownOutlined', collectionName: 'members', fields: ['memberNo','name','phone','level','points','balance','status'], formFields: ['name','phone','level','points','balance','status'] },
       { title: '消费记录', icon: 'TransactionOutlined', collectionName: 'memberTransactions', fields: ['type','amount','description','createdAt'], formFields: ['type','amount','description'] },

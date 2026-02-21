@@ -10,13 +10,15 @@
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { seedData } from './seed-data';
 import { createTemplateUI } from './ui-schema-generator';
+import { createEcommerceRoles } from './roles';
 import { createEcommerceWorkflows } from './workflows';
 
 const COLLECTIONS = ['ecOrders', 'ecOrderItems', 'ecProducts', 'ecCategories', 'ecShipping', 'ecRefunds'];
 
 export default class PluginEcommerceTemplateServer extends Plugin {
   async install(options?: InstallOptions) { try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[ecommerce] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[ecommerce] Seed skipped: ${(e as any).message}`); }
-    try { const wf = await createEcommerceWorkflows(this.app); if (wf > 0) this.app.logger.info(`[ecommerce] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[ecommerce] Workflows skipped: ${(e as any).message}`); }
+        try { const rc = await createEcommerceRoles(this.app); if (rc > 0) this.app.logger.info(`[ecommerce] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[ecommerce] Roles skipped: ${(e as any).message}`); }
+try { const wf = await createEcommerceWorkflows(this.app); if (wf > 0) this.app.logger.info(`[ecommerce] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[ecommerce] Workflows skipped: ${(e as any).message}`); }
     try { await createTemplateUI(this.app, '电商订单', 'ShopOutlined', [
       { title: '订单管理', icon: 'ShoppingOutlined', collectionName: 'ecOrders', fields: ['orderNo','totalAmount','status','paymentMethod','createdAt'], formFields: ['totalAmount','status','paymentMethod'] },
       { title: '商品管理', icon: 'GiftOutlined', collectionName: 'ecProducts', fields: ['name','price','category','stock','status'], formFields: ['name','price','category','stock','status','description'] },
