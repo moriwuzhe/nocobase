@@ -11,6 +11,7 @@ import PluginFileManagerServer from '@nocobase/plugin-file-manager';
 import { InstallOptions, Plugin } from '@nocobase/server';
 import { resolve } from 'path';
 import { registerSchedulerActions, loadScheduledTasks, stopAllTasks } from './scheduler';
+import { registerFavoritesActions } from './favorites';
 
 function formatUptime(seconds: number): string {
   const d = Math.floor(seconds / 86400);
@@ -214,6 +215,9 @@ export class PluginSystemSettingsServer extends Plugin {
       },
     });
     this.app.acl.allow('healthCheck', 'get', 'public');
+
+    // User favorites
+    registerFavoritesActions(this.app);
 
     // Task scheduler
     registerSchedulerActions(this.app);
