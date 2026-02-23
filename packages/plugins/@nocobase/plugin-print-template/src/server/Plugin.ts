@@ -8,6 +8,7 @@
  */
 
 import { Plugin } from '@nocobase/server';
+import { registerBarcodeActions } from './barcode';
 
 /**
  * Print Template Plugin
@@ -39,6 +40,8 @@ export default class PluginPrintTemplateServer extends Plugin {
       actions: ['printTemplates:*'],
     });
     this.app.acl.allow('printTemplates', ['list', 'get', 'render', 'renderPdf', 'batchRender'], 'loggedIn');
+
+    registerBarcodeActions(this.app);
   }
 
   /**

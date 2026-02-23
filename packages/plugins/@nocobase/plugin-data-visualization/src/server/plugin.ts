@@ -14,6 +14,7 @@ import { registerReportSubscriptionActions } from './report-subscription';
 import { registerAggregationActions } from './aggregation';
 import { registerStatFieldActions } from './stat-fields';
 import { registerConditionalFormatActions } from './conditional-format';
+import { registerSummaryRowActions } from './summary-row';
 
 export class PluginDataVisualizationServer extends Plugin {
   cache: Cache;
@@ -42,6 +43,7 @@ export class PluginDataVisualizationServer extends Plugin {
     registerAggregationActions(this.app);
     registerStatFieldActions(this.app);
     registerConditionalFormatActions(this.app);
+    registerSummaryRowActions(this.app);
   }
 
   async install(options?: InstallOptions) {}
