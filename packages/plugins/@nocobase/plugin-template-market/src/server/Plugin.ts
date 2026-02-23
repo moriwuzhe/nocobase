@@ -47,6 +47,11 @@ const TEMPLATE_CATALOG: TemplateDef[] = [
   { name: 'equipment', pluginName: '@nocobase/plugin-equipment-template', title: 'Equipment', titleZh: '设备管理', description: 'Equipment register, work orders, spare parts.', descriptionZh: '设备台账、维修工单、备件管理。', icon: 'ToolOutlined', category: 'assets', collections: ['eqEquipment', 'eqWorkOrders', 'eqSpareParts'], tags: ['equipment', 'maintenance', 'asset'] },
   { name: 'property', pluginName: '@nocobase/plugin-property-template', title: 'Property', titleZh: '物业管理', description: 'Owners, repair requests, fees, and inspections.', descriptionZh: '业主管理、报修工单、物业缴费、巡检记录。', icon: 'HomeOutlined', category: 'community', collections: ['propOwners', 'propRepairRequests', 'propFees', 'propInspections'], tags: ['property', 'community', 'real-estate'] },
   { name: 'education', pluginName: '@nocobase/plugin-education-template', title: 'Education', titleZh: '教务管理', description: 'Students, courses, grades, schedule, payments.', descriptionZh: '学生、课程、成绩、排课、缴费管理。', icon: 'ReadOutlined', category: 'community', collections: ['eduStudents', 'eduCourses', 'eduGrades', 'eduSchedule', 'eduPayments'], tags: ['education', 'school', 'lms'] },
+  { name: 'clinic', pluginName: '@nocobase/plugin-clinic-template', title: 'Clinic', titleZh: '诊所管理', description: 'Medical clinic with patients, appointments, records, prescriptions.', descriptionZh: '诊所管理：患者、预约、病历、处方。', icon: 'MedicineBoxOutlined', category: 'service', collections: ['clinicPatients', 'clinicAppointments', 'clinicMedicalRecords', 'clinicPrescriptions'], tags: ['medical', 'clinic', 'healthcare'] },
+  { name: 'restaurant', pluginName: '@nocobase/plugin-restaurant-template', title: 'Restaurant', titleZh: '餐饮管理', description: 'Restaurant with menus, orders, and table management.', descriptionZh: '餐饮管理：菜品、订单、餐桌。', icon: 'CoffeeOutlined', category: 'service', collections: ['restMenuItems', 'restOrders', 'restTables'], tags: ['restaurant', 'food', 'catering'] },
+  { name: 'legal', pluginName: '@nocobase/plugin-legal-template', title: 'Legal', titleZh: '法务管理', description: 'Legal case and document management.', descriptionZh: '法务管理：案件、法律文书。', icon: 'AuditOutlined', category: 'office', collections: ['legalCases', 'legalDocuments'], tags: ['legal', 'law', 'case'] },
+  { name: 'it-asset', pluginName: '@nocobase/plugin-it-asset-template', title: 'IT Asset', titleZh: 'IT资产管理', description: 'IT device and software license tracking.', descriptionZh: 'IT资产管理：设备、软件许可。', icon: 'LaptopOutlined', category: 'assets', collections: ['itDevices', 'itLicenses'], tags: ['it', 'asset', 'device'] },
+  { name: 'logistics', pluginName: '@nocobase/plugin-logistics-template', title: 'Logistics', titleZh: '仓库物流', description: 'Shipment and driver management.', descriptionZh: '仓库物流：运单、司机。', icon: 'CarOutlined', category: 'supply', collections: ['logShipments', 'logDrivers'], tags: ['logistics', 'shipping', 'delivery'] },
 ];
 
 export default class PluginTemplateMarketServer extends Plugin {
@@ -125,6 +130,18 @@ export default class PluginTemplateMarketServer extends Plugin {
     if (!template) return ctx.throw(404, 'Template not found');
 
     try {
+      // Ensure plugin is registered in the database first
+      const existing = await this.app.pm.repository.findOne({
+        filter: { packageName: template.pluginName },
+      });
+      if (!existing) {
+        try {
+          await this.app.pm.add(template.pluginName);
+        } catch {
+          // Plugin may already be added, try enable directly
+        }
+      }
+
       await this.app.pm.enable(template.pluginName);
       ctx.body = { success: true, message: `${template.title} activated` };
     } catch (err: any) {
