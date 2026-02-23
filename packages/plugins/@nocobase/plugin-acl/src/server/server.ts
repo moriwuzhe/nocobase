@@ -26,6 +26,7 @@ import { setSystemRoleMode } from './actions/union-role';
 import { checkAssociationOperate } from './middlewares/check-association-operate';
 import { checkChangesWithAssociation } from './middlewares/check-change-with-association';
 import { dataMaskingMiddleware, clearMaskingCache } from './middlewares/data-masking';
+import { registerFormRulesActions } from './form-rules-engine';
 
 export class PluginACLServer extends Plugin {
   get acl() {
@@ -779,6 +780,9 @@ export class PluginACLServer extends Plugin {
 
       return next();
     });
+
+    // Form rules engine
+    registerFormRulesActions(this.app);
 
     // Data masking middleware: masks sensitive fields based on rules
     this.app.resourcer.use(dataMaskingMiddleware());
