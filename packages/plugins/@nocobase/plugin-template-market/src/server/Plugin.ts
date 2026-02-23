@@ -9,6 +9,7 @@
 
 import { Plugin } from '@nocobase/server';
 import { registerImportHelperActions } from './import-helper';
+import { registerAppPackageActions } from './app-package';
 
 /**
  * Template catalog — the server-side registry of all available templates.
@@ -65,6 +66,7 @@ export default class PluginTemplateMarketServer extends Plugin {
     this.app.acl.allow('templateMarket', 'list', 'loggedIn');
 
     registerImportHelperActions(this.app);
+    registerAppPackageActions(this.app);
     this.app.acl.registerSnippet({
       name: `pm.${this.name}`,
       actions: ['templateMarket:*'],
