@@ -23,9 +23,9 @@ export default class PluginVehicleTemplateServer extends Plugin {
         try { const rc = await createVehicleRoles(this.app); if (rc > 0) this.app.logger.info(`[vehicle] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[vehicle] Roles skipped: ${(e as any).message}`); }
 try { const wf = await createVehicleWorkflows(this.app); if (wf > 0) this.app.logger.info(`[vehicle] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[vehicle] Workflows skipped: ${(e as any).message}`); }
     try { await createTemplateUI(this.app, '车辆管理', 'CarOutlined', [
-      { title: '车辆台账', icon: 'CarOutlined', collectionName: 'vehicles', fields: ['plateNumber','brand','model','status','department','insuranceExpiry'], formFields: ['plateNumber','brand','model','status','department','insuranceExpiry','nextInspectionDate'] },
-      { title: '维保记录', icon: 'ToolOutlined', collectionName: 'vehicleMaintenance', fields: ['type','date','mileage','cost','description'], formFields: ['type','date','mileage','cost','description'] },
-      { title: '用车日志', icon: 'FileTextOutlined', collectionName: 'vehicleUsageLogs', fields: ['date','driver','purpose','startMileage','endMileage'], formFields: ['date','driver','purpose','startMileage','endMileage'] },
+      { title: '车辆台账', icon: 'CarOutlined', collectionName: 'vehicles', fields: ['brand','status','insuranceExpiry'], formFields: ['brand','status','insuranceExpiry'] },
+      { title: '维保记录', icon: 'ToolOutlined', collectionName: 'vehicleMaintenance', fields: ['type','date','cost','description'], formFields: ['type','date','cost','description'] },
+      { title: '用车日志', icon: 'FileTextOutlined', collectionName: 'vehicleUsageLogs', fields: ['driver','purpose','startMileage','endMileage'], formFields: ['driver','purpose','startMileage','endMileage'] },
     ]); } catch (e) { this.app.logger.warn(`[vehicle] UI skipped: ${(e as any).message}`); }
   }
   async load() {

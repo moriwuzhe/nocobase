@@ -23,9 +23,9 @@ export default class PluginEcommerceTemplateServer extends Plugin {
         try { const rc = await createEcommerceRoles(this.app); if (rc > 0) this.app.logger.info(`[ecommerce] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[ecommerce] Roles skipped: ${(e as any).message}`); }
 try { const wf = await createEcommerceWorkflows(this.app); if (wf > 0) this.app.logger.info(`[ecommerce] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[ecommerce] Workflows skipped: ${(e as any).message}`); }
     try { await createTemplateUI(this.app, '电商订单', 'ShopOutlined', [
-      { title: '订单管理', icon: 'ShoppingOutlined', collectionName: 'ecOrders', fields: ['orderNo','totalAmount','status','paymentMethod','createdAt'], formFields: ['totalAmount','status','paymentMethod'] },
+      { title: '订单管理', icon: 'ShoppingOutlined', collectionName: 'ecOrders', fields: ['orderNo','totalAmount','status','paymentMethod'], formFields: ['totalAmount','status','paymentMethod'] },
       { title: '商品管理', icon: 'GiftOutlined', collectionName: 'ecProducts', fields: ['name','price','category','stock','status'], formFields: ['name','price','category','stock','status','description'] },
-      { title: '退款管理', icon: 'RollbackOutlined', collectionName: 'ecRefunds', fields: ['reason','amount','status','createdAt'], formFields: ['reason','amount','status'] },
+      { title: '退款管理', icon: 'RollbackOutlined', collectionName: 'ecRefunds', fields: ['reason','amount','status'], formFields: ['reason','amount','status'] },
     ]); } catch (e) { this.app.logger.warn(`[ecommerce] UI skipped: ${(e as any).message}`); }
   }
   async load() {

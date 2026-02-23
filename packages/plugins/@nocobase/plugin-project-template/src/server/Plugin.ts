@@ -31,10 +31,10 @@ export default class PluginProjectTemplateServer extends Plugin {
 
     try {
       await createTemplateUI(this.app, '项目管理', 'ProjectOutlined', [
-        { title: '项目列表', icon: 'ProjectOutlined', collectionName: 'pmProjects', fields: ['name', 'code', 'status', 'priority', 'progress', 'startDate', 'endDate', 'budget'], formFields: ['name', 'type', 'status', 'priority', 'startDate', 'endDate', 'budget', 'description', 'notes'] },
-        { title: '任务列表', icon: 'UnorderedListOutlined', collectionName: 'pmTasks', fields: ['title', 'code', 'status', 'priority', 'dueDate', 'progress'], formFields: ['title', 'type', 'status', 'priority', 'startDate', 'dueDate', 'estimatedHours', 'description'] },
-        { title: '里程碑', icon: 'FlagOutlined', collectionName: 'pmMilestones', fields: ['name', 'dueDate', 'status'], formFields: ['name', 'dueDate', 'status', 'description'] },
-        { title: '工时记录', icon: 'ClockCircleOutlined', collectionName: 'pmTimesheets', fields: ['date', 'hours', 'description'], formFields: ['date', 'hours', 'description'] },
+        { title: '项目列表', icon: 'ProjectOutlined', collectionName: 'pmProjects', fields: ['name','code','status','priority','progress','startDate','endDate','budget'], formFields: ['name','type','status','priority','startDate','endDate','budget','description','notes'] },
+        { title: '任务列表', icon: 'UnorderedListOutlined', collectionName: 'pmTasks', fields: ['title','code','status','priority','dueDate','progress'], formFields: ['title','type','status','priority','startDate','dueDate','estimatedHours','description'] },
+        { title: '里程碑', icon: 'FlagOutlined', collectionName: 'pmMilestones', fields: ['name','dueDate','status'], formFields: ['name','dueDate','status','description'] },
+        { title: '工时记录', icon: 'ClockCircleOutlined', collectionName: 'pmTimesheets', fields: ['date','hours','description'], formFields: ['date','hours','description'] },
       ]);
     } catch (err) { this.app.logger.warn(`[project-template] UI creation skipped: ${(err as any).message}`); }
   }

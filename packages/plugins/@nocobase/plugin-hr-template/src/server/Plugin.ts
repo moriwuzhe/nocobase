@@ -39,11 +39,11 @@ export default class PluginHrTemplateServer extends Plugin {
 
     try {
       await createTemplateUI(this.app, '人事管理 HR', 'TeamOutlined', [
-        { title: '员工档案', icon: 'IdcardOutlined', collectionName: 'hrEmployees', fields: ['employeeId', 'name', 'department', 'position', 'level', 'status', 'phone', 'email'], formFields: ['name', 'gender', 'department', 'position', 'level', 'employmentType', 'status', 'phone', 'email', 'hireDate', 'education', 'address', 'idNumber', 'bankAccount', 'emergencyContact', 'emergencyPhone'] },
-        { title: '请假管理', icon: 'CalendarOutlined', collectionName: 'hrLeaveRequests', fields: ['type', 'startDate', 'endDate', 'days', 'status', 'reason'], formFields: ['type', 'startDate', 'endDate', 'reason'] },
-        { title: '考勤记录', icon: 'ClockCircleOutlined', collectionName: 'hrAttendance', fields: ['date', 'checkIn', 'checkOut', 'status'], formFields: ['date', 'checkIn', 'checkOut', 'status', 'remark'] },
-        { title: '培训管理', icon: 'ReadOutlined', collectionName: 'hrTraining', fields: ['title', 'type', 'startDate', 'endDate', 'status'], formFields: ['title', 'type', 'startDate', 'endDate', 'location', 'description'] },
-        { title: '绩效评估', icon: 'TrophyOutlined', collectionName: 'hrPerformance', fields: ['period', 'score', 'grade', 'status'], formFields: ['period', 'score', 'grade', 'selfEvaluation', 'managerComment'] },
+        { title: '员工档案', icon: 'IdcardOutlined', collectionName: 'hrEmployees', fields: ['employeeId','name','department','position','level','status','phone','email'], formFields: ['name','gender','department','position','level','employmentType','status','phone','email','hireDate','education','address','idNumber','bankAccount','emergencyContact','emergencyPhone'] },
+        { title: '请假管理', icon: 'CalendarOutlined', collectionName: 'hrLeaveRequests', fields: ['type','startDate','endDate','days','status','reason'], formFields: ['type','startDate','endDate','reason'] },
+        { title: '考勤记录', icon: 'ClockCircleOutlined', collectionName: 'hrAttendance', fields: ['date','checkIn','checkOut','status'], formFields: ['date','checkIn','checkOut','status','remark'] },
+        { title: '培训管理', icon: 'ReadOutlined', collectionName: 'hrTraining', fields: ['title','type','startDate','endDate','status'], formFields: ['title','type','startDate','endDate','location','description'] },
+        { title: '绩效评估', icon: 'TrophyOutlined', collectionName: 'hrPerformance', fields: ['period','status'], formFields: ['period'] },
       ]);
     } catch (err) { this.app.logger.warn(`[hr-template] UI creation skipped: ${(err as any).message}`); }
   }

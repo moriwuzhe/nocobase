@@ -23,10 +23,10 @@ export default class PluginRecruitmentTemplateServer extends Plugin {
         try { const rc = await createRecruitmentRoles(this.app); if (rc > 0) this.app.logger.info(`[recruitment] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[recruitment] Roles skipped: ${(e as any).message}`); }
 try { const wf = await createRecruitmentWorkflows(this.app); if (wf > 0) this.app.logger.info(`[recruitment] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[recruitment] Workflows skipped: ${(e as any).message}`); }
     try { await createTemplateUI(this.app, '招聘管理', 'SolutionOutlined', [
-      { title: '职位发布', icon: 'SolutionOutlined', collectionName: 'recJobPostings', fields: ['title','department','location','salary','status','headcount'], formFields: ['title','department','location','salary','status','headcount','description'] },
+      { title: '职位发布', icon: 'SolutionOutlined', collectionName: 'recJobPostings', fields: ['title','department','location','status','headcount'], formFields: ['title','department','location','status','headcount','description'] },
       { title: '候选人', icon: 'UserAddOutlined', collectionName: 'recCandidates', fields: ['name','phone','email','stage','source'], formFields: ['name','phone','email','stage','source'] },
-      { title: '面试记录', icon: 'CalendarOutlined', collectionName: 'recInterviews', fields: ['date','interviewer','round','result','feedback'], formFields: ['date','interviewer','round','result','feedback'] },
-      { title: 'Offer管理', icon: 'FileProtectOutlined', collectionName: 'recOffers', fields: ['salary','startDate','status','expiryDate'], formFields: ['salary','startDate','status','expiryDate','terms'] },
+      { title: '面试记录', icon: 'CalendarOutlined', collectionName: 'recInterviews', fields: ['interviewer','round','result','feedback'], formFields: ['interviewer','round','result','feedback'] },
+      { title: 'Offer管理', icon: 'FileProtectOutlined', collectionName: 'recOffers', fields: ['salary','startDate','status','expiryDate'], formFields: ['salary','startDate','status','expiryDate'] },
     ]); } catch (e) { this.app.logger.warn(`[recruitment] UI skipped: ${(e as any).message}`); }
   }
   async load() {

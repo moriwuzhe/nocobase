@@ -22,7 +22,7 @@ export default class PluginContractTemplateServer extends Plugin {
 
     try { const r = await seedContractData(this.db); if (r.created > 0) this.app.logger.info(`[contract] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[contract] Seed skipped: ${(e as any).message}`); }
     try { const rc = await createContractRoles(this.app); if (rc > 0) this.app.logger.info(`[contract] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[contract] Roles skipped: ${(e as any).message}`); }
-    try { await createTemplateUI(this.app, '合同管理', 'FileProtectOutlined', [{ title: '合同列表', icon: 'FileProtectOutlined', collectionName: 'contracts', fields: ['contractNo', 'title', 'type', 'partyB', 'amount', 'status', 'startDate', 'endDate'], formFields: ['title', 'type', 'partyA', 'partyB', 'amount', 'signDate', 'startDate', 'endDate', 'status'] }, { title: '合同付款', icon: 'DollarOutlined', collectionName: 'contractPayments', fields: ['amount', 'paymentDate', 'status', 'method'], formFields: ['amount', 'paymentDate', 'status', 'method', 'remark'] }]); } catch (e) { this.app.logger.warn(`[contract] UI skipped: ${(e as any).message}`); }
+    try { await createTemplateUI(this.app, '合同管理', 'FileProtectOutlined', [{ title: '合同列表', icon: 'FileProtectOutlined', collectionName: 'contracts', fields: ['contractNo','title','type','partyB','amount','status','startDate','endDate'], formFields: ['title','type','partyA','partyB','amount','signDate','startDate','endDate','status'] }, { title: '合同付款', icon: 'DollarOutlined', collectionName: 'contractPayments', fields: ['amount','status'], formFields: ['amount','status'] }]); } catch (e) { this.app.logger.warn(`[contract] UI skipped: ${(e as any).message}`); }
   }
 
   async load() {

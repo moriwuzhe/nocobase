@@ -62,12 +62,12 @@ export default class PluginCrmTemplateServer extends Plugin {
 
     try {
       await createTemplateUI(this.app, '客户管理 CRM', 'TeamOutlined', [
-        { title: '客户', icon: 'TeamOutlined', collectionName: 'crmCustomers', fields: ['name', 'code', 'industry', 'stage', 'rating', 'phone', 'email', 'province', 'city'], formFields: ['name', 'industry', 'size', 'stage', 'rating', 'source', 'phone', 'email', 'website', 'province', 'city', 'address', 'annualRevenue', 'notes'] },
-        { title: '联系人', icon: 'UserOutlined', collectionName: 'crmContacts', fields: ['name', 'phone', 'email', 'position', 'department'], formFields: ['name', 'phone', 'email', 'position', 'department'] },
-        { title: '商机', icon: 'DollarOutlined', collectionName: 'crmDeals', fields: ['name', 'code', 'amount', 'stage', 'probability', 'expectedCloseDate'], formFields: ['name', 'amount', 'currency', 'stage', 'probability', 'expectedCloseDate', 'notes'] },
-        { title: '跟进活动', icon: 'PhoneOutlined', collectionName: 'crmActivities', fields: ['type', 'subject', 'activityDate', 'content'], formFields: ['type', 'subject', 'activityDate', 'content'] },
-        { title: '线索', icon: 'FlagOutlined', collectionName: 'crmLeads', fields: ['name', 'company', 'phone', 'email', 'source', 'status'], formFields: ['name', 'company', 'phone', 'email', 'source', 'status'] },
-        { title: '产品', icon: 'ShoppingOutlined', collectionName: 'crmProducts', fields: ['name', 'code', 'price', 'category', 'status'], formFields: ['name', 'code', 'price', 'category', 'description', 'status'] },
+        { title: '客户', icon: 'TeamOutlined', collectionName: 'crmCustomers', fields: ['name','code','industry','stage','rating','phone','email','province','city'], formFields: ['name','industry','size','stage','rating','source','phone','email','website','province','city','address','annualRevenue','notes'] },
+        { title: '联系人', icon: 'UserOutlined', collectionName: 'crmContacts', fields: ['phone','email','department'], formFields: ['phone','email','department'] },
+        { title: '商机', icon: 'DollarOutlined', collectionName: 'crmDeals', fields: ['name','code','amount','stage','probability','expectedCloseDate'], formFields: ['name','amount','currency','stage','probability','expectedCloseDate','notes'] },
+        { title: '跟进活动', icon: 'PhoneOutlined', collectionName: 'crmActivities', fields: ['type','subject','content'], formFields: ['type','subject','content'] },
+        { title: '线索', icon: 'FlagOutlined', collectionName: 'crmLeads', fields: ['name','company','phone','email','source','status'], formFields: ['name','company','phone','email','source','status'] },
+        { title: '产品', icon: 'ShoppingOutlined', collectionName: 'crmProducts', fields: ['name','code','category'], formFields: ['name','code','category','description'] },
       ]);
     } catch (err) {
       this.app.logger.warn(`[crm-template] UI creation skipped: ${(err as any).message}`);

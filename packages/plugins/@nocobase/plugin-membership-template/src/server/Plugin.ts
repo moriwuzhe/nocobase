@@ -23,8 +23,8 @@ export default class PluginMembershipTemplateServer extends Plugin {
         try { const rc = await createMembershipRoles(this.app); if (rc > 0) this.app.logger.info(`[membership] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[membership] Roles skipped: ${(e as any).message}`); }
 try { const wf = await createMembershipWorkflows(this.app); if (wf > 0) this.app.logger.info(`[membership] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[membership] Workflows skipped: ${(e as any).message}`); }
     try { await createTemplateUI(this.app, '会员管理', 'CrownOutlined', [
-      { title: '会员列表', icon: 'CrownOutlined', collectionName: 'members', fields: ['memberNo','name','phone','level','points','balance','status'], formFields: ['name','phone','level','points','balance','status'] },
-      { title: '消费记录', icon: 'TransactionOutlined', collectionName: 'memberTransactions', fields: ['type','amount','description','createdAt'], formFields: ['type','amount','description'] },
+      { title: '会员列表', icon: 'CrownOutlined', collectionName: 'members', fields: ['memberNo','name','phone','points','balance','status'], formFields: ['name','phone','points','balance','status'] },
+      { title: '消费记录', icon: 'TransactionOutlined', collectionName: 'memberTransactions', fields: ['type','amount'], formFields: ['type','amount'] },
     ]); } catch (e) { this.app.logger.warn(`[membership] UI skipped: ${(e as any).message}`); }
   }
   async load() {

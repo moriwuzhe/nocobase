@@ -23,8 +23,8 @@ export default class PluginServiceTemplateServer extends Plugin {
         try { const rc = await createServiceRoles(this.app); if (rc > 0) this.app.logger.info(`[service] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[service] Roles skipped: ${(e as any).message}`); }
 try { const wf = await createServiceWorkflows(this.app); if (wf > 0) this.app.logger.info(`[service] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[service] Workflows skipped: ${(e as any).message}`); }
     try { await createTemplateUI(this.app, '售后服务', 'CustomerServiceOutlined', [
-      { title: '售后工单', icon: 'ToolOutlined', collectionName: 'serviceRequests', fields: ['code','title','type','status','priority','createdAt'], formFields: ['title','type','priority','description'] },
-      { title: '保修记录', icon: 'SafetyCertificateOutlined', collectionName: 'serviceWarranties', fields: ['productName','warrantyNo','startDate','endDate','status'], formFields: ['productName','warrantyNo','startDate','endDate','status'] },
+      { title: '售后工单', icon: 'ToolOutlined', collectionName: 'serviceRequests', fields: ['type','status','priority'], formFields: ['type','priority','description'] },
+      { title: '保修记录', icon: 'SafetyCertificateOutlined', collectionName: 'serviceWarranties', fields: ['productName','warrantyNo','status'], formFields: ['productName','warrantyNo','status'] },
     ]); } catch (e) { this.app.logger.warn(`[service] UI skipped: ${(e as any).message}`); }
   }
   async load() {

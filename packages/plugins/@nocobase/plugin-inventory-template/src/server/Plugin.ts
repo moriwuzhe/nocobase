@@ -26,9 +26,9 @@ export default class PluginInventoryTemplateServer extends Plugin {
     } catch (err) { this.app.logger.warn(`[inventory-template] Seed skipped: ${(err as any).message}`); }
     try {
       await createTemplateUI(this.app, '进销存管理', 'DatabaseOutlined', [
-        { title: '商品管理', icon: 'ShoppingOutlined', collectionName: 'invProducts', fields: ['sku', 'name', 'category', 'unitPrice', 'quantity', 'minStock', 'unit'], formFields: ['name', 'sku', 'category', 'unitPrice', 'costPrice', 'quantity', 'minStock', 'unit', 'description'] },
-        { title: '出入库记录', icon: 'SwapOutlined', collectionName: 'invStockMovements', fields: ['type', 'quantity', 'reason', 'operator', 'date'], formFields: ['type', 'quantity', 'reason', 'operator', 'date'] },
-        { title: '仓库管理', icon: 'HomeOutlined', collectionName: 'invWarehouses', fields: ['name', 'code', 'address', 'manager', 'status'], formFields: ['name', 'code', 'address', 'manager', 'status'] },
+        { title: '商品管理', icon: 'ShoppingOutlined', collectionName: 'invProducts', fields: ['sku','name','category','minStock','unit'], formFields: ['name','sku','category','costPrice','minStock','unit'] },
+        { title: '出入库记录', icon: 'SwapOutlined', collectionName: 'invStockMovements', fields: ['type','quantity','operator'], formFields: ['type','quantity','operator'] },
+        { title: '仓库管理', icon: 'HomeOutlined', collectionName: 'invWarehouses', fields: ['name','code','address','manager'], formFields: ['name','code','address','manager'] },
       ]);
     } catch (err) { this.app.logger.warn(`[inventory-template] UI creation skipped: ${(err as any).message}`); }
   }

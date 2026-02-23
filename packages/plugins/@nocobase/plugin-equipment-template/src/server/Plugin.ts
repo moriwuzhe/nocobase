@@ -23,9 +23,9 @@ export default class PluginEquipmentTemplateServer extends Plugin {
         try { const rc = await createEquipmentRoles(this.app); if (rc > 0) this.app.logger.info(`[equipment] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[equipment] Roles skipped: ${(e as any).message}`); }
 try { const wf = await createEquipmentWorkflows(this.app); if (wf > 0) this.app.logger.info(`[equipment] Created ${wf} workflows`); } catch (e) { this.app.logger.warn(`[equipment] Workflows skipped: ${(e as any).message}`); }
     try { await createTemplateUI(this.app, '设备维保', 'ToolOutlined', [
-      { title: '设备台账', icon: 'ToolOutlined', collectionName: 'eqEquipment', fields: ['assetCode','name','model','status','location','lastMaintenanceDate'], formFields: ['name','model','status','location','purchaseDate'] },
-      { title: '维修工单', icon: 'FileTextOutlined', collectionName: 'eqWorkOrders', fields: ['title','type','priority','status','createdAt'], formFields: ['title','type','priority','description'] },
-      { title: '备件管理', icon: 'InboxOutlined', collectionName: 'eqSpareParts', fields: ['name','partNo','quantity','minStock','unitPrice'], formFields: ['name','partNo','quantity','minStock','unitPrice'] },
+      { title: '设备台账', icon: 'ToolOutlined', collectionName: 'eqEquipment', fields: ['name','model','status','location'], formFields: ['name','model','status','location'] },
+      { title: '维修工单', icon: 'FileTextOutlined', collectionName: 'eqWorkOrders', fields: ['type','priority','status'], formFields: ['type','priority','description'] },
+      { title: '备件管理', icon: 'InboxOutlined', collectionName: 'eqSpareParts', fields: ['name','partNo','minStock','unitPrice'], formFields: ['name','partNo','minStock','unitPrice'] },
     ]); } catch (e) { this.app.logger.warn(`[equipment] UI skipped: ${(e as any).message}`); }
   }
   async load() {

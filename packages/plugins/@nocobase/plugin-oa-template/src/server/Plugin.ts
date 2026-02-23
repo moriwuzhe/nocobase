@@ -36,11 +36,11 @@ try { const wf = await createOaWorkflows(this.app); if (wf > 0) this.app.logger.
 
     try {
       await createTemplateUI(this.app, 'OA 协同办公', 'DesktopOutlined', [
-        { title: '公告管理', icon: 'NotificationOutlined', collectionName: 'oaAnnouncements', fields: ['title', 'priority', 'status', 'publishedAt'], formFields: ['title', 'content', 'priority', 'status'] },
-        { title: '会议室', icon: 'VideoCameraOutlined', collectionName: 'oaMeetingRooms', fields: ['name', 'capacity', 'floor', 'equipment', 'status'], formFields: ['name', 'capacity', 'floor', 'equipment', 'status'] },
-        { title: '会议预约', icon: 'CalendarOutlined', collectionName: 'oaMeetingBookings', fields: ['subject', 'startTime', 'endTime', 'status'], formFields: ['subject', 'startTime', 'endTime', 'attendees'] },
-        { title: '固定资产', icon: 'LaptopOutlined', collectionName: 'oaAssets', fields: ['name', 'category', 'serialNumber', 'status', 'department', 'purchasePrice'], formFields: ['name', 'category', 'serialNumber', 'status', 'department', 'purchaseDate', 'purchasePrice'] },
-        { title: '访客登记', icon: 'UserSwitchOutlined', collectionName: 'oaVisitors', fields: ['name', 'company', 'visitDate', 'purpose', 'status'], formFields: ['name', 'company', 'phone', 'visitDate', 'purpose', 'hostEmployee'] },
+        { title: '公告管理', icon: 'NotificationOutlined', collectionName: 'oaAnnouncements', fields: ['title','priority','status'], formFields: ['title','content','priority','status'] },
+        { title: '会议室', icon: 'VideoCameraOutlined', collectionName: 'oaMeetingRooms', fields: ['name','capacity','equipment'], formFields: ['name','capacity','equipment'] },
+        { title: '会议预约', icon: 'CalendarOutlined', collectionName: 'oaMeetingBookings', fields: ['subject','startTime','endTime','status'], formFields: ['subject','startTime','endTime','attendees'] },
+        { title: '固定资产', icon: 'LaptopOutlined', collectionName: 'oaAssets', fields: ['name','category','serialNumber','status','purchasePrice'], formFields: ['name','category','serialNumber','status','purchaseDate','purchasePrice'] },
+        { title: '访客登记', icon: 'UserSwitchOutlined', collectionName: 'oaVisitors', fields: ['company','purpose','status'], formFields: ['company','phone','purpose'] },
       ]);
     } catch (err) { this.app.logger.warn(`[oa-template] UI creation skipped: ${(err as any).message}`); }
   }

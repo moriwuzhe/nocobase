@@ -21,7 +21,7 @@ export default class PluginExpenseTemplateServer extends Plugin {
     if (this.app.name && this.app.name !== 'main') return;
  try { const r = await seedData(this.db); if (r.created > 0) this.app.logger.info(`[expense] Seeded ${r.created} records`); } catch (e) { this.app.logger.warn(`[expense] Seed skipped: ${(e as any).message}`); }
     try { const rc = await createExpenseRoles(this.app); if (rc > 0) this.app.logger.info(`[expense] Created ${rc} roles`); } catch (e) { this.app.logger.warn(`[expense] Roles skipped: ${(e as any).message}`); }
-    try { await createTemplateUI(this.app, '报销管理', 'AccountBookOutlined', [{ title: '报销单', icon: 'AccountBookOutlined', collectionName: 'expenseClaims', fields: ['code','title','totalAmount','status','createdAt'], formFields: ['title','totalAmount','status'] }, { title: '费用类别', icon: 'TagOutlined', collectionName: 'expenseCategories', fields: ['name','code'], formFields: ['name','code'] }]); } catch (e) { this.app.logger.warn(`[expense] UI skipped: ${(e as any).message}`); }
+    try { await createTemplateUI(this.app, '报销管理', 'AccountBookOutlined', [{ title: '报销单', icon: 'AccountBookOutlined', collectionName: 'expenseClaims', fields: ['title','status'], formFields: ['title','status'] }, { title: '费用类别', icon: 'TagOutlined', collectionName: 'expenseCategories', fields: ['name'], formFields: ['name'] }]); } catch (e) { this.app.logger.warn(`[expense] UI skipped: ${(e as any).message}`); }
   }
   async load() {
     for (const c of COLLECTIONS) {

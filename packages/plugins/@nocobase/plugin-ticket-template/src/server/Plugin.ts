@@ -29,8 +29,8 @@ try { const wf = await createTicketWorkflows(this.app); if (wf > 0) this.app.log
 
     try {
       await createTemplateUI(this.app, '工单系统', 'FileTextOutlined', [
-        { title: '工单管理', icon: 'FileTextOutlined', collectionName: 'tickets', fields: ['code', 'title', 'priority', 'status', 'category', 'createdAt'], formFields: ['title', 'description', 'priority', 'category'] },
-        { title: '知识库', icon: 'BookOutlined', collectionName: 'ticketKnowledgeBase', fields: ['title', 'category', 'status'], formFields: ['title', 'content', 'category', 'status'] },
+        { title: '工单管理', icon: 'FileTextOutlined', collectionName: 'tickets', fields: ['priority','status','category'], formFields: ['description','priority','category'] },
+        { title: '知识库', icon: 'BookOutlined', collectionName: 'ticketKnowledgeBase', fields: ['title','category'], formFields: ['title','content','category'] },
       ]);
     } catch (err) { this.app.logger.warn(`[ticket-template] UI creation skipped: ${(err as any).message}`); }
   }
