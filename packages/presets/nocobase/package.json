@@ -189,7 +189,10 @@
     "@nocobase/plugin-license",
     "@nocobase/plugin-workflow-approval",
     "@nocobase/plugin-workflow-sub-process",
-    "@nocobase/plugin-comments"
+    "@nocobase/plugin-comments",
+    "@nocobase/plugin-template-market",
+    "@nocobase/plugin-global-search",
+    "@nocobase/plugin-data-dictionary"
   ],
   "repository": {
     "type": "git",
