@@ -13,6 +13,7 @@ import { afterCreate, afterDestroy, afterUpdate } from './hooks';
 import { registerRecycleBinHooks, registerRecycleBinActions } from './recycle-bin';
 import { registerFieldChangelogActions } from './field-changelog';
 import { registerAuditExportActions } from './audit-export';
+import { registerSnapshotHooks, registerSnapshotActions } from './data-snapshots';
 
 export default class PluginAuditLogsServer extends Plugin {
   async beforeLoad() {
@@ -21,6 +22,7 @@ export default class PluginAuditLogsServer extends Plugin {
     this.db.on('afterDestroy', afterDestroy);
 
     registerRecycleBinHooks(this.db);
+    registerSnapshotHooks(this.db);
   }
 
   async load() {
@@ -37,5 +39,6 @@ export default class PluginAuditLogsServer extends Plugin {
     registerRecycleBinActions(this.app);
     registerFieldChangelogActions(this.app);
     registerAuditExportActions(this.app);
+    registerSnapshotActions(this.app);
   }
 }

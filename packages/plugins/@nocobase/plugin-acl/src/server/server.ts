@@ -29,6 +29,7 @@ import { dataMaskingMiddleware, clearMaskingCache } from './middlewares/data-mas
 import { registerFormRulesActions } from './form-rules-engine';
 import { registerValidationMiddleware } from './validation-rules';
 import { registerRecordLockMiddleware } from './record-lock';
+import { registerAssociationFilterActions } from './association-filter';
 
 export class PluginACLServer extends Plugin {
   get acl() {
@@ -791,6 +792,9 @@ export class PluginACLServer extends Plugin {
 
     // Record lock system
     registerRecordLockMiddleware(this.app);
+
+    // Association filter (cascading select)
+    registerAssociationFilterActions(this.app);
 
     // Data masking middleware: masks sensitive fields based on rules
     this.app.resourcer.use(dataMaskingMiddleware());
