@@ -28,6 +28,7 @@ import { checkChangesWithAssociation } from './middlewares/check-change-with-ass
 import { dataMaskingMiddleware, clearMaskingCache } from './middlewares/data-masking';
 import { registerFormRulesActions } from './form-rules-engine';
 import { registerValidationMiddleware } from './validation-rules';
+import { registerRecordLockMiddleware } from './record-lock';
 
 export class PluginACLServer extends Plugin {
   get acl() {
@@ -787,6 +788,9 @@ export class PluginACLServer extends Plugin {
 
     // Server-side validation rules
     registerValidationMiddleware(this.app);
+
+    // Record lock system
+    registerRecordLockMiddleware(this.app);
 
     // Data masking middleware: masks sensitive fields based on rules
     this.app.resourcer.use(dataMaskingMiddleware());
