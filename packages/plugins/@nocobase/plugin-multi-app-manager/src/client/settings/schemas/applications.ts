@@ -543,10 +543,20 @@ export const tableActionColumnSchema: ISchema = {
         },
       },
     },
+    retryTemplate: {
+      type: 'void',
+      title: `{{t("Retry template init", { ns: "${NAMESPACE}" })}}`,
+      'x-component': 'Action.Link',
+      'x-visible': `{{ !!($record && $record.options && ($record.options.pendingTemplateKey || $record.options.templateInstallState === "failed")) }}`,
+      'x-component-props': {
+        useAction: useRetryTemplateInstallAction,
+      },
+    },
     resetTemplateStatus: {
       type: 'void',
       title: `{{t("Clear template status", { ns: "${NAMESPACE}" })}}`,
       'x-component': 'Action.Link',
+      'x-visible': `{{ !!($record && $record.options && ($record.options.templateInstallState || $record.options.templateInstallError)) }}`,
       'x-component-props': {
         useAction: useResetTemplateInstallStatusAction,
         confirm: {
@@ -659,6 +669,59 @@ export function useResetTemplateInstallStatusAction() {
       });
       message.success(t('Template status has been cleared.'));
       refresh();
+    },
+  };
+}
+
+export function useRetryTemplateInstallAction() {
+  const record = useRecord() as any;
+  const api = useAPIClient();
+  const { refresh } = useResourceActionContext();
+  const { message, modal } = App.useApp();
+  const { t } = useTranslation(NAMESPACE);
+
+  return {
+    async run() {
+      const templateKey = record?.options?.pendingTemplateKey || record?.options?.installedTemplateKey;
+      if (!templateKey) {
+        message.warning(t('No template available to retry.'));
+        return;
+      }
+
+      await updateApplicationTemplateOptions(api, record.name, {
+        pendingTemplateKey: templateKey,
+        templateInstallState: 'installing',
+        templateInstallError: '',
+        templateInstallUpdatedAt: new Date().toISOString(),
+      });
+
+      const result = await installTemplateWithRetry(api, record.name, templateKey, { modal, message });
+      if (result.installed) {
+        await updateApplicationTemplateOptions(api, record.name, {
+          pendingTemplateKey: '',
+          installedTemplateKey: templateKey,
+          templateInstallState: 'installed',
+          templateInstallError: '',
+          templateInstallUpdatedAt: new Date().toISOString(),
+        });
+        message.success(t('Template initialized successfully.'));
+        refresh();
+        return;
+      }
+
+      await updateApplicationTemplateOptions(api, record.name, {
+        pendingTemplateKey: templateKey,
+        templateInstallState: 'failed',
+        templateInstallError: stringifyTemplateInstallError(result.error),
+        templateInstallUpdatedAt: new Date().toISOString(),
+      });
+      const detail = normalizeTemplateInstallError(result.error);
+      message.error(
+        t('Template initialization failed at {{step}}: {{message}}', {
+          step: detail.step,
+          message: detail.message,
+        }),
+      );
     },
   };
 }
