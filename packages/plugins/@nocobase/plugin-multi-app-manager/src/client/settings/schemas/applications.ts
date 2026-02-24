@@ -224,7 +224,7 @@ async function updateApplicationTemplateOptions(
   patch: {
     pendingTemplateKey?: string;
     installedTemplateKey?: string;
-    templateInstallState?: 'installing' | 'installed' | 'failed';
+    templateInstallState?: 'installing' | 'installed' | 'failed' | '';
     templateInstallError?: string;
     templateInstallUpdatedAt?: string;
   },
