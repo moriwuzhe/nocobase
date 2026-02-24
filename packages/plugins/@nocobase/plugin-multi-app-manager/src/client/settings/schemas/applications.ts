@@ -143,6 +143,7 @@ function TemplateInstallStateField() {
 
 function TemplateInstallErrorField() {
   const record = useRecord() as any;
+  const { t } = useTranslation(NAMESPACE);
   const templateInstallError = String(record?.options?.templateInstallError || '').trim();
   if (!templateInstallError) {
     return React.createElement(Typography.Text, { type: 'secondary' }, '-');
@@ -154,8 +155,33 @@ function TemplateInstallErrorField() {
   return React.createElement(
     Tooltip,
     { title: templateInstallError },
-    React.createElement(Typography.Text, { type: 'danger' }, shortError),
+    React.createElement(
+      Typography.Text,
+      {
+        type: 'danger',
+        copyable: {
+          text: templateInstallError,
+          tooltips: [t('Copy error'), t('Copied')],
+        },
+      },
+      shortError,
+    ),
   );
+}
+
+function TemplateInstallUpdatedAtField() {
+  const record = useRecord() as any;
+  const raw = record?.options?.templateInstallUpdatedAt;
+  if (!raw) {
+    return React.createElement(Typography.Text, { type: 'secondary' }, '-');
+  }
+
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) {
+    return React.createElement(Typography.Text, { type: 'secondary' }, String(raw));
+  }
+
+  return React.createElement(Typography.Text, null, date.toLocaleString());
 }
 
 async function sleep(ms: number) {
@@ -1024,6 +1050,22 @@ export const schema: ISchema = {
                 templateInstallError: {
                   type: 'string',
                   'x-component': TemplateInstallErrorField,
+                  'x-read-pretty': true,
+                },
+              },
+            },
+            templateInstallUpdatedAt: {
+              type: 'void',
+              title: `{{t("Template init updated at", { ns: "${NAMESPACE}" })}}`,
+              'x-decorator': 'Table.Column.Decorator',
+              'x-component': 'Table.Column',
+              'x-component-props': {
+                width: 220,
+              },
+              properties: {
+                templateInstallUpdatedAt: {
+                  type: 'string',
+                  'x-component': TemplateInstallUpdatedAtField,
                   'x-read-pretty': true,
                 },
               },
