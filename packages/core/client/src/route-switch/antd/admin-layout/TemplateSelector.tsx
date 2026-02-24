@@ -8,9 +8,8 @@
  */
 
 import { uid } from '@formily/shared';
-import { Card, Col, message, Modal, Row, Spin, Tag, Typography } from 'antd';
-import React, { useCallback, useEffect, useState } from 'react';
-import { Icon } from '../../../icon';
+import { App, Card, Col, Row, Spin, Tag, Typography } from 'antd';
+import React, { useCallback, useState } from 'react';
 import { useAPIClient } from '../../../api-client/hooks/useAPIClient';
 import {
   builtInTemplates,
@@ -1003,7 +1002,21 @@ function countViewConfigs(menuItems: MenuItemDef[], type: 'kanban' | 'calendar' 
   return count;
 }
 
-export async function installTemplate(api: any, appName: string, templateKey: string): Promise<boolean> {
+interface TemplateInstallUI {
+  modal: { confirm: (config: any) => void };
+  message: {
+    loading: (config: any) => void;
+    error: (config: any) => void;
+    success: (config: any) => void;
+  };
+}
+
+export async function installTemplate(
+  api: any,
+  appName: string,
+  templateKey: string,
+  ui: TemplateInstallUI,
+): Promise<boolean> {
   const tpl = builtInTemplates.find((t) => t.key === templateKey);
   if (!tpl) return false;
 
@@ -1014,7 +1027,7 @@ export async function installTemplate(api: any, appName: string, templateKey: st
   const sampleCount = sampleBatches.reduce((sum, b) => sum + b.records.length, 0);
 
   return new Promise((resolve) => {
-    Modal.confirm({
+    ui.modal.confirm({
       title: `安装模板：${tpl.title}`,
       width: 560,
       content: (
@@ -1056,7 +1069,7 @@ export async function installTemplate(api: any, appName: string, templateKey: st
           const headers = { 'X-App': appName };
 
           // Wait for sub-app to be ready with retry
-          message.loading({ content: '等待应用启动...', key: 'tpl', duration: 0 });
+          ui.message.loading({ content: '等待应用启动...', key: 'tpl', duration: 0 });
           let appReady = false;
           for (let attempt = 0; attempt < 15; attempt++) {
             try {
@@ -1064,11 +1077,11 @@ export async function installTemplate(api: any, appName: string, templateKey: st
               appReady = true;
               break;
             } catch {
-              await new Promise((r) => setTimeout(r, 2000));
+              await new Promise((resolve) => setTimeout(resolve, 2000));
             }
           }
           if (!appReady) {
-            message.error({ content: '应用启动超时，请稍后重试', key: 'tpl' });
+            ui.message.error({ content: '应用启动超时，请稍后重试', key: 'tpl' });
             resolve(false);
             return;
           }
@@ -1087,7 +1100,7 @@ export async function installTemplate(api: any, appName: string, templateKey: st
             // Auth may fail if password changed, continue with main app token
           }
 
-          message.loading({ content: '正在创建数据表...', key: 'tpl', duration: 0 });
+          ui.message.loading({ content: '正在创建数据表...', key: 'tpl', duration: 0 });
 
           for (const col of tpl.collections) {
             const fields = col.fields.map((f) => {
@@ -1151,7 +1164,7 @@ export async function installTemplate(api: any, appName: string, templateKey: st
             });
           }
 
-          message.loading({ content: '正在创建关联关系...', key: 'tpl', duration: 0 });
+          ui.message.loading({ content: '正在创建关联关系...', key: 'tpl', duration: 0 });
 
           for (const rel of tpl.relations) {
             try {
@@ -1179,7 +1192,7 @@ export async function installTemplate(api: any, appName: string, templateKey: st
             }
           }
 
-          message.loading({ content: '正在配置页面...', key: 'tpl', duration: 0 });
+          ui.message.loading({ content: '正在配置页面...', key: 'tpl', duration: 0 });
 
           const collectionMap = new Map<string, CollectionDef>();
           for (const col of tpl.collections) {
@@ -1286,10 +1299,30 @@ export async function installTemplate(api: any, appName: string, templateKey: st
             if (pageResult.enableTabs && pageResult.tabs.length > 0) {
               for (const tab of pageResult.tabs) {
                 try {
-                  await api.request({ url: 'desktopRoutes:create', method: 'post', headers: authHeaders, data: { type: 'tabs', title: tab.title, schemaUid: tab.schemaUid, tabSchemaName: tab.tabSchemaName } });
+                  await api.request({
+                    url: 'desktopRoutes:create',
+                    method: 'post',
+                    headers: authHeaders,
+                    data: {
+                      type: 'tabs',
+                      title: tab.title,
+                      schemaUid: tab.schemaUid,
+                      tabSchemaName: tab.tabSchemaName,
+                    },
+                  });
                 } catch {
                   try {
-                    await api.request({ url: 'routes:create', method: 'post', headers: authHeaders, data: { type: 'tabs', title: tab.title, schemaUid: tab.schemaUid, tabSchemaName: tab.tabSchemaName } });
+                    await api.request({
+                      url: 'routes:create',
+                      method: 'post',
+                      headers: authHeaders,
+                      data: {
+                        type: 'tabs',
+                        title: tab.title,
+                        schemaUid: tab.schemaUid,
+                        tabSchemaName: tab.tabSchemaName,
+                      },
+                    });
                   } catch {
                     // tab routes not supported
                   }
@@ -1313,7 +1346,7 @@ export async function installTemplate(api: any, appName: string, templateKey: st
             }
           }
 
-          message.loading({ content: '正在插入示例数据...', key: 'tpl', duration: 0 });
+          ui.message.loading({ content: '正在插入示例数据...', key: 'tpl', duration: 0 });
 
           const idMap: Record<string, Record<string, number>> = {};
 
@@ -1358,7 +1391,7 @@ export async function installTemplate(api: any, appName: string, templateKey: st
           }
 
           if (tpl.workflows.length > 0) {
-            message.loading({ content: '正在创建工作流...', key: 'tpl', duration: 0 });
+            ui.message.loading({ content: '正在创建工作流...', key: 'tpl', duration: 0 });
 
             for (const wf of tpl.workflows) {
               try {
@@ -1399,11 +1432,11 @@ export async function installTemplate(api: any, appName: string, templateKey: st
             }
           }
 
-          message.success({ content: `模板 "${tpl.title}" 安装完成！`, key: 'tpl' });
+          ui.message.success({ content: `模板 "${tpl.title}" 安装完成！`, key: 'tpl' });
           resolve(true);
         } catch (err: any) {
           console.error('Template installation failed:', err);
-          message.error({ content: `安装失败: ${err?.message || '未知错误'}`, key: 'tpl' });
+          ui.message.error({ content: `安装失败: ${err?.message || '未知错误'}`, key: 'tpl' });
           resolve(false);
         }
       },
@@ -1416,13 +1449,14 @@ export async function installTemplate(api: any, appName: string, templateKey: st
 
 export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => void }> = ({ appName, onInstalled }) => {
   const api = useAPIClient();
+  const { modal, message } = App.useApp();
   const [installing, setInstalling] = useState(false);
 
   const handleInstall = useCallback(
     async (templateKey: string) => {
       setInstalling(true);
       try {
-        const ok = await installTemplate(api, appName, templateKey);
+        const ok = await installTemplate(api, appName, templateKey, { modal, message });
         if (ok) {
           onInstalled?.();
         }
@@ -1430,7 +1464,7 @@ export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => v
         setInstalling(false);
       }
     },
-    [api, appName, onInstalled],
+    [api, appName, message, modal, onInstalled],
   );
 
   return (
