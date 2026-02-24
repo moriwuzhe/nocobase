@@ -97,6 +97,16 @@ const APP_AUTH_READY_STATUSES = new Set([401, 403]);
 const TEMPLATE_INSTALL_MAX_ATTEMPTS = 2;
 const TEMPLATE_INSTALL_RETRY_BASE_DELAY = 3000;
 
+interface TemplateInstallErrorDetail {
+  step: string;
+  message: string;
+}
+
+interface TemplateInstallResult {
+  installed: boolean;
+  error?: TemplateInstallErrorDetail;
+}
+
 async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -205,17 +215,33 @@ async function installTemplateWithRetry(
   templateKey: string,
   ui: { modal: any; message: any },
   maxAttempts = TEMPLATE_INSTALL_MAX_ATTEMPTS,
-) {
+): Promise<TemplateInstallResult> {
+  let lastError: TemplateInstallErrorDetail | undefined;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const installed = await installTemplate(api, appName, templateKey, ui, { skipConfirm: true });
+    const installed = await installTemplate(api, appName, templateKey, ui, {
+      skipConfirm: true,
+      onError: (detail) => {
+        lastError = detail;
+      },
+    });
     if (installed) {
-      return true;
+      return { installed: true };
     }
     if (attempt < maxAttempts) {
       await sleep(TEMPLATE_INSTALL_RETRY_BASE_DELAY * attempt);
     }
   }
-  return false;
+  return {
+    installed: false,
+    error: lastError,
+  };
+}
+
+function stringifyTemplateInstallError(error?: TemplateInstallErrorDetail): string {
+  if (!error) {
+    return 'install_failed';
+  }
+  return `${error.step}: ${error.message}`;
 }
 
 export const useDestroy = () => {
@@ -494,8 +520,8 @@ export function useManualInstallTemplateAction() {
           templateInstallUpdatedAt: new Date().toISOString(),
         });
 
-        const ok = await installTemplateWithRetry(api, record.name, templateKey, { modal, message }, 1);
-        if (ok) {
+        const result = await installTemplateWithRetry(api, record.name, templateKey, { modal, message }, 1);
+        if (result.installed) {
           await updateApplicationTemplateOptions(api, record.name, {
             pendingTemplateKey: '',
             installedTemplateKey: templateKey,
@@ -512,7 +538,7 @@ export function useManualInstallTemplateAction() {
         await updateApplicationTemplateOptions(api, record.name, {
           pendingTemplateKey: templateKey,
           templateInstallState: 'failed',
-          templateInstallError: 'install_failed',
+          templateInstallError: stringifyTemplateInstallError(result.error),
           templateInstallUpdatedAt: new Date().toISOString(),
         });
       } finally {
@@ -572,8 +598,8 @@ export const useCreateActionWithTemplate = () => {
             templateInstallUpdatedAt: new Date().toISOString(),
           });
 
-          const installed = await installTemplateWithRetry(api, appName, templateKey, { modal, message });
-          if (installed) {
+          const result = await installTemplateWithRetry(api, appName, templateKey, { modal, message });
+          if (result.installed) {
             await updateApplicationTemplateOptions(api, appName, {
               pendingTemplateKey: '',
               installedTemplateKey: templateKey,
@@ -588,7 +614,7 @@ export const useCreateActionWithTemplate = () => {
           await updateApplicationTemplateOptions(api, appName, {
             pendingTemplateKey: templateKey,
             templateInstallState: 'failed',
-            templateInstallError: 'install_failed',
+            templateInstallError: stringifyTemplateInstallError(result.error),
             templateInstallUpdatedAt: new Date().toISOString(),
           });
           message.error(t('Automatic template initialization failed, please retry from action column.'));

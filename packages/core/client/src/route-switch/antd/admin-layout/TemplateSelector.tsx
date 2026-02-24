@@ -1011,6 +1011,16 @@ interface TemplateInstallUI {
   };
 }
 
+interface TemplateInstallErrorDetail {
+  step: string;
+  message: string;
+}
+
+interface TemplateInstallOptions {
+  skipConfirm?: boolean;
+  onError?: (detail: TemplateInstallErrorDetail) => void;
+}
+
 function getAxiosErrorMessage(err: any): string {
   const responseData = err?.response?.data;
   const serverMessage =
@@ -1076,7 +1086,7 @@ export async function installTemplate(
   appName: string,
   templateKey: string,
   ui: TemplateInstallUI,
-  options?: { skipConfirm?: boolean },
+  options?: TemplateInstallOptions,
 ): Promise<boolean> {
   const tpl = builtInTemplates.find((t) => t.key === templateKey);
   if (!tpl) return false;
@@ -1126,10 +1136,19 @@ export async function installTemplate(
       okText: '开始安装',
       cancelText: '取消',
       onOk: async () => {
+        let currentStep = 'prepare';
+        const notifyError = (detail: TemplateInstallErrorDetail) => {
+          try {
+            options?.onError?.(detail);
+          } catch {
+            // Keep installation flow unaffected by diagnostics callback failures.
+          }
+        };
         try {
           const headers = { 'X-App': appName };
 
           // Wait for sub-app to be ready with retry
+          currentStep = 'waitForAppReady';
           ui.message.loading({ content: '等待应用启动...', key: 'tpl', duration: 0 });
           let appReady = false;
           for (let attempt = 0; attempt < 15; attempt++) {
@@ -1148,6 +1167,7 @@ export async function installTemplate(
             }
           }
           if (!appReady) {
+            notifyError({ step: currentStep, message: 'app_start_timeout' });
             ui.message.error({ content: '应用启动超时，请稍后重试', key: 'tpl' });
             resolve(false);
             return;
@@ -1155,6 +1175,7 @@ export async function installTemplate(
 
           let authHeaders: Record<string, string> = { ...headers };
           try {
+            currentStep = 'authSignIn';
             const authRes = await requestWithRetry(
               api,
               {
@@ -1174,6 +1195,7 @@ export async function installTemplate(
           ui.message.loading({ content: '正在创建数据表...', key: 'tpl', duration: 0 });
 
           for (const col of tpl.collections) {
+            currentStep = `createCollection:${col.name}`;
             const fields = col.fields.map((f) => {
               const fieldDef: Record<string, any> = {
                 name: f.name,
@@ -1251,6 +1273,7 @@ export async function installTemplate(
 
           for (const rel of tpl.relations) {
             try {
+              currentStep = `createRelation:${rel.sourceCollection}.${rel.name}`;
               await requestWithRetry(
                 api,
                 {
@@ -1429,6 +1452,7 @@ export async function installTemplate(
           };
 
           const createMenuGroup = async (title: string, icon?: string): Promise<number | string | undefined> => {
+            currentStep = `createMenuGroup:${title}`;
             const routeRes = await createDesktopRoute({
               type: 'group',
               title,
@@ -1452,6 +1476,7 @@ export async function installTemplate(
             if (!page.collectionName) return;
             const collection = collectionMap.get(page.collectionName);
             if (!collection) return;
+            currentStep = `createPageRoute:${page.title}`;
 
             const { columnFieldNames, formFieldNames, detailFieldNames } = getFieldNames(collection, tpl.relations);
 
@@ -1528,6 +1553,7 @@ export async function installTemplate(
           }
 
           for (const title of expectedPageTitles) {
+            currentStep = `validatePageRoute:${title}`;
             const route = await findDesktopRoute({ type: 'page', title });
             const schemaUid = route?.schemaUid;
             if (!schemaUid) {
@@ -1546,6 +1572,7 @@ export async function installTemplate(
 
           // Refresh sub-app caches after route/schema writes so pages are immediately available.
           try {
+            currentStep = 'refreshApp';
             await requestWithRetry(
               api,
               {
@@ -1568,6 +1595,7 @@ export async function installTemplate(
             if (!idMap[batch.collection]) idMap[batch.collection] = {};
 
             for (const record of batch.records) {
+              currentStep = `insertSample:${batch.collection}`;
               const cleanRecord: Record<string, any> = {};
               for (const [k, v] of Object.entries(record)) {
                 if (isRef(v)) {
@@ -1609,6 +1637,7 @@ export async function installTemplate(
 
             for (const wf of tpl.workflows) {
               try {
+                currentStep = `createWorkflow:${wf.title}`;
                 const wfRes = await api.request({
                   url: 'workflows:create',
                   method: 'post',
@@ -1625,6 +1654,7 @@ export async function installTemplate(
                 if (workflowId && wf.nodes.length > 0) {
                   let upstreamId: number | null = null;
                   for (const node of wf.nodes) {
+                    currentStep = `createWorkflowNode:${wf.title}:${node.title}`;
                     const nodeRes = await api.request({
                       url: 'flow_nodes:create',
                       method: 'post',
@@ -1649,6 +1679,7 @@ export async function installTemplate(
           ui.message.success({ content: `模板 "${tpl.title}" 安装完成！`, key: 'tpl' });
           resolve(true);
         } catch (err: any) {
+          notifyError({ step: currentStep, message: getAxiosErrorMessage(err) });
           console.error('Template installation failed:', err);
           ui.message.error({ content: `安装失败: ${err?.message || '未知错误'}`, key: 'tpl' });
           resolve(false);
