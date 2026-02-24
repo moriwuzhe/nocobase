@@ -450,10 +450,17 @@ export const tableActionColumnSchema: ISchema = {
                 () =>
                   Promise.resolve({
                     data: {
-                      templateKey: record?.options?.pendingTemplateKey || '',
+                      templateKey: record?.options?.pendingTemplateKey || record?.options?.installedTemplateKey || '',
                     },
                   }),
-                { ...options, refreshDeps: [ctx.visible, record?.options?.pendingTemplateKey] },
+                {
+                  ...options,
+                  refreshDeps: [
+                    ctx.visible,
+                    record?.options?.pendingTemplateKey,
+                    record?.options?.installedTemplateKey,
+                  ],
+                },
               );
             },
           },
