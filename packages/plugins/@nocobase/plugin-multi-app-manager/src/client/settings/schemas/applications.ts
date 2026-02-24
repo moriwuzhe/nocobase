@@ -108,11 +108,34 @@ interface TemplateInstallResult {
   error?: TemplateInstallErrorDetail;
 }
 
+interface AppReadyProgressDetail {
+  attempt: number;
+  elapsedMs: number;
+  appStatus?: string;
+  probeStatus?: number;
+}
+
+interface AppReadyWaitResult {
+  ready: boolean;
+  attempts: number;
+  elapsedMs: number;
+  appStatus?: string;
+  probeStatus?: number;
+  reason: 'ready' | 'timeout' | 'app_error' | 'app_not_found';
+}
+
 interface BulkRetryFailureDetail {
   appName: string;
   templateKey: string;
   step: string;
   message: string;
+}
+
+function stringifyProbeValue(value: unknown): string {
+  if (value === undefined || value === null || value === '') {
+    return '-';
+  }
+  return String(value);
 }
 
 function TemplateKeyField() {
@@ -209,13 +232,65 @@ function TemplateInstallUpdatedAtField() {
   return React.createElement(Typography.Text, null, date.toLocaleString());
 }
 
+function TemplateStartupProbeField() {
+  const record = useRecord() as any;
+  const { t } = useTranslation(NAMESPACE);
+  const attempts = Number(record?.options?.templateStartupAttempts || 0);
+  const elapsedMs = Number(record?.options?.templateStartupElapsedMs || 0);
+  const appStatus = stringifyProbeValue(record?.options?.templateStartupLastAppStatus);
+  const probeStatus = stringifyProbeValue(record?.options?.templateStartupLastProbeStatus);
+
+  if (!attempts && !elapsedMs && appStatus === '-' && probeStatus === '-') {
+    return React.createElement(Typography.Text, { type: 'secondary' }, '-');
+  }
+
+  const seconds = Math.max(0, Math.round(elapsedMs / 1000));
+  const text = t('Startup attempts {{attempts}}, elapsed {{seconds}}s, app {{appStatus}}, probe {{probeStatus}}', {
+    attempts,
+    seconds,
+    appStatus,
+    probeStatus,
+  });
+
+  return React.createElement(
+    Tooltip,
+    { title: text },
+    React.createElement(Typography.Text, { copyable: { text } }, text),
+  );
+}
+
 async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForAppReady(api: any, appName: string, timeoutMs = 6 * 60 * 1000): Promise<boolean> {
+async function waitForAppReady(
+  api: any,
+  appName: string,
+  options?: {
+    timeoutMs?: number;
+    probeInterval?: number;
+    onProgress?: (detail: AppReadyProgressDetail) => void;
+  },
+): Promise<AppReadyWaitResult> {
+  const timeoutMs = options?.timeoutMs ?? 6 * 60 * 1000;
+  const probeInterval = Math.max(1, options?.probeInterval ?? 4);
   const startAt = Date.now();
   let attempt = 0;
+  let latestAppStatus: string | undefined;
+  let latestProbeStatus: number | undefined;
+
+  const emitProgress = () => {
+    try {
+      options?.onProgress?.({
+        attempt,
+        elapsedMs: Date.now() - startAt,
+        appStatus: latestAppStatus,
+        probeStatus: latestProbeStatus,
+      });
+    } catch {
+      // Ignore observer callback failures.
+    }
+  };
 
   while (Date.now() - startAt < timeoutMs) {
     attempt += 1;
@@ -230,21 +305,39 @@ async function waitForAppReady(api: any, appName: string, timeoutMs = 6 * 60 * 1
         },
       });
       status = appRes?.data?.data?.status;
+      latestAppStatus = status;
       if (APP_READY_STATUSES.has(status)) {
-        return true;
+        emitProgress();
+        return {
+          ready: true,
+          attempts: attempt,
+          elapsedMs: Date.now() - startAt,
+          appStatus: latestAppStatus,
+          probeStatus: latestProbeStatus,
+          reason: 'ready',
+        };
       }
       if (status === 'error' || status === 'not_found') {
-        return false;
+        emitProgress();
+        return {
+          ready: false,
+          attempts: attempt,
+          elapsedMs: Date.now() - startAt,
+          appStatus: latestAppStatus,
+          probeStatus: latestProbeStatus,
+          reason: status === 'error' ? 'app_error' : 'app_not_found',
+        };
       }
     } catch (e) {
-      const status = (e as any)?.response?.status;
-      if (status && !TRANSIENT_GATEWAY_STATUSES.has(status)) {
+      const appStatus = (e as any)?.response?.status;
+      latestAppStatus = appStatus ? `http_${appStatus}` : latestAppStatus;
+      if (appStatus && !TRANSIENT_GATEWAY_STATUSES.has(appStatus)) {
         // For non-gateway errors, continue trying until timeout.
       }
     }
 
     // Probe sub-app info at low frequency to avoid flooding 503 logs while app is booting.
-    const shouldProbeSubApp = attempt === 1 || attempt % 4 === 0;
+    const shouldProbeSubApp = attempt === 1 || attempt % probeInterval === 0;
     if (shouldProbeSubApp) {
       try {
         await api.silent().request({
@@ -255,15 +348,43 @@ async function waitForAppReady(api: any, appName: string, timeoutMs = 6 * 60 * 1
           },
           skipNotify: true,
         });
-        return true;
+        latestProbeStatus = 200;
+        emitProgress();
+        return {
+          ready: true,
+          attempts: attempt,
+          elapsedMs: Date.now() - startAt,
+          appStatus: latestAppStatus,
+          probeStatus: latestProbeStatus,
+          reason: 'ready',
+        };
       } catch (e) {
         const infoStatus = (e as any)?.response?.status;
+        if (typeof infoStatus === 'number') {
+          latestProbeStatus = infoStatus;
+        }
         // Cross-app token may be different. 401/403 indicates sub-app is up.
         if (APP_AUTH_READY_STATUSES.has(infoStatus)) {
-          return true;
+          emitProgress();
+          return {
+            ready: true,
+            attempts: attempt,
+            elapsedMs: Date.now() - startAt,
+            appStatus: latestAppStatus,
+            probeStatus: latestProbeStatus,
+            reason: 'ready',
+          };
         }
         if (status && APP_READY_STATUSES.has(status)) {
-          return true;
+          emitProgress();
+          return {
+            ready: true,
+            attempts: attempt,
+            elapsedMs: Date.now() - startAt,
+            appStatus: latestAppStatus,
+            probeStatus: latestProbeStatus,
+            reason: 'ready',
+          };
         }
         if (infoStatus && !TRANSIENT_GATEWAY_STATUSES.has(infoStatus) && infoStatus !== 404) {
           // Keep retrying until timeout, some intermediate statuses can be temporary.
@@ -271,11 +392,20 @@ async function waitForAppReady(api: any, appName: string, timeoutMs = 6 * 60 * 1
       }
     }
 
+    emitProgress();
     const delay = Math.min(8000, 1800 + attempt * 500);
     await sleep(delay);
   }
 
-  return false;
+  emitProgress();
+  return {
+    ready: false,
+    attempts: attempt,
+    elapsedMs: Date.now() - startAt,
+    appStatus: latestAppStatus,
+    probeStatus: latestProbeStatus,
+    reason: 'timeout',
+  };
 }
 
 async function updateApplicationTemplateOptions(
@@ -287,6 +417,10 @@ async function updateApplicationTemplateOptions(
     templateInstallState?: 'installing' | 'installed' | 'failed' | '';
     templateInstallError?: string;
     templateInstallUpdatedAt?: string;
+    templateStartupAttempts?: number;
+    templateStartupElapsedMs?: number;
+    templateStartupLastAppStatus?: string;
+    templateStartupLastProbeStatus?: string;
   },
 ) {
   try {
@@ -1028,6 +1162,10 @@ export function useResetTemplateInstallStatusAction() {
         templateInstallState: '',
         templateInstallError: '',
         templateInstallUpdatedAt: new Date().toISOString(),
+        templateStartupAttempts: 0,
+        templateStartupElapsedMs: 0,
+        templateStartupLastAppStatus: '',
+        templateStartupLastProbeStatus: '',
       });
       message.success(t('Template status has been cleared.'));
       refresh();
@@ -1103,6 +1241,10 @@ export function useCopyTemplateDiagnosticsAction() {
         templateInstallState: record?.options?.templateInstallState || '',
         templateInstallError: record?.options?.templateInstallError || '',
         templateInstallUpdatedAt: record?.options?.templateInstallUpdatedAt || '',
+        templateStartupAttempts: record?.options?.templateStartupAttempts || 0,
+        templateStartupElapsedMs: record?.options?.templateStartupElapsedMs || 0,
+        templateStartupLastAppStatus: record?.options?.templateStartupLastAppStatus || '',
+        templateStartupLastProbeStatus: record?.options?.templateStartupLastProbeStatus || '',
       };
 
       const hasDiagnostics = Object.values(diagnostics).some((value) => String(value || '').trim() !== '');
@@ -1154,28 +1296,83 @@ export const useCreateActionWithTemplate = () => {
 
         if (templateKey) {
           const appName = values.name;
+          await updateApplicationTemplateOptions(api, appName, {
+            pendingTemplateKey: templateKey,
+            templateInstallState: 'installing',
+            templateInstallError: '',
+            templateInstallUpdatedAt: new Date().toISOString(),
+            templateStartupAttempts: 0,
+            templateStartupElapsedMs: 0,
+            templateStartupLastAppStatus: '',
+            templateStartupLastProbeStatus: '',
+          });
           message.loading({
             content: t('Waiting for app {{name}} to initialize...', { name: values.displayName || appName }),
             key: 'tpl-wait',
             duration: 0,
           });
 
-          const appReady = await waitForAppReady(api, appName);
+          const readyResult = await waitForAppReady(api, appName, {
+            onProgress: (progress) => {
+              message.loading({
+                content: t(
+                  'Waiting for app startup: attempt {{attempt}}, elapsed {{seconds}}s, app {{appStatus}}, probe {{probeStatus}}',
+                  {
+                    attempt: progress.attempt,
+                    seconds: Math.max(0, Math.round(progress.elapsedMs / 1000)),
+                    appStatus: stringifyProbeValue(progress.appStatus),
+                    probeStatus: stringifyProbeValue(progress.probeStatus),
+                  },
+                ),
+                key: 'tpl-wait',
+                duration: 0,
+              });
+            },
+          });
 
           message.destroy('tpl-wait');
-          if (!appReady) {
+          if (!readyResult.ready) {
             await updateApplicationTemplateOptions(api, appName, {
               pendingTemplateKey: templateKey,
               templateInstallState: 'failed',
-              templateInstallError: 'waitForAppReady: app_start_timeout',
+              templateInstallError: `waitForAppReady: ${readyResult.reason}`,
               templateInstallUpdatedAt: new Date().toISOString(),
+              templateStartupAttempts: readyResult.attempts,
+              templateStartupElapsedMs: readyResult.elapsedMs,
+              templateStartupLastAppStatus: stringifyProbeValue(readyResult.appStatus),
+              templateStartupLastProbeStatus: stringifyProbeValue(readyResult.probeStatus),
             });
-            message.warning(
-              t('Initialization timeout, you can manually initialize the template from the action column.'),
+            message.error(
+              t(
+                'App startup timeout after {{attempts}} attempts ({{seconds}}s), app {{appStatus}}, probe {{probeStatus}}.',
+                {
+                  attempts: readyResult.attempts,
+                  seconds: Math.max(0, Math.round(readyResult.elapsedMs / 1000)),
+                  appStatus: stringifyProbeValue(readyResult.appStatus),
+                  probeStatus: stringifyProbeValue(readyResult.probeStatus),
+                },
+              ),
             );
             refresh();
             return;
           }
+
+          await updateApplicationTemplateOptions(api, appName, {
+            pendingTemplateKey: templateKey,
+            templateInstallState: 'installing',
+            templateInstallError: '',
+            templateInstallUpdatedAt: new Date().toISOString(),
+            templateStartupAttempts: readyResult.attempts,
+            templateStartupElapsedMs: readyResult.elapsedMs,
+            templateStartupLastAppStatus: stringifyProbeValue(readyResult.appStatus),
+            templateStartupLastProbeStatus: stringifyProbeValue(readyResult.probeStatus),
+          });
+          message.success(
+            t('App startup ready after {{attempts}} attempts ({{seconds}}s).', {
+              attempts: readyResult.attempts,
+              seconds: Math.max(0, Math.round(readyResult.elapsedMs / 1000)),
+            }),
+          );
 
           // Always attempt installation once to avoid "menu created but page blank" half-initialized state.
           // installTemplate has its own readiness retries and explicit failure feedback.
@@ -1491,6 +1688,22 @@ export const schema: ISchema = {
                 templateInstallUpdatedAt: {
                   type: 'string',
                   'x-component': TemplateInstallUpdatedAtField,
+                  'x-read-pretty': true,
+                },
+              },
+            },
+            templateStartupProbe: {
+              type: 'void',
+              title: `{{t("Template startup probe", { ns: "${NAMESPACE}" })}}`,
+              'x-decorator': 'Table.Column.Decorator',
+              'x-component': 'Table.Column',
+              'x-component-props': {
+                width: 320,
+              },
+              properties: {
+                templateStartupProbe: {
+                  type: 'string',
+                  'x-component': TemplateStartupProbeField,
                   'x-read-pretty': true,
                 },
               },
