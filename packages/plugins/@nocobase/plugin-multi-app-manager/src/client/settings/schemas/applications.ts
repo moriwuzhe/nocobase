@@ -478,13 +478,11 @@ export const useCreateActionWithTemplate = () => {
 
           message.destroy('tpl-wait');
 
-          if (ready) {
-            await installTemplate(api, appName, templateKey, { modal, message });
+          // Always attempt installation once to avoid "menu created but page blank" half-initialized state.
+          // installTemplate has its own readiness retries and explicit failure feedback.
+          const installed = await installTemplate(api, appName, templateKey, { modal, message });
+          if (installed) {
             refresh();
-          } else {
-            message.warning(
-              t('Initialization timeout, you can manually initialize the template from the action column.'),
-            );
           }
         }
       } finally {
