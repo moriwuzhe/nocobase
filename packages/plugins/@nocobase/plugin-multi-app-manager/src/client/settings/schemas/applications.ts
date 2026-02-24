@@ -357,6 +357,102 @@ export const useDestroyAll = () => {
   };
 };
 
+export const useRetrySelectedTemplateInitsAction = () => {
+  const { state, setState, refresh } = useResourceActionContext();
+  const api = useAPIClient();
+  const { message, modal } = App.useApp();
+  const { t } = useTranslation(NAMESPACE);
+
+  return {
+    async run() {
+      const selectedRowKeys = state?.selectedRowKeys || [];
+      if (!selectedRowKeys.length) {
+        message.warning(t('Please select applications first'));
+        return;
+      }
+
+      let successCount = 0;
+      let failedCount = 0;
+      let skippedCount = 0;
+
+      message.loading({
+        content: t('Retrying template initialization for selected applications...'),
+        key: 'tpl-bulk-retry',
+        duration: 0,
+      });
+
+      try {
+        for (const appName of selectedRowKeys) {
+          try {
+            const appRes = await api.request({
+              url: 'applications:get',
+              method: 'get',
+              params: {
+                filterByTk: appName,
+              },
+            });
+            const appRecord = appRes?.data?.data;
+            const templateKey = appRecord?.options?.pendingTemplateKey || appRecord?.options?.installedTemplateKey;
+
+            if (!templateKey) {
+              skippedCount += 1;
+              continue;
+            }
+
+            await updateApplicationTemplateOptions(api, appName, {
+              pendingTemplateKey: templateKey,
+              templateInstallState: 'installing',
+              templateInstallError: '',
+              templateInstallUpdatedAt: new Date().toISOString(),
+            });
+
+            const result = await installTemplateWithRetry(api, appName, templateKey, { modal, message });
+            if (result.installed) {
+              successCount += 1;
+              await updateApplicationTemplateOptions(api, appName, {
+                pendingTemplateKey: '',
+                installedTemplateKey: templateKey,
+                templateInstallState: 'installed',
+                templateInstallError: '',
+                templateInstallUpdatedAt: new Date().toISOString(),
+              });
+              continue;
+            }
+
+            failedCount += 1;
+            await updateApplicationTemplateOptions(api, appName, {
+              pendingTemplateKey: templateKey,
+              templateInstallState: 'failed',
+              templateInstallError: stringifyTemplateInstallError(result.error),
+              templateInstallUpdatedAt: new Date().toISOString(),
+            });
+          } catch (error: any) {
+            failedCount += 1;
+            await updateApplicationTemplateOptions(api, appName, {
+              templateInstallState: 'failed',
+              templateInstallError: error?.message || 'install_failed',
+              templateInstallUpdatedAt: new Date().toISOString(),
+            });
+          }
+        }
+      } finally {
+        message.destroy('tpl-bulk-retry');
+      }
+
+      message.info(
+        t('Bulk template retry finished: {{success}} succeeded, {{failed}} failed, {{skipped}} skipped.', {
+          success: successCount,
+          failed: failedCount,
+          skipped: skippedCount,
+        }),
+      );
+
+      setState?.({ selectedRowKeys: [] });
+      refresh();
+    },
+  };
+};
+
 export const formSchema: ISchema = {
   type: 'void',
   'x-component': 'div',
@@ -947,6 +1043,15 @@ export const schema: ISchema = {
                   title: "{{t('Delete')}}",
                   content: "{{t('Are you sure you want to delete it?')}}",
                 },
+              },
+            },
+            retrySelectedTemplateInits: {
+              type: 'void',
+              title: `{{t("Retry selected template inits", { ns: "${NAMESPACE}" })}}`,
+              'x-component': 'Action',
+              'x-component-props': {
+                icon: 'SyncOutlined',
+                useAction: useRetrySelectedTemplateInitsAction,
               },
             },
             create: {
