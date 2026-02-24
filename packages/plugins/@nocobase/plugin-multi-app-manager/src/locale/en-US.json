@@ -21,7 +21,14 @@
   "Start mode": "Start mode",
   "Start on first visit": "Start on first visit",
   "Start with main application": "Start with main application",
+  "Template failed": "Template failed",
+  "Template init error": "Template init error",
+  "Template init status": "Template init status",
   "Template initialization failed at {{step}}: {{message}}": "Template initialization failed at {{step}}: {{message}}",
+  "Template installed": "Template installed",
+  "Template installing": "Template installing",
+  "Template not initialized": "Template not initialized",
+  "Template pending": "Template pending",
   "Waiting for app {{name}} to initialize...": "Waiting for app {{name}} to initialize...",
   "Automatic template initialization failed, please retry from action column.": "Automatic template initialization failed, please retry from action column."
 }

@@ -11,7 +11,7 @@ import { ISchema, useForm } from '@formily/react';
 import { useField } from '@formily/react';
 import { uid } from '@formily/shared';
 import { tval } from '@nocobase/utils/client';
-import { App } from 'antd';
+import { App, Tag, Tooltip, Typography } from 'antd';
 import {
   installTemplate,
   SchemaComponentOptions,
@@ -105,6 +105,57 @@ interface TemplateInstallErrorDetail {
 interface TemplateInstallResult {
   installed: boolean;
   error?: TemplateInstallErrorDetail;
+}
+
+function TemplateInstallStateField() {
+  const record = useRecord() as any;
+  const { t } = useTranslation(NAMESPACE);
+  const state = record?.options?.templateInstallState;
+  const hasPendingTemplate = Boolean(record?.options?.pendingTemplateKey);
+  const hasInstalledTemplate = Boolean(record?.options?.installedTemplateKey);
+
+  if (!state && !hasPendingTemplate && !hasInstalledTemplate) {
+    return React.createElement(Typography.Text, { type: 'secondary' }, '-');
+  }
+
+  if (state === 'installing') {
+    return React.createElement(Tag, { color: 'processing' }, t('Template installing'));
+  }
+
+  if (state === 'installed') {
+    return React.createElement(Tag, { color: 'success' }, t('Template installed'));
+  }
+
+  if (state === 'failed') {
+    return React.createElement(Tag, { color: 'error' }, t('Template failed'));
+  }
+
+  if (hasPendingTemplate) {
+    return React.createElement(Tag, { color: 'warning' }, t('Template pending'));
+  }
+
+  if (hasInstalledTemplate) {
+    return React.createElement(Tag, { color: 'default' }, t('Template installed'));
+  }
+
+  return React.createElement(Typography.Text, { type: 'secondary' }, t('Template not initialized'));
+}
+
+function TemplateInstallErrorField() {
+  const record = useRecord() as any;
+  const templateInstallError = String(record?.options?.templateInstallError || '').trim();
+  if (!templateInstallError) {
+    return React.createElement(Typography.Text, { type: 'secondary' }, '-');
+  }
+
+  const shortError =
+    templateInstallError.length > 96 ? `${templateInstallError.slice(0, 96).trimEnd()}...` : templateInstallError;
+
+  return React.createElement(
+    Tooltip,
+    { title: templateInstallError },
+    React.createElement(Typography.Text, { type: 'danger' }, shortError),
+  );
 }
 
 async function sleep(ms: number) {
@@ -842,6 +893,35 @@ export const schema: ISchema = {
                 status: {
                   type: 'string',
                   'x-component': 'CollectionField',
+                  'x-read-pretty': true,
+                },
+              },
+            },
+            templateInstallState: {
+              type: 'void',
+              title: `{{t("Template init status", { ns: "${NAMESPACE}" })}}`,
+              'x-decorator': 'Table.Column.Decorator',
+              'x-component': 'Table.Column',
+              properties: {
+                templateInstallState: {
+                  type: 'string',
+                  'x-component': TemplateInstallStateField,
+                  'x-read-pretty': true,
+                },
+              },
+            },
+            templateInstallError: {
+              type: 'void',
+              title: `{{t("Template init error", { ns: "${NAMESPACE}" })}}`,
+              'x-decorator': 'Table.Column.Decorator',
+              'x-component': 'Table.Column',
+              'x-component-props': {
+                width: 320,
+              },
+              properties: {
+                templateInstallError: {
+                  type: 'string',
+                  'x-component': TemplateInstallErrorField,
                   'x-read-pretty': true,
                 },
               },
