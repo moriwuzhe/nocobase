@@ -124,6 +124,31 @@ interface AppReadyWaitResult {
   reason: 'ready' | 'timeout' | 'app_error' | 'app_not_found';
 }
 
+type TemplatePrecheckRecommendation =
+  | 'healthy'
+  | 'no_template'
+  | 'app_not_ready'
+  | 'retry_template_init'
+  | 'manual_init_template'
+  | 'review_template_error';
+
+interface TemplatePrecheckReport {
+  appName: string;
+  appDisplayName: string;
+  templateKey: string;
+  appStatus: string;
+  ready: boolean;
+  waitReason: string;
+  waitAttempts: number;
+  waitElapsedMs: number;
+  waitAppStatus: string;
+  waitProbeStatus: string;
+  templateInstallState: string;
+  templateInstallError: string;
+  recommendation: TemplatePrecheckRecommendation;
+  checkedAt: string;
+}
+
 interface BulkRetryFailureDetail {
   appName: string;
   templateKey: string;
@@ -531,6 +556,91 @@ function normalizeApplicationRows(payload: any): any[] {
   return [];
 }
 
+function resolveTemplatePrecheckRecommendation(t: any, recommendation: TemplatePrecheckRecommendation): string {
+  if (recommendation === 'healthy') {
+    return t('Healthy');
+  }
+  if (recommendation === 'no_template') {
+    return t('No template bound');
+  }
+  if (recommendation === 'app_not_ready') {
+    return t('App not ready');
+  }
+  if (recommendation === 'retry_template_init') {
+    return t('Retry template initialization');
+  }
+  if (recommendation === 'manual_init_template') {
+    return t('Manual template initialization required');
+  }
+  return t('Review template error logs');
+}
+
+function buildTemplatePrecheckReportText(t: any, report: TemplatePrecheckReport): string {
+  const payload = {
+    ...report,
+    recommendationText: resolveTemplatePrecheckRecommendation(t, report.recommendation),
+  };
+  return JSON.stringify(payload, null, 2);
+}
+
+async function runTemplatePrecheck(api: any, appName: string): Promise<TemplatePrecheckReport> {
+  const appRes = await api.request({
+    url: 'applications:get',
+    method: 'get',
+    params: {
+      filterByTk: appName,
+    },
+  });
+  const appRecord = appRes?.data?.data || {};
+  const options = appRecord?.options || {};
+  const templateKey = String(options?.pendingTemplateKey || options?.installedTemplateKey || '').trim();
+  const appStatus = String(appRecord?.status || '');
+  const templateInstallState = String(options?.templateInstallState || '').trim();
+  const templateInstallError = String(options?.templateInstallError || '').trim();
+
+  let waitResult: AppReadyWaitResult = {
+    ready: false,
+    attempts: 0,
+    elapsedMs: 0,
+    appStatus: '',
+    probeStatus: undefined,
+    reason: 'timeout',
+  };
+  if (templateKey) {
+    waitResult = await waitForAppReady(api, appName, { timeoutMs: 45 * 1000, probeInterval: 2 });
+  }
+
+  let recommendation: TemplatePrecheckRecommendation = 'healthy';
+  if (!templateKey) {
+    recommendation = 'no_template';
+  } else if (!waitResult.ready) {
+    recommendation = 'app_not_ready';
+  } else if (templateInstallState === 'failed') {
+    recommendation = 'retry_template_init';
+  } else if (options?.pendingTemplateKey) {
+    recommendation = 'manual_init_template';
+  } else if (templateInstallError) {
+    recommendation = 'review_template_error';
+  }
+
+  return {
+    appName: String(appRecord?.name || appName),
+    appDisplayName: String(appRecord?.displayName || ''),
+    templateKey,
+    appStatus,
+    ready: waitResult.ready,
+    waitReason: waitResult.reason,
+    waitAttempts: waitResult.attempts,
+    waitElapsedMs: waitResult.elapsedMs,
+    waitAppStatus: stringifyProbeValue(waitResult.appStatus),
+    waitProbeStatus: stringifyProbeValue(waitResult.probeStatus),
+    templateInstallState,
+    templateInstallError,
+    recommendation,
+    checkedAt: new Date().toISOString(),
+  };
+}
+
 export const useDestroy = () => {
   const { refresh } = useResourceActionContext();
   const { resource, targetKey } = useResourceContext();
@@ -818,6 +928,183 @@ export const useSelectRetryableTemplateAppsAction = () => {
   };
 };
 
+export const usePrecheckSelectedTemplateAppsAction = () => {
+  const { state } = useResourceActionContext();
+  const api = useAPIClient();
+  const { message, modal } = App.useApp();
+  const { t } = useTranslation(NAMESPACE);
+
+  return {
+    async run() {
+      const selectedRowKeys: string[] = ((state?.selectedRowKeys || []) as Array<string | number>)
+        .map((key) => String(key))
+        .filter(Boolean);
+      const appNames: string[] = Array.from(new Set(selectedRowKeys));
+      if (!appNames.length) {
+        message.warning(t('No app selected for precheck.'));
+        return;
+      }
+
+      let healthyCount = 0;
+      let warningCount = 0;
+      let failedCount = 0;
+      let completedCount = 0;
+      const reports: TemplatePrecheckReport[] = [];
+
+      const renderProgress = () => {
+        message.loading({
+          content: t(
+            'Bulk precheck progress: {{done}}/{{total}} (healthy {{healthy}}, warning {{warning}}, failed {{failed}})',
+            {
+              done: completedCount,
+              total: appNames.length,
+              healthy: healthyCount,
+              warning: warningCount,
+              failed: failedCount,
+            },
+          ),
+          key: 'tpl-precheck-bulk',
+          duration: 0,
+        });
+      };
+
+      const classify = (report: TemplatePrecheckReport) => {
+        if (report.recommendation === 'healthy') {
+          healthyCount += 1;
+          return;
+        }
+        if (report.recommendation === 'app_not_ready') {
+          failedCount += 1;
+          return;
+        }
+        warningCount += 1;
+      };
+
+      renderProgress();
+      try {
+        let nextIndex = 0;
+        const workerCount = Math.min(BULK_TEMPLATE_RETRY_CONCURRENCY, appNames.length);
+        const getNextAppName = () => {
+          if (nextIndex >= appNames.length) {
+            return undefined;
+          }
+          const appName = appNames[nextIndex];
+          nextIndex += 1;
+          return appName;
+        };
+        const workers = Array.from({ length: workerCount }, () =>
+          (async () => {
+            let currentAppName = getNextAppName();
+            while (currentAppName) {
+              try {
+                const report = await runTemplatePrecheck(api, currentAppName);
+                reports.push(report);
+                classify(report);
+              } catch (error: any) {
+                const fallbackReport: TemplatePrecheckReport = {
+                  appName: currentAppName,
+                  appDisplayName: '',
+                  templateKey: '',
+                  appStatus: '',
+                  ready: false,
+                  waitReason: 'precheck_failed',
+                  waitAttempts: 0,
+                  waitElapsedMs: 0,
+                  waitAppStatus: '-',
+                  waitProbeStatus: '-',
+                  templateInstallState: '',
+                  templateInstallError: String(error?.message || 'precheck_failed'),
+                  recommendation: 'app_not_ready',
+                  checkedAt: new Date().toISOString(),
+                };
+                reports.push(fallbackReport);
+                failedCount += 1;
+              }
+
+              completedCount += 1;
+              renderProgress();
+              currentAppName = getNextAppName();
+            }
+          })(),
+        );
+        await Promise.all(workers);
+      } finally {
+        message.destroy('tpl-precheck-bulk');
+      }
+
+      message.info(
+        t('Bulk precheck finished: {{healthy}} healthy, {{warning}} warning, {{failed}} failed.', {
+          healthy: healthyCount,
+          warning: warningCount,
+          failed: failedCount,
+        }),
+      );
+
+      const header = [
+        t('App'),
+        t('Template'),
+        t('Recommendation'),
+        t('App status'),
+        t('Probe status'),
+        t('Reason'),
+      ].join('\t');
+      const rows = reports.map((report) =>
+        [
+          report.appName,
+          report.templateKey || '-',
+          resolveTemplatePrecheckRecommendation(t, report.recommendation),
+          report.appStatus || '-',
+          report.waitProbeStatus || '-',
+          report.waitReason || '-',
+        ].join('\t'),
+      );
+      const detailsText = [header, ...rows].join('\n');
+
+      modal.info({
+        width: 920,
+        title: t('Bulk precheck result details'),
+        content: React.createElement(
+          'div',
+          { style: { maxHeight: 420, overflow: 'auto' } },
+          React.createElement(
+            Typography.Paragraph,
+            null,
+            t('Bulk precheck finished: {{healthy}} healthy, {{warning}} warning, {{failed}} failed.', {
+              healthy: healthyCount,
+              warning: warningCount,
+              failed: failedCount,
+            }),
+          ),
+          React.createElement(
+            Typography.Paragraph,
+            {
+              copyable: {
+                text: detailsText,
+                tooltips: [t('Copy failed list'), t('Copied')],
+              },
+            },
+            t('Copy failed list'),
+          ),
+          React.createElement(
+            'pre',
+            {
+              style: {
+                margin: 0,
+                padding: 12,
+                borderRadius: 6,
+                background: '#f7f7f7',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              },
+            },
+            detailsText,
+          ),
+        ),
+      });
+    },
+  };
+};
+
 export const formSchema: ISchema = {
   type: 'void',
   'x-component': 'div',
@@ -1039,6 +1326,15 @@ export const tableActionColumnSchema: ISchema = {
         useAction: useRetryTemplateInstallAction,
       },
     },
+    templatePrecheck: {
+      type: 'void',
+      title: `{{t("Template precheck", { ns: "${NAMESPACE}" })}}`,
+      'x-component': 'Action.Link',
+      'x-visible': `{{ !!($record && $record.options && ($record.options.pendingTemplateKey || $record.options.installedTemplateKey || $record.options.templateInstallState || $record.options.templateInstallError)) }}`,
+      'x-component-props': {
+        useAction: useTemplatePrecheckAction,
+      },
+    },
     copyTemplateDiagnostics: {
       type: 'void',
       title: `{{t("Copy template diagnostics", { ns: "${NAMESPACE}" })}}`,
@@ -1222,6 +1518,80 @@ export function useRetryTemplateInstallAction() {
           message: detail.message,
         }),
       );
+    },
+  };
+}
+
+export function useTemplatePrecheckAction() {
+  const record = useRecord() as any;
+  const api = useAPIClient();
+  const { message, modal } = App.useApp();
+  const { t } = useTranslation(NAMESPACE);
+
+  return {
+    async run() {
+      const appName = String(record?.name || '').trim();
+      if (!appName) {
+        message.error(t('Unable to locate app record.'));
+        return;
+      }
+
+      const messageKey = `tpl-precheck-${appName}`;
+      message.loading({
+        content: t('Running template precheck...'),
+        key: messageKey,
+        duration: 0,
+      });
+      try {
+        const report = await runTemplatePrecheck(api, appName);
+        const recommendationText = resolveTemplatePrecheckRecommendation(t, report.recommendation);
+        const reportText = buildTemplatePrecheckReportText(t, report);
+
+        modal.info({
+          width: 920,
+          title: t('Template precheck report'),
+          content: React.createElement(
+            'div',
+            { style: { maxHeight: 420, overflow: 'auto' } },
+            React.createElement(
+              Typography.Paragraph,
+              null,
+              t('Recommendation: {{text}}', {
+                text: recommendationText,
+              }),
+            ),
+            React.createElement(
+              Typography.Paragraph,
+              {
+                copyable: {
+                  text: reportText,
+                  tooltips: [t('Copy failed list'), t('Copied')],
+                },
+              },
+              t('Copy failed list'),
+            ),
+            React.createElement(
+              'pre',
+              {
+                style: {
+                  margin: 0,
+                  padding: 12,
+                  borderRadius: 6,
+                  background: '#f7f7f7',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                },
+              },
+              reportText,
+            ),
+          ),
+        });
+      } catch (error) {
+        void error;
+        message.error(t('Failed to run template precheck.'));
+      } finally {
+        message.destroy(messageKey);
+      }
     },
   };
 }
@@ -1500,6 +1870,15 @@ export const schema: ISchema = {
               'x-component-props': {
                 icon: 'CheckSquareOutlined',
                 useAction: useSelectRetryableTemplateAppsAction,
+              },
+            },
+            precheckSelectedTemplateApps: {
+              type: 'void',
+              title: `{{t("Precheck selected template apps", { ns: "${NAMESPACE}" })}}`,
+              'x-component': 'Action',
+              'x-component-props': {
+                icon: 'SearchOutlined',
+                useAction: usePrecheckSelectedTemplateAppsAction,
               },
             },
             retrySelectedTemplateInits: {
