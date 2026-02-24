@@ -8,6 +8,7 @@
   "App template": "应用模板",
   "Automatically generate a JWT secret": "自动生成 JWT 密钥",
   "Custom domain": "自定义域名",
+  "Clear template status": "清除模板状态",
   "Initialize template": "初始化模板",
   "Initialize template now": "立即初始化模板",
   "Initialization timeout, you can manually initialize the template from the action column.": "应用初始化超时，你可以在操作列手动继续初始化模板。",
@@ -15,8 +16,10 @@
   "Manual template initialization": "手动初始化模板",
   "Manage applications": "管理应用",
   "Multi-app manager": "多应用管理",
+  "No template status to clear.": "没有可清除的模板状态。",
   "Pin to menu": "在菜单上显示",
   "Please select a template first": "请先选择模板",
+  "Are you sure you want to clear template status and error logs?": "确定要清除模板状态和错误日志吗？",
   "Standalone deployment": "独立部署",
   "Start mode": "启动方式",
   "Start on first visit": "首次访问时启动",
@@ -29,6 +32,7 @@
   "Template installing": "模板安装中",
   "Template not initialized": "模板未初始化",
   "Template pending": "模板待初始化",
+  "Template status has been cleared.": "模板状态已清除。",
   "Waiting for app {{name}} to initialize...": "正在等待应用 {{name}} 初始化...",
   "Automatic template initialization failed, please retry from action column.": "自动初始化模板失败，请在操作列重试。"
 }

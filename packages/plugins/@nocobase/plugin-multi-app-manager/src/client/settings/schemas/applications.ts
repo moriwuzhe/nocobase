@@ -543,6 +543,18 @@ export const tableActionColumnSchema: ISchema = {
         },
       },
     },
+    resetTemplateStatus: {
+      type: 'void',
+      title: `{{t("Clear template status", { ns: "${NAMESPACE}" })}}`,
+      'x-component': 'Action.Link',
+      'x-component-props': {
+        useAction: useResetTemplateInstallStatusAction,
+        confirm: {
+          title: `{{t("Clear template status", { ns: "${NAMESPACE}" })}}`,
+          content: `{{t("Are you sure you want to clear template status and error logs?", { ns: "${NAMESPACE}" })}}`,
+        },
+      },
+    },
     delete: {
       type: 'void',
       title: '{{ t("Delete") }}',
@@ -620,6 +632,33 @@ export function useManualInstallTemplateAction() {
       } finally {
         field.data.loading = false;
       }
+    },
+  };
+}
+
+export function useResetTemplateInstallStatusAction() {
+  const record = useRecord() as any;
+  const api = useAPIClient();
+  const { refresh } = useResourceActionContext();
+  const { message } = App.useApp();
+  const { t } = useTranslation(NAMESPACE);
+
+  return {
+    async run() {
+      const hasState = Boolean(record?.options?.templateInstallState || record?.options?.templateInstallError);
+      if (!hasState) {
+        message.info(t('No template status to clear.'));
+        return;
+      }
+
+      await updateApplicationTemplateOptions(api, record.name, {
+        pendingTemplateKey: '',
+        templateInstallState: '',
+        templateInstallError: '',
+        templateInstallUpdatedAt: new Date().toISOString(),
+      });
+      message.success(t('Template status has been cleared.'));
+      refresh();
     },
   };
 }

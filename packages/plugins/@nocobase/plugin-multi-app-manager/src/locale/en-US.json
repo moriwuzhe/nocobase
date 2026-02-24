@@ -8,6 +8,7 @@
   "App template": "App template",
   "Automatically generate a JWT secret": "Automatically generate a JWT secret",
   "Custom domain": "Custom domain",
+  "Clear template status": "Clear template status",
   "Initialize template": "Initialize template",
   "Initialize template now": "Initialize template now",
   "Initialization timeout, you can manually initialize the template from the action column.": "Initialization timed out. You can manually initialize the template from the action column.",
@@ -15,8 +16,10 @@
   "Manual template initialization": "Manual template initialization",
   "Manage applications": "Manage applications",
   "Multi-app manager": "Multi-app manager",
+  "No template status to clear.": "No template status to clear.",
   "Pin to menu": "Pin to menu",
   "Please select a template first": "Please select a template first",
+  "Are you sure you want to clear template status and error logs?": "Are you sure you want to clear template status and error logs?",
   "Standalone deployment": "Standalone deployment",
   "Start mode": "Start mode",
   "Start on first visit": "Start on first visit",
@@ -29,6 +32,7 @@
   "Template installing": "Template installing",
   "Template not initialized": "Template not initialized",
   "Template pending": "Template pending",
+  "Template status has been cleared.": "Template status has been cleared.",
   "Waiting for app {{name}} to initialize...": "Waiting for app {{name}} to initialize...",
   "Automatic template initialization failed, please retry from action column.": "Automatic template initialization failed, please retry from action column."
 }
