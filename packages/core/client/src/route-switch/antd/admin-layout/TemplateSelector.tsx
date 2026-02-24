@@ -1031,6 +1031,46 @@ function isAlreadyExistsError(err: any): boolean {
   return status === 409 || text.includes('already exists') || text.includes('duplicate') || text.includes('unique');
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTransientStartupError(err: any): boolean {
+  const status = err?.response?.status;
+  if ([502, 503, 504].includes(status)) {
+    return true;
+  }
+  const message = getAxiosErrorMessage(err).toLowerCase();
+  return (
+    message.includes('application may be starting up') ||
+    message.includes('app_initializing') ||
+    message.includes('bad gateway')
+  );
+}
+
+async function requestWithRetry(
+  api: any,
+  config: Record<string, any>,
+  options?: { maxAttempts?: number; initialDelayMs?: number },
+) {
+  const maxAttempts = options?.maxAttempts ?? 3;
+  let delayMs = options?.initialDelayMs ?? 1000;
+  let lastError: any;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await api.request(config);
+    } catch (error) {
+      lastError = error;
+      if (attempt >= maxAttempts || !isTransientStartupError(error)) {
+        throw error;
+      }
+      await sleep(delayMs);
+      delayMs = Math.min(5000, delayMs + 800);
+    }
+  }
+  throw lastError;
+}
+
 export async function installTemplate(
   api: any,
   appName: string,
@@ -1094,7 +1134,7 @@ export async function installTemplate(
           let appReady = false;
           for (let attempt = 0; attempt < 15; attempt++) {
             try {
-              await api.request({ url: 'app:getInfo', headers });
+              await requestWithRetry(api, { url: 'app:getInfo', headers }, { maxAttempts: 2, initialDelayMs: 1200 });
               appReady = true;
               break;
             } catch (e: any) {
@@ -1104,7 +1144,7 @@ export async function installTemplate(
                 appReady = true;
                 break;
               }
-              await new Promise((resolve) => setTimeout(resolve, 2000));
+              await sleep(2000);
             }
           }
           if (!appReady) {
@@ -1115,12 +1155,16 @@ export async function installTemplate(
 
           let authHeaders: Record<string, string> = { ...headers };
           try {
-            const authRes = await api.request({
-              url: 'auth:signIn',
-              method: 'post',
-              data: { account: 'admin@nocobase.com', password: 'admin123' },
-              headers,
-            });
+            const authRes = await requestWithRetry(
+              api,
+              {
+                url: 'auth:signIn',
+                method: 'post',
+                data: { account: 'admin@nocobase.com', password: 'admin123' },
+                headers,
+              },
+              { maxAttempts: 2, initialDelayMs: 1000 },
+            );
             const subToken = authRes?.data?.data?.token;
             if (subToken) authHeaders = { ...headers, Authorization: `Bearer ${subToken}` };
           } catch {
@@ -1141,55 +1185,59 @@ export async function installTemplate(
             });
 
             try {
-              await api.request({
-                url: 'collections:create',
-                method: 'post',
-                headers: authHeaders,
-                data: {
-                  name: col.name,
-                  title: col.title,
-                  fields: [
-                    ...fields,
-                    {
-                      name: 'id',
-                      type: 'bigInt',
-                      autoIncrement: true,
-                      primaryKey: true,
-                      allowNull: false,
-                      interface: 'id',
-                    },
-                    {
-                      name: 'createdAt',
-                      type: 'date',
-                      interface: 'createdAt',
-                      field: 'createdAt',
-                      uiSchema: {
-                        type: 'datetime',
-                        title: '{{t("Created at")}}',
-                        'x-component': 'DatePicker',
-                        'x-component-props': { showTime: true },
+              await requestWithRetry(
+                api,
+                {
+                  url: 'collections:create',
+                  method: 'post',
+                  headers: authHeaders,
+                  data: {
+                    name: col.name,
+                    title: col.title,
+                    fields: [
+                      ...fields,
+                      {
+                        name: 'id',
+                        type: 'bigInt',
+                        autoIncrement: true,
+                        primaryKey: true,
+                        allowNull: false,
+                        interface: 'id',
                       },
-                    },
-                    {
-                      name: 'updatedAt',
-                      type: 'date',
-                      interface: 'updatedAt',
-                      field: 'updatedAt',
-                      uiSchema: {
-                        type: 'datetime',
-                        title: '{{t("Last updated at")}}',
-                        'x-component': 'DatePicker',
-                        'x-component-props': { showTime: true },
+                      {
+                        name: 'createdAt',
+                        type: 'date',
+                        interface: 'createdAt',
+                        field: 'createdAt',
+                        uiSchema: {
+                          type: 'datetime',
+                          title: '{{t("Created at")}}',
+                          'x-component': 'DatePicker',
+                          'x-component-props': { showTime: true },
+                        },
                       },
-                    },
-                  ],
-                  createdBy: true,
-                  updatedBy: true,
-                  sortable: true,
-                  autoGenId: false,
-                  logging: true,
+                      {
+                        name: 'updatedAt',
+                        type: 'date',
+                        interface: 'updatedAt',
+                        field: 'updatedAt',
+                        uiSchema: {
+                          type: 'datetime',
+                          title: '{{t("Last updated at")}}',
+                          'x-component': 'DatePicker',
+                          'x-component-props': { showTime: true },
+                        },
+                      },
+                    ],
+                    createdBy: true,
+                    updatedBy: true,
+                    sortable: true,
+                    autoGenId: false,
+                    logging: true,
+                  },
                 },
-              });
+                { maxAttempts: 3, initialDelayMs: 800 },
+              );
             } catch (e) {
               if (isAlreadyExistsError(e)) {
                 // Support repair/retry flow: continue installation if collection already exists.
@@ -1203,25 +1251,29 @@ export async function installTemplate(
 
           for (const rel of tpl.relations) {
             try {
-              await api.request({
-                url: `collections/${rel.sourceCollection}/fields:create`,
-                method: 'post',
-                headers: authHeaders,
-                data: {
-                  name: rel.name,
-                  type: rel.type,
-                  interface: rel.interface,
-                  target: rel.target,
-                  foreignKey: rel.foreignKey,
-                  targetKey: rel.targetKey,
-                  uiSchema: {
-                    type: 'object',
-                    title: rel.title,
-                    'x-component': 'AssociationField',
-                    'x-component-props': { fieldNames: { label: rel.labelField, value: 'id' } },
+              await requestWithRetry(
+                api,
+                {
+                  url: `collections/${rel.sourceCollection}/fields:create`,
+                  method: 'post',
+                  headers: authHeaders,
+                  data: {
+                    name: rel.name,
+                    type: rel.type,
+                    interface: rel.interface,
+                    target: rel.target,
+                    foreignKey: rel.foreignKey,
+                    targetKey: rel.targetKey,
+                    uiSchema: {
+                      type: 'object',
+                      title: rel.title,
+                      'x-component': 'AssociationField',
+                      'x-component-props': { fieldNames: { label: rel.labelField, value: 'id' } },
+                    },
                   },
                 },
-              });
+                { maxAttempts: 3, initialDelayMs: 800 },
+              );
             } catch (e) {
               console.warn(`Failed to create relation ${rel.sourceCollection}.${rel.name}:`, e);
             }
@@ -1243,20 +1295,28 @@ export async function installTemplate(
 
           const listDesktopRoutes = async (filter: Record<string, any>) => {
             try {
-              const res = await api.request({
-                url: 'desktopRoutes:list',
-                method: 'get',
-                headers: authHeaders,
-                params: { filter, paginate: false },
-              });
+              const res = await requestWithRetry(
+                api,
+                {
+                  url: 'desktopRoutes:list',
+                  method: 'get',
+                  headers: authHeaders,
+                  params: { filter, paginate: false },
+                },
+                { maxAttempts: 3, initialDelayMs: 600 },
+              );
               return normalizeListRows(res);
             } catch {
-              const res = await api.request({
-                url: 'routes:list',
-                method: 'get',
-                headers: authHeaders,
-                params: { filter, paginate: false },
-              });
+              const res = await requestWithRetry(
+                api,
+                {
+                  url: 'routes:list',
+                  method: 'get',
+                  headers: authHeaders,
+                  params: { filter, paginate: false },
+                },
+                { maxAttempts: 3, initialDelayMs: 600 },
+              );
               return normalizeListRows(res);
             }
           };
@@ -1268,21 +1328,29 @@ export async function installTemplate(
 
           const updateDesktopRoute = async (id: number | string, values: Record<string, any>) => {
             try {
-              return await api.request({
-                url: 'desktopRoutes:update',
-                method: 'post',
-                headers: authHeaders,
-                params: { filterByTk: id },
-                data: { values },
-              });
+              return await requestWithRetry(
+                api,
+                {
+                  url: 'desktopRoutes:update',
+                  method: 'post',
+                  headers: authHeaders,
+                  params: { filterByTk: id },
+                  data: { values },
+                },
+                { maxAttempts: 3, initialDelayMs: 600 },
+              );
             } catch {
-              return await api.request({
-                url: 'routes:update',
-                method: 'post',
-                headers: authHeaders,
-                params: { filterByTk: id },
-                data: { values },
-              });
+              return await requestWithRetry(
+                api,
+                {
+                  url: 'routes:update',
+                  method: 'post',
+                  headers: authHeaders,
+                  params: { filterByTk: id },
+                  data: { values },
+                },
+                { maxAttempts: 3, initialDelayMs: 600 },
+              );
             }
           };
 
@@ -1296,12 +1364,16 @@ export async function installTemplate(
             }
 
             try {
-              return await api.request({
-                url: 'desktopRoutes:create',
-                method: 'post',
-                headers: authHeaders,
-                data: routeData,
-              });
+              return await requestWithRetry(
+                api,
+                {
+                  url: 'desktopRoutes:create',
+                  method: 'post',
+                  headers: authHeaders,
+                  data: routeData,
+                },
+                { maxAttempts: 3, initialDelayMs: 600 },
+              );
             } catch (desktopErr: any) {
               if (isAlreadyExistsError(desktopErr)) {
                 const existingRoute = await findDesktopRoute(routeFilter);
@@ -1321,12 +1393,16 @@ export async function installTemplate(
               }
 
               try {
-                return await api.request({
-                  url: 'routes:create',
-                  method: 'post',
-                  headers: authHeaders,
-                  data: routeData,
-                });
+                return await requestWithRetry(
+                  api,
+                  {
+                    url: 'routes:create',
+                    method: 'post',
+                    headers: authHeaders,
+                    data: routeData,
+                  },
+                  { maxAttempts: 3, initialDelayMs: 600 },
+                );
               } catch (routeErr: any) {
                 if (isAlreadyExistsError(routeErr)) {
                   const existingRoute = await findDesktopRoute(routeFilter);
@@ -1394,12 +1470,16 @@ export async function installTemplate(
               hasViewConfig ? viewConfig : undefined,
             );
 
-            await api.request({
-              url: 'uiSchemas:insert',
-              method: 'post',
-              headers: authHeaders,
-              data: pageResult.schema,
-            });
+            await requestWithRetry(
+              api,
+              {
+                url: 'uiSchemas:insert',
+                method: 'post',
+                headers: authHeaders,
+                data: pageResult.schema,
+              },
+              { maxAttempts: 3, initialDelayMs: 600 },
+            );
 
             const routeData = {
               type: 'page',
@@ -1453,11 +1533,31 @@ export async function installTemplate(
             if (!schemaUid) {
               throw new Error(`Template page "${title}" was not created correctly (missing schemaUid)`);
             }
-            await api.request({
-              url: `uiSchemas:getJsonSchema/${schemaUid}`,
-              method: 'get',
-              headers: authHeaders,
-            });
+            await requestWithRetry(
+              api,
+              {
+                url: `uiSchemas:getJsonSchema/${schemaUid}`,
+                method: 'get',
+                headers: authHeaders,
+              },
+              { maxAttempts: 3, initialDelayMs: 600 },
+            );
+          }
+
+          // Refresh sub-app caches after route/schema writes so pages are immediately available.
+          try {
+            await requestWithRetry(
+              api,
+              {
+                url: 'app:refresh',
+                method: 'post',
+                headers: authHeaders,
+              },
+              { maxAttempts: 2, initialDelayMs: 800 },
+            );
+            await sleep(500);
+          } catch {
+            // refresh may be unavailable in some deployments
           }
 
           ui.message.loading({ content: '正在插入示例数据...', key: 'tpl', duration: 0 });
