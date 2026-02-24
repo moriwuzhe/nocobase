@@ -93,6 +93,7 @@ const collection = {
 
 const TRANSIENT_GATEWAY_STATUSES = new Set([502, 503, 504]);
 const APP_READY_STATUSES = new Set(['initialized', 'running']);
+const APP_AUTH_READY_STATUSES = new Set([401, 403]);
 
 async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -138,6 +139,10 @@ async function waitForAppReady(api: any, appName: string, timeoutMs = 6 * 60 * 1
       return true;
     } catch (e) {
       const status = (e as any)?.response?.status;
+      // Cross-app token may be different. 401/403 indicates sub-app is up.
+      if (APP_AUTH_READY_STATUSES.has(status)) {
+        return true;
+      }
       if (status && !TRANSIENT_GATEWAY_STATUSES.has(status) && status !== 404) {
         // Keep retrying until timeout, some intermediate statuses can be temporary.
       }

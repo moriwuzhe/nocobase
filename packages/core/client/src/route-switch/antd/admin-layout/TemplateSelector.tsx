@@ -1096,7 +1096,13 @@ export async function installTemplate(
               await api.request({ url: 'app:getInfo', headers });
               appReady = true;
               break;
-            } catch {
+            } catch (e: any) {
+              const status = e?.response?.status;
+              // 401/403 means sub-app is running but current token is not accepted by this app.
+              if (status === 401 || status === 403) {
+                appReady = true;
+                break;
+              }
               await new Promise((resolve) => setTimeout(resolve, 2000));
             }
           }
