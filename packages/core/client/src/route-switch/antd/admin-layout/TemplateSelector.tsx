@@ -1199,28 +1199,42 @@ export async function installTemplate(
             collectionMap.set(col.name, col);
           }
 
-          const createMenuGroup = async (title: string, icon?: string): Promise<string> => {
-            const groupSchemaUid = uid();
-            await api.request({
-              url: 'uiSchemas:insertAdjacent/admin',
-              method: 'post',
-              headers: authHeaders,
-              params: { position: 'beforeEnd' },
-              data: {
-                schema: {
-                  type: 'void',
-                  title,
-                  'x-component': 'Menu.SubMenu',
-                  'x-component-props': { icon },
-                  'x-uid': groupSchemaUid,
-                },
-              },
+          const createDesktopRoute = async (routeData: Record<string, any>) => {
+            try {
+              return await api.request({
+                url: 'desktopRoutes:create',
+                method: 'post',
+                headers: authHeaders,
+                data: routeData,
+              });
+            } catch (desktopErr: any) {
+              try {
+                return await api.request({
+                  url: 'routes:create',
+                  method: 'post',
+                  headers: authHeaders,
+                  data: routeData,
+                });
+              } catch (routeErr: any) {
+                const routeTitle = routeData?.title || routeData?.type || 'unknown';
+                const detail = routeErr?.message || desktopErr?.message || 'Unknown route creation error';
+                throw new Error(`Failed to create route "${routeTitle}": ${detail}`);
+              }
+            }
+          };
+
+          const createMenuGroup = async (title: string, icon?: string): Promise<number | string | undefined> => {
+            const routeRes = await createDesktopRoute({
+              type: 'group',
+              title,
+              icon,
+              hideInMenu: false,
             });
-            return groupSchemaUid;
+            return routeRes?.data?.data?.id;
           };
 
           const createPageRoute = async (
-            parentSchemaUid: string,
+            parentRouteId: number | string | undefined,
             page: {
               title: string;
               icon?: string;
@@ -1251,22 +1265,11 @@ export async function installTemplate(
               hasViewConfig ? viewConfig : undefined,
             );
 
-            const menuItemSchemaUid = uid();
-
             await api.request({
-              url: `uiSchemas:insertAdjacent/${parentSchemaUid}`,
+              url: 'uiSchemas:insert',
               method: 'post',
               headers: authHeaders,
-              params: { position: 'beforeEnd' },
-              data: {
-                schema: {
-                  type: 'void',
-                  title: page.title,
-                  'x-component': 'Menu.Item',
-                  'x-component-props': { icon: page.icon },
-                  'x-uid': menuItemSchemaUid,
-                },
-              },
+              data: pageResult.schema,
             });
 
             const routeData = {
@@ -1274,75 +1277,33 @@ export async function installTemplate(
               title: page.title,
               icon: page.icon,
               schemaUid: pageResult.pageSchemaUid,
-              menuSchemaUid: menuItemSchemaUid,
+              parentId: parentRouteId,
+              hideInMenu: false,
               enableTabs: pageResult.enableTabs,
+              children: pageResult.tabs.map((tab) => ({
+                type: 'tabs',
+                title: tab.title || '{{t("Unnamed")}}',
+                schemaUid: tab.schemaUid,
+                tabSchemaName: tab.tabSchemaName,
+                hideInMenu: false,
+              })),
             };
 
-            // Try desktopRoutes first, fallback to routes
-            try {
-              await api.request({ url: 'desktopRoutes:create', method: 'post', headers: authHeaders, data: routeData });
-            } catch {
-              try {
-                await api.request({ url: 'routes:create', method: 'post', headers: authHeaders, data: routeData });
-              } catch {
-                // Route creation not available in this app version
-              }
-            }
-
-            await api.request({
-              url: 'uiSchemas:insert',
-              method: 'post',
-              headers: authHeaders,
-              data: { schema: pageResult.schema },
-            });
-
-            if (pageResult.enableTabs && pageResult.tabs.length > 0) {
-              for (const tab of pageResult.tabs) {
-                try {
-                  await api.request({
-                    url: 'desktopRoutes:create',
-                    method: 'post',
-                    headers: authHeaders,
-                    data: {
-                      type: 'tabs',
-                      title: tab.title,
-                      schemaUid: tab.schemaUid,
-                      tabSchemaName: tab.tabSchemaName,
-                    },
-                  });
-                } catch {
-                  try {
-                    await api.request({
-                      url: 'routes:create',
-                      method: 'post',
-                      headers: authHeaders,
-                      data: {
-                        type: 'tabs',
-                        title: tab.title,
-                        schemaUid: tab.schemaUid,
-                        tabSchemaName: tab.tabSchemaName,
-                      },
-                    });
-                  } catch {
-                    // tab routes not supported
-                  }
-                }
-              }
-            }
+            await createDesktopRoute(routeData);
           };
 
           for (const menuItem of tpl.menu) {
             if (menuItem.type === 'group') {
-              const groupUid = await createMenuGroup(menuItem.title, menuItem.icon);
+              const groupRouteId = await createMenuGroup(menuItem.title, menuItem.icon);
               if (menuItem.children) {
                 for (const child of menuItem.children) {
                   if (child.type === 'page') {
-                    await createPageRoute(groupUid, child);
+                    await createPageRoute(groupRouteId, child);
                   }
                 }
               }
             } else if (menuItem.type === 'page') {
-              await createPageRoute('admin', menuItem);
+              await createPageRoute(undefined, menuItem);
             }
           }
 
