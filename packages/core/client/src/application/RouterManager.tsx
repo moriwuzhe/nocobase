@@ -153,6 +153,14 @@ export class RouterManager {
    */
   getRouterComponent(children?: React.ReactNode) {
     const { type = 'browser', ...opts } = this.options;
+    const routerOptions = {
+      ...(opts as any),
+      future: {
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+        ...((opts as any)?.future || {}),
+      },
+    };
 
     const routerCreators = {
       hash: createHashRouter,
@@ -192,7 +200,7 @@ export class RouterManager {
           children: routes,
         },
       ],
-      opts,
+      routerOptions,
     );
 
     const RenderRouter: React.FC<{ BaseLayout?: ComponentType }> = ({ BaseLayout = BlankComponent }) => {

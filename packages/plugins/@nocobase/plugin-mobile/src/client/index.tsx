@@ -104,11 +104,6 @@ export class PluginMobileClient extends Plugin {
   }
 
   async load() {
-    // 弃用警告
-    console.warn(
-      '[NocoBase] @nocobase/plugin-mobile is deprecated and may be removed in future versions. Please migrate to the new mobile solution.',
-    );
-
     this.app.use(MobileComponentsProvider);
     this.addComponents();
     this.addAppRoutes();

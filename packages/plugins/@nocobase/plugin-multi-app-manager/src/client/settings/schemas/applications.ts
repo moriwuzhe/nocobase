@@ -305,14 +305,19 @@ export const useCreateActionWithTemplate = () => {
           for (let i = 0; i < 40; i++) {
             await new Promise((resolve) => setTimeout(resolve, 3000));
             try {
-              const headers = { 'X-App': appName };
-              const infoRes = await api.request({
-                url: 'app:getInfo',
+              const appRes = await api.request({
+                url: 'applications:get',
                 method: 'get',
-                headers,
+                params: {
+                  filterByTk: appName,
+                },
               });
-              if (infoRes?.data?.data?.version) {
+              const status = appRes?.data?.data?.status;
+              if (status === 'initialized') {
                 ready = true;
+                break;
+              }
+              if (status === 'error') {
                 break;
               }
             } catch (e) {
