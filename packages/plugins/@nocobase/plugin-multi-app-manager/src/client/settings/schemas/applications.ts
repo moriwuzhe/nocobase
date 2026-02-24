@@ -11,7 +11,7 @@ import { ISchema, useForm } from '@formily/react';
 import { useField } from '@formily/react';
 import { uid } from '@formily/shared';
 import { tval } from '@nocobase/utils/client';
-import { message } from 'antd';
+import { App } from 'antd';
 import {
   installTemplate,
   SchemaComponentOptions,
@@ -277,6 +277,7 @@ export const useCreateActionWithTemplate = () => {
   const { refresh } = useResourceActionContext();
   const { resource } = useResourceContext();
   const api = useAPIClient();
+  const { message, modal } = App.useApp();
 
   return {
     async run() {
@@ -322,7 +323,7 @@ export const useCreateActionWithTemplate = () => {
           message.destroy('tpl-wait');
 
           if (ready) {
-            await installTemplate(api, appName, templateKey);
+            await installTemplate(api, appName, templateKey, { modal, message });
             refresh();
           } else {
             message.warning('应用初始化超时，请稍后在应用中手动安装模板');
