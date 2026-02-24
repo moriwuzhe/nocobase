@@ -394,8 +394,10 @@ export const useRetrySelectedTemplateInitsAction = () => {
 
   return {
     async run() {
-      const selectedRowKeys = (state?.selectedRowKeys || []).map((key) => String(key)).filter(Boolean);
-      const appNames = Array.from(new Set(selectedRowKeys));
+      const selectedRowKeys: string[] = ((state?.selectedRowKeys || []) as Array<string | number>)
+        .map((key) => String(key))
+        .filter(Boolean);
+      const appNames: string[] = Array.from(new Set(selectedRowKeys));
       if (!appNames.length) {
         message.warning(t('Please select applications first'));
         return;
