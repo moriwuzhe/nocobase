@@ -1233,7 +1233,67 @@ export async function installTemplate(
             collectionMap.set(col.name, col);
           }
 
+          const normalizeListRows = (res: any): any[] => {
+            const payload = res?.data?.data;
+            if (Array.isArray(payload)) return payload;
+            if (Array.isArray(payload?.rows)) return payload.rows;
+            return [];
+          };
+
+          const listDesktopRoutes = async (filter: Record<string, any>) => {
+            try {
+              const res = await api.request({
+                url: 'desktopRoutes:list',
+                method: 'get',
+                headers: authHeaders,
+                params: { filter, paginate: false },
+              });
+              return normalizeListRows(res);
+            } catch {
+              const res = await api.request({
+                url: 'routes:list',
+                method: 'get',
+                headers: authHeaders,
+                params: { filter, paginate: false },
+              });
+              return normalizeListRows(res);
+            }
+          };
+
+          const findDesktopRoute = async (filter: Record<string, any>) => {
+            const rows = await listDesktopRoutes(filter);
+            return rows[0];
+          };
+
+          const updateDesktopRoute = async (id: number | string, values: Record<string, any>) => {
+            try {
+              return await api.request({
+                url: 'desktopRoutes:update',
+                method: 'post',
+                headers: authHeaders,
+                params: { filterByTk: id },
+                data: { values },
+              });
+            } catch {
+              return await api.request({
+                url: 'routes:update',
+                method: 'post',
+                headers: authHeaders,
+                params: { filterByTk: id },
+                data: { values },
+              });
+            }
+          };
+
           const createDesktopRoute = async (routeData: Record<string, any>) => {
+            const routeFilter: Record<string, any> = {
+              type: routeData.type,
+              title: routeData.title,
+            };
+            if (routeData.parentId !== undefined && routeData.parentId !== null) {
+              routeFilter.parentId = routeData.parentId;
+            }
+
             try {
               return await api.request({
                 url: 'desktopRoutes:create',
@@ -1242,6 +1302,23 @@ export async function installTemplate(
                 data: routeData,
               });
             } catch (desktopErr: any) {
+              if (isAlreadyExistsError(desktopErr)) {
+                const existingRoute = await findDesktopRoute(routeFilter);
+                if (existingRoute?.id) {
+                  if (routeData.type === 'page') {
+                    await updateDesktopRoute(existingRoute.id, {
+                      icon: routeData.icon,
+                      schemaUid: routeData.schemaUid,
+                      parentId: routeData.parentId,
+                      hideInMenu: routeData.hideInMenu,
+                      enableTabs: routeData.enableTabs,
+                      children: routeData.children,
+                    });
+                  }
+                  return { data: { data: existingRoute } };
+                }
+              }
+
               try {
                 return await api.request({
                   url: 'routes:create',
@@ -1250,6 +1327,23 @@ export async function installTemplate(
                   data: routeData,
                 });
               } catch (routeErr: any) {
+                if (isAlreadyExistsError(routeErr)) {
+                  const existingRoute = await findDesktopRoute(routeFilter);
+                  if (existingRoute?.id) {
+                    if (routeData.type === 'page') {
+                      await updateDesktopRoute(existingRoute.id, {
+                        icon: routeData.icon,
+                        schemaUid: routeData.schemaUid,
+                        parentId: routeData.parentId,
+                        hideInMenu: routeData.hideInMenu,
+                        enableTabs: routeData.enableTabs,
+                        children: routeData.children,
+                      });
+                    }
+                    return { data: { data: existingRoute } };
+                  }
+                }
+
                 const routeTitle = routeData?.title || routeData?.type || 'unknown';
                 const detail = getAxiosErrorMessage(routeErr) || getAxiosErrorMessage(desktopErr);
                 throw new Error(`Failed to create route "${routeTitle}": ${detail}`);
@@ -1339,6 +1433,30 @@ export async function installTemplate(
             } else if (menuItem.type === 'page') {
               await createPageRoute(undefined, menuItem);
             }
+          }
+
+          const expectedPageTitles: string[] = [];
+          for (const menuItem of tpl.menu) {
+            if (menuItem.type === 'page') {
+              expectedPageTitles.push(menuItem.title);
+            } else if (menuItem.children?.length) {
+              for (const child of menuItem.children) {
+                if (child.type === 'page') expectedPageTitles.push(child.title);
+              }
+            }
+          }
+
+          for (const title of expectedPageTitles) {
+            const route = await findDesktopRoute({ type: 'page', title });
+            const schemaUid = route?.schemaUid;
+            if (!schemaUid) {
+              throw new Error(`Template page "${title}" was not created correctly (missing schemaUid)`);
+            }
+            await api.request({
+              url: `uiSchemas:getJsonSchema/${schemaUid}`,
+              method: 'get',
+              headers: authHeaders,
+            });
           }
 
           ui.message.loading({ content: '正在插入示例数据...', key: 'tpl', duration: 0 });
