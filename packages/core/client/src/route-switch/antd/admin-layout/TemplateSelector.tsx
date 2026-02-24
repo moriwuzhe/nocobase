@@ -788,7 +788,8 @@ function buildTableBlockSchema(
       collection: collectionName,
       dataSource: 'main',
       action: 'list',
-      params: { pageSize: 20, sort: ['-createdAt'] },
+      // Use id sort to avoid runtime failures when legacy/partial tables miss createdAt.
+      params: { pageSize: 20, sort: ['-id'] },
       showIndex: true,
       dragSort: false,
     },
@@ -1082,6 +1083,28 @@ async function requestWithRetry(
   throw lastError;
 }
 
+function normalizeListRows(res: any): any[] {
+  const payload = res?.data?.data;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.rows)) return payload.rows;
+  if (Array.isArray(res?.data?.rows)) return res.data.rows;
+  return [];
+}
+
+function buildTemplateFieldPayload(field: FieldDef): Record<string, any> {
+  const { name, type, interface: fieldInterface, title, uiSchema, required, showInTable, showInForm, ...rest } = field;
+  void showInTable;
+  void showInForm;
+  return {
+    ...rest,
+    name,
+    type,
+    interface: fieldInterface,
+    uiSchema: uiSchema || { type: 'string', title, 'x-component': 'Input' },
+    ...(required ? { required: true } : {}),
+  };
+}
+
 export async function installTemplate(
   api: any,
   appName: string,
@@ -1194,19 +1217,96 @@ export async function installTemplate(
             // Auth may fail if password changed, continue with main app token
           }
 
+          const listCollectionFields = async (collectionName: string) => {
+            currentStep = `listCollectionFields:${collectionName}`;
+            const fieldRes = await requestWithRetry(
+              api,
+              {
+                url: `collections/${collectionName}/fields:list`,
+                method: 'get',
+                headers: authHeaders,
+                params: { paginate: false },
+              },
+              { maxAttempts: 3, initialDelayMs: 700 },
+            );
+            return normalizeListRows(fieldRes);
+          };
+
+          const ensureCollectionFields = async (collectionName: string, fieldDefs: Record<string, any>[]) => {
+            const existingRows = await listCollectionFields(collectionName);
+            const existingNames = new Set(
+              existingRows.map((row: any) => String(row?.name || '').trim()).filter(Boolean),
+            );
+            const missingFields = fieldDefs.filter(
+              (fieldDef) => !existingNames.has(String(fieldDef?.name || '').trim()),
+            );
+
+            for (const fieldDef of missingFields) {
+              currentStep = `repairCollectionField:${collectionName}.${fieldDef.name}`;
+              try {
+                await requestWithRetry(
+                  api,
+                  {
+                    url: `collections/${collectionName}/fields:create`,
+                    method: 'post',
+                    headers: authHeaders,
+                    data: fieldDef,
+                  },
+                  { maxAttempts: 3, initialDelayMs: 700 },
+                );
+              } catch (fieldErr) {
+                if (isAlreadyExistsError(fieldErr)) {
+                  continue;
+                }
+                throw new Error(
+                  `Failed to repair field "${collectionName}.${fieldDef.name}": ${getAxiosErrorMessage(fieldErr)}`,
+                );
+              }
+            }
+
+            const repairedRows = await listCollectionFields(collectionName);
+            const repairedNames = new Set(
+              repairedRows.map((row: any) => String(row?.name || '').trim()).filter(Boolean),
+            );
+            const stillMissing = fieldDefs
+              .map((fieldDef) => String(fieldDef?.name || '').trim())
+              .filter((name) => !!name && !repairedNames.has(name));
+            if (stillMissing.length > 0) {
+              throw new Error(`Collection "${collectionName}" missing fields after repair: ${stillMissing.join(', ')}`);
+            }
+          };
+
           ui.message.loading({ content: '正在创建数据表...', key: messageKey, duration: 0 });
 
           for (const col of tpl.collections) {
             currentStep = `createCollection:${col.name}`;
-            const fields = col.fields.map((f) => {
-              const fieldDef: Record<string, any> = {
-                name: f.name,
-                type: f.type,
-                interface: f.interface,
-                uiSchema: f.uiSchema || { type: 'string', title: f.title, 'x-component': 'Input' },
-              };
-              return fieldDef;
-            });
+            const businessFields = col.fields.map((f) => buildTemplateFieldPayload(f));
+            const systemRepairFields: Record<string, any>[] = [
+              {
+                name: 'createdAt',
+                type: 'date',
+                interface: 'createdAt',
+                field: 'createdAt',
+                uiSchema: {
+                  type: 'datetime',
+                  title: '{{t("Created at")}}',
+                  'x-component': 'DatePicker',
+                  'x-component-props': { showTime: true },
+                },
+              },
+              {
+                name: 'updatedAt',
+                type: 'date',
+                interface: 'updatedAt',
+                field: 'updatedAt',
+                uiSchema: {
+                  type: 'datetime',
+                  title: '{{t("Last updated at")}}',
+                  'x-component': 'DatePicker',
+                  'x-component-props': { showTime: true },
+                },
+              },
+            ];
 
             try {
               await requestWithRetry(
@@ -1219,7 +1319,7 @@ export async function installTemplate(
                     name: col.name,
                     title: col.title,
                     fields: [
-                      ...fields,
+                      ...businessFields,
                       {
                         name: 'id',
                         type: 'bigInt',
@@ -1265,10 +1365,13 @@ export async function installTemplate(
             } catch (e) {
               if (isAlreadyExistsError(e)) {
                 // Support repair/retry flow: continue installation if collection already exists.
-                continue;
+              } else {
+                throw e;
               }
-              throw e;
             }
+
+            currentStep = `repairCollection:${col.name}`;
+            await ensureCollectionFields(col.name, [...businessFields, ...systemRepairFields]);
           }
 
           ui.message.loading({ content: '正在创建关联关系...', key: messageKey, duration: 0 });
@@ -1315,13 +1418,6 @@ export async function installTemplate(
           for (const col of tpl.collections) {
             collectionMap.set(col.name, col);
           }
-
-          const normalizeListRows = (res: any): any[] => {
-            const payload = res?.data?.data;
-            if (Array.isArray(payload)) return payload;
-            if (Array.isArray(payload?.rows)) return payload.rows;
-            return [];
-          };
 
           const listDesktopRoutes = async (filter: Record<string, any>) => {
             try {
@@ -1693,6 +1789,22 @@ export async function installTemplate(
                 console.warn(`Failed to create workflow ${wf.title}:`, e);
               }
             }
+          }
+
+          // Refresh once more after sample/workflow creation to avoid stale metadata in newly opened app.
+          try {
+            currentStep = 'finalRefreshApp';
+            await requestWithRetry(
+              api,
+              {
+                url: 'app:refresh',
+                method: 'post',
+                headers: authHeaders,
+              },
+              { maxAttempts: 2, initialDelayMs: 800 },
+            );
+          } catch {
+            // refresh may be unavailable in some deployments
           }
 
           ui.message.success({ content: `模板 "${tpl.title}" 安装完成！`, key: messageKey });

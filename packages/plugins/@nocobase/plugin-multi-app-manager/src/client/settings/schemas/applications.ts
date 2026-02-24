@@ -108,6 +108,30 @@ interface TemplateInstallResult {
   error?: TemplateInstallErrorDetail;
 }
 
+interface BulkRetryFailureDetail {
+  appName: string;
+  templateKey: string;
+  step: string;
+  message: string;
+}
+
+function TemplateKeyField() {
+  const record = useRecord() as any;
+  const { t } = useTranslation(NAMESPACE);
+  const pendingTemplateKey = String(record?.options?.pendingTemplateKey || '').trim();
+  const installedTemplateKey = String(record?.options?.installedTemplateKey || '').trim();
+
+  if (pendingTemplateKey) {
+    return React.createElement(Tag, { color: 'warning' }, `${t('Pending template')}: ${pendingTemplateKey}`);
+  }
+
+  if (installedTemplateKey) {
+    return React.createElement(Tag, { color: 'default' }, `${t('Installed template')}: ${installedTemplateKey}`);
+  }
+
+  return React.createElement(Typography.Text, { type: 'secondary' }, '-');
+}
+
 function TemplateInstallStateField() {
   const record = useRecord() as any;
   const { t } = useTranslation(NAMESPACE);
@@ -408,6 +432,7 @@ export const useRetrySelectedTemplateInitsAction = () => {
       let skippedCount = 0;
       let ignoredCount = 0;
       let completedCount = 0;
+      const failedDetails: BulkRetryFailureDetail[] = [];
 
       const renderBulkProgress = () => {
         message.loading({
@@ -427,7 +452,9 @@ export const useRetrySelectedTemplateInitsAction = () => {
         });
       };
 
-      const retrySingleApp = async (appName: string): Promise<'success' | 'failed' | 'skipped' | 'ignored'> => {
+      const retrySingleApp = async (
+        appName: string,
+      ): Promise<{ status: 'success' | 'failed' | 'skipped' | 'ignored'; failureDetail?: BulkRetryFailureDetail }> => {
         try {
           const appRes = await api.request({
             url: 'applications:get',
@@ -440,11 +467,11 @@ export const useRetrySelectedTemplateInitsAction = () => {
           const templateKey = appRecord?.options?.pendingTemplateKey || appRecord?.options?.installedTemplateKey;
 
           if (!templateKey) {
-            return 'skipped';
+            return { status: 'skipped' };
           }
 
           if (!isTemplateRetryable(appRecord)) {
-            return 'ignored';
+            return { status: 'ignored' };
           }
 
           await updateApplicationTemplateOptions(api, appName, {
@@ -470,23 +497,41 @@ export const useRetrySelectedTemplateInitsAction = () => {
               templateInstallError: '',
               templateInstallUpdatedAt: new Date().toISOString(),
             });
-            return 'success';
+            return { status: 'success' };
           }
 
+          const detail = normalizeTemplateInstallError(result.error);
           await updateApplicationTemplateOptions(api, appName, {
             pendingTemplateKey: templateKey,
             templateInstallState: 'failed',
             templateInstallError: stringifyTemplateInstallError(result.error),
             templateInstallUpdatedAt: new Date().toISOString(),
           });
-          return 'failed';
+          return {
+            status: 'failed',
+            failureDetail: {
+              appName,
+              templateKey,
+              step: detail.step,
+              message: detail.message,
+            },
+          };
         } catch (error: any) {
+          const errorMessage = String(error?.message || 'install_failed');
           await updateApplicationTemplateOptions(api, appName, {
             templateInstallState: 'failed',
-            templateInstallError: error?.message || 'install_failed',
+            templateInstallError: errorMessage,
             templateInstallUpdatedAt: new Date().toISOString(),
           });
-          return 'failed';
+          return {
+            status: 'failed',
+            failureDetail: {
+              appName,
+              templateKey: '',
+              step: 'unknown',
+              message: errorMessage,
+            },
+          };
         }
       };
 
@@ -509,11 +554,14 @@ export const useRetrySelectedTemplateInitsAction = () => {
             let appName = getNextAppName();
             while (appName) {
               const result = await retrySingleApp(appName);
-              if (result === 'success') {
+              if (result.status === 'success') {
                 successCount += 1;
-              } else if (result === 'failed') {
+              } else if (result.status === 'failed') {
                 failedCount += 1;
-              } else if (result === 'skipped') {
+                if (result.failureDetail) {
+                  failedDetails.push(result.failureDetail);
+                }
+              } else if (result.status === 'skipped') {
                 skippedCount += 1;
               } else {
                 ignoredCount += 1;
@@ -542,6 +590,56 @@ export const useRetrySelectedTemplateInitsAction = () => {
           },
         ),
       );
+
+      if (failedDetails.length > 0) {
+        const header = [t('App'), t('Template'), t('Step'), t('Message')].join('\t');
+        const rows = failedDetails.map((detail) =>
+          [
+            detail.appName,
+            detail.templateKey || '-',
+            detail.step || 'unknown',
+            detail.message || 'install_failed',
+          ].join('\t'),
+        );
+        const failedReport = [header, ...rows].join('\n');
+        modal.info({
+          width: 920,
+          title: t('Bulk retry result details'),
+          content: React.createElement(
+            'div',
+            { style: { maxHeight: 420, overflow: 'auto' } },
+            React.createElement(
+              Typography.Paragraph,
+              null,
+              t('Failed apps: {{count}}', { count: failedDetails.length }),
+            ),
+            React.createElement(
+              Typography.Paragraph,
+              {
+                copyable: {
+                  text: failedReport,
+                  tooltips: [t('Copy failed list'), t('Copied')],
+                },
+              },
+              t('Copy failed list'),
+            ),
+            React.createElement(
+              'pre',
+              {
+                style: {
+                  margin: 0,
+                  padding: 12,
+                  borderRadius: 6,
+                  background: '#f7f7f7',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                },
+              },
+              failedReport,
+            ),
+          ),
+        });
+      }
 
       setState?.({ selectedRowKeys: [] });
       refresh();
@@ -1299,6 +1397,22 @@ export const schema: ISchema = {
                 status: {
                   type: 'string',
                   'x-component': 'CollectionField',
+                  'x-read-pretty': true,
+                },
+              },
+            },
+            templateKey: {
+              type: 'void',
+              title: `{{t("Template key", { ns: "${NAMESPACE}" })}}`,
+              'x-decorator': 'Table.Column.Decorator',
+              'x-component': 'Table.Column',
+              'x-component-props': {
+                width: 220,
+              },
+              properties: {
+                templateKey: {
+                  type: 'string',
+                  'x-component': TemplateKeyField,
                   'x-read-pretty': true,
                 },
               },
