@@ -185,7 +185,7 @@ export const createFormSchema: ISchema = {
     },
     'options.templateKey': {
       type: 'string',
-      title: '应用模板',
+      title: tval('App template', { ns: '@nocobase/plugin-multi-app-manager' }),
       'x-decorator': 'FormItem',
       'x-component': 'TemplateRadio',
       default: '',
@@ -203,6 +203,20 @@ export const createFormSchema: ISchema = {
     pinned: {
       'x-component': 'CollectionField',
       'x-decorator': 'FormItem',
+    },
+  },
+};
+
+export const manualTemplateFormSchema: ISchema = {
+  type: 'void',
+  'x-component': 'div',
+  properties: {
+    templateKey: {
+      type: 'string',
+      title: tval('App template', { ns: '@nocobase/plugin-multi-app-manager' }),
+      'x-decorator': 'FormItem',
+      'x-component': 'TemplateRadio',
+      default: '',
     },
   },
 };
@@ -255,6 +269,58 @@ export const tableActionColumnSchema: ISchema = {
         },
       },
     },
+    initTemplate: {
+      type: 'void',
+      title: `{{t("Initialize template", { ns: "${NAMESPACE}" })}}`,
+      'x-component': 'Action.Link',
+      properties: {
+        drawer: {
+          type: 'void',
+          'x-component': 'Action.Drawer',
+          'x-decorator': 'Form',
+          'x-decorator-props': {
+            useValues(options) {
+              const ctx = useActionContext();
+              const record = useRecord();
+              return useRequest(
+                () =>
+                  Promise.resolve({
+                    data: {
+                      templateKey: record?.options?.pendingTemplateKey || '',
+                    },
+                  }),
+                { ...options, refreshDeps: [ctx.visible, record?.options?.pendingTemplateKey] },
+              );
+            },
+          },
+          title: `{{t("Manual template initialization", { ns: "${NAMESPACE}" })}}`,
+          properties: {
+            manualTemplateFormSchema,
+            footer: {
+              type: 'void',
+              'x-component': 'Action.Drawer.Footer',
+              properties: {
+                cancel: {
+                  title: '{{t("Cancel")}}',
+                  'x-component': 'Action',
+                  'x-component-props': {
+                    useAction: '{{ cm.useCancelAction }}',
+                  },
+                },
+                submit: {
+                  title: `{{t("Initialize template now", { ns: "${NAMESPACE}" })}}`,
+                  'x-component': 'Action',
+                  'x-component-props': {
+                    type: 'primary',
+                    useAction: useManualInstallTemplateAction,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     delete: {
       type: 'void',
       title: '{{ t("Delete") }}',
@@ -268,6 +334,41 @@ export const tableActionColumnSchema: ISchema = {
       },
     },
   },
+};
+
+export const useManualInstallTemplateAction = () => {
+  const form = useForm();
+  const field = useField();
+  const record = useRecord();
+  const ctx = useActionContext();
+  const { refresh } = useResourceActionContext();
+  const api = useAPIClient();
+  const { message, modal } = App.useApp();
+
+  return {
+    async run() {
+      try {
+        await form.submit();
+        field.data = field.data || {};
+        field.data.loading = true;
+
+        const templateKey = form.values?.templateKey;
+        if (!templateKey) {
+          message.warning(tval('Please select a template first', { ns: '@nocobase/plugin-multi-app-manager' }));
+          return;
+        }
+
+        const ok = await installTemplate(api, record.name, templateKey, { modal, message });
+        if (ok) {
+          ctx.setVisible(false);
+          await form.reset();
+          refresh();
+        }
+      } finally {
+        field.data.loading = false;
+      }
+    },
+  };
 };
 
 export const useCreateActionWithTemplate = () => {
@@ -290,6 +391,7 @@ export const useCreateActionWithTemplate = () => {
         const templateKey = values?.options?.templateKey;
         if (values?.options?.templateKey) {
           delete values.options.templateKey;
+          values.options.pendingTemplateKey = templateKey;
         }
 
         await resource.create({ values });
@@ -302,6 +404,7 @@ export const useCreateActionWithTemplate = () => {
           message.loading({ content: `正在等待应用 "${values.displayName}" 初始化...`, key: 'tpl-wait', duration: 0 });
 
           let ready = false;
+          let gatewayTimeoutCount = 0;
           for (let i = 0; i < 40; i++) {
             await new Promise((resolve) => setTimeout(resolve, 3000));
             try {
@@ -321,7 +424,14 @@ export const useCreateActionWithTemplate = () => {
                 break;
               }
             } catch (e) {
-              // not ready yet
+              const status = (e as any)?.response?.status;
+              // Stop aggressive polling when gateway is overloaded.
+              if ([502, 503, 504].includes(status)) {
+                gatewayTimeoutCount += 1;
+                if (gatewayTimeoutCount >= 3) {
+                  break;
+                }
+              }
             }
           }
 
@@ -331,7 +441,11 @@ export const useCreateActionWithTemplate = () => {
             await installTemplate(api, appName, templateKey, { modal, message });
             refresh();
           } else {
-            message.warning('应用初始化超时，请稍后在应用中手动安装模板');
+            message.warning(
+              tval('Initialization timeout, you can manually initialize the template from the action column.', {
+                ns: '@nocobase/plugin-multi-app-manager',
+              }),
+            );
           }
         }
       } finally {
