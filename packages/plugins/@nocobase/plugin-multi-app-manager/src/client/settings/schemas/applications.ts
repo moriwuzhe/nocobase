@@ -578,6 +578,15 @@ export const tableActionColumnSchema: ISchema = {
         useAction: useRetryTemplateInstallAction,
       },
     },
+    copyTemplateDiagnostics: {
+      type: 'void',
+      title: `{{t("Copy template diagnostics", { ns: "${NAMESPACE}" })}}`,
+      'x-component': 'Action.Link',
+      'x-visible': `{{ !!($record && $record.options && ($record.options.templateInstallState || $record.options.templateInstallError || $record.options.pendingTemplateKey || $record.options.installedTemplateKey)) }}`,
+      'x-component-props': {
+        useAction: useCopyTemplateDiagnosticsAction,
+      },
+    },
     resetTemplateStatus: {
       type: 'void',
       title: `{{t("Clear template status", { ns: "${NAMESPACE}" })}}`,
@@ -748,6 +757,41 @@ export function useRetryTemplateInstallAction() {
           message: detail.message,
         }),
       );
+    },
+  };
+}
+
+export function useCopyTemplateDiagnosticsAction() {
+  const record = useRecord() as any;
+  const { message } = App.useApp();
+  const { t } = useTranslation(NAMESPACE);
+
+  return {
+    async run() {
+      const diagnostics = {
+        appName: record?.name || '',
+        appDisplayName: record?.displayName || '',
+        pendingTemplateKey: record?.options?.pendingTemplateKey || '',
+        installedTemplateKey: record?.options?.installedTemplateKey || '',
+        templateInstallState: record?.options?.templateInstallState || '',
+        templateInstallError: record?.options?.templateInstallError || '',
+        templateInstallUpdatedAt: record?.options?.templateInstallUpdatedAt || '',
+      };
+
+      const hasDiagnostics = Object.values(diagnostics).some((value) => String(value || '').trim() !== '');
+      if (!hasDiagnostics) {
+        message.info(t('No template diagnostics to copy.'));
+        return;
+      }
+
+      const diagnosticsText = JSON.stringify(diagnostics, null, 2);
+      try {
+        await navigator.clipboard.writeText(diagnosticsText);
+        message.success(t('Template diagnostics copied.'));
+      } catch (error) {
+        void error;
+        message.error(t('Failed to copy template diagnostics.'));
+      }
     },
   };
 }
