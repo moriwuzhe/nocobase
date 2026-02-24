@@ -331,6 +331,32 @@ function normalizeTemplateInstallError(error?: TemplateInstallErrorDetail): Temp
   };
 }
 
+function isTemplateRetryable(appRecord: any): boolean {
+  const templateKey = appRecord?.options?.pendingTemplateKey || appRecord?.options?.installedTemplateKey;
+  if (!templateKey) {
+    return false;
+  }
+
+  return Boolean(
+    appRecord?.options?.pendingTemplateKey ||
+      appRecord?.options?.templateInstallState === 'failed' ||
+      appRecord?.options?.templateInstallError,
+  );
+}
+
+function normalizeApplicationRows(payload: any): any[] {
+  if (Array.isArray(payload?.data?.data?.rows)) {
+    return payload.data.data.rows;
+  }
+  if (Array.isArray(payload?.data?.data)) {
+    return payload.data.data;
+  }
+  if (Array.isArray(payload?.data?.rows)) {
+    return payload.data.rows;
+  }
+  return [];
+}
+
 export const useDestroy = () => {
   const { refresh } = useResourceActionContext();
   const { resource, targetKey } = useResourceContext();
@@ -374,6 +400,7 @@ export const useRetrySelectedTemplateInitsAction = () => {
       let successCount = 0;
       let failedCount = 0;
       let skippedCount = 0;
+      let ignoredCount = 0;
 
       message.loading({
         content: t('Retrying template initialization for selected applications...'),
@@ -396,6 +423,11 @@ export const useRetrySelectedTemplateInitsAction = () => {
 
             if (!templateKey) {
               skippedCount += 1;
+              continue;
+            }
+
+            if (!isTemplateRetryable(appRecord)) {
+              ignoredCount += 1;
               continue;
             }
 
@@ -440,15 +472,43 @@ export const useRetrySelectedTemplateInitsAction = () => {
       }
 
       message.info(
-        t('Bulk template retry finished: {{success}} succeeded, {{failed}} failed, {{skipped}} skipped.', {
-          success: successCount,
-          failed: failedCount,
-          skipped: skippedCount,
-        }),
+        t(
+          'Bulk template retry finished: {{success}} succeeded, {{failed}} failed, {{skipped}} skipped, {{ignored}} ignored.',
+          {
+            success: successCount,
+            failed: failedCount,
+            skipped: skippedCount,
+            ignored: ignoredCount,
+          },
+        ),
       );
 
       setState?.({ selectedRowKeys: [] });
       refresh();
+    },
+  };
+};
+
+export const useSelectRetryableTemplateAppsAction = () => {
+  const { data, setState } = useResourceActionContext();
+  const { message } = App.useApp();
+  const { t } = useTranslation(NAMESPACE);
+
+  return {
+    async run() {
+      const rows = normalizeApplicationRows(data);
+      const retryableKeys = rows
+        .filter((row) => isTemplateRetryable(row))
+        .map((row) => row?.name)
+        .filter(Boolean);
+
+      if (!retryableKeys.length) {
+        message.info(t('No retryable applications in current page.'));
+        return;
+      }
+
+      setState?.({ selectedRowKeys: retryableKeys });
+      message.success(t('Selected {{count}} retryable applications.', { count: retryableKeys.length }));
     },
   };
 };
@@ -1043,6 +1103,15 @@ export const schema: ISchema = {
                   title: "{{t('Delete')}}",
                   content: "{{t('Are you sure you want to delete it?')}}",
                 },
+              },
+            },
+            selectRetryableTemplateApps: {
+              type: 'void',
+              title: `{{t("Select retryable apps", { ns: "${NAMESPACE}" })}}`,
+              'x-component': 'Action',
+              'x-component-props': {
+                icon: 'CheckSquareOutlined',
+                useAction: useSelectRetryableTemplateAppsAction,
               },
             },
             retrySelectedTemplateInits: {
