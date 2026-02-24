@@ -1,5 +1,16 @@
+/**
+ * This file is part of the NocoBase (R) project.
+ * Copyright (c) 2020-2024 NocoBase Co., Ltd.
+ * Authors: NocoBase Team.
+ *
+ * This project is dual-licensed under AGPL-3.0 and NocoBase Commercial License.
+ * For more information, please refer to: https://www.nocobase.com/agreement.
+ */
+
 import { Plugin, InstallOptions } from '@nocobase/server';
 import { createTemplateUI } from './ui-schema-generator';
+import { createClinicRoles } from './roles';
+import { createClinicWorkflows } from './workflows';
 
 const COLLECTIONS = ['clinicPatients', 'clinicAppointments', 'clinicMedicalRecords', 'clinicPrescriptions'];
 
@@ -18,17 +29,82 @@ export default class PluginClinicTemplateServer extends Plugin {
         for (const p of patients) await this.db.getRepository('clinicPatients').create({ values: p });
         this.app.logger.info('[clinic] Seeded 3 patients');
       }
-    } catch (e) { this.app.logger.warn(`[clinic] Seed skipped: ${(e as any).message}`); }
+    } catch (e) {
+      this.app.logger.warn(`[clinic] Seed skipped: ${(e as any).message}`);
+    }
+
+    try {
+      const roleCount = await createClinicRoles(this.app);
+      if (roleCount > 0) this.app.logger.info(`[clinic] Created ${roleCount} roles`);
+    } catch (e) {
+      this.app.logger.warn(`[clinic] Roles skipped: ${(e as any).message}`);
+    }
+
+    try {
+      const workflowCount = await createClinicWorkflows(this.app);
+      if (workflowCount > 0) this.app.logger.info(`[clinic] Created ${workflowCount} workflows`);
+    } catch (e) {
+      this.app.logger.warn(`[clinic] Workflows skipped: ${(e as any).message}`);
+    }
 
     // UI pages
     try {
       await createTemplateUI(this.app, '诊所管理', 'MedicineBoxOutlined', [
-        { title: '患者管理', icon: 'UserOutlined', collectionName: 'clinicPatients', fields: ['patientNo','name','gender','phone','bloodType','allergies'], formFields: ['name','gender','birthDate','phone','idNumber','bloodType','allergies','medicalHistory','emergencyContact','emergencyPhone','address'] },
-        { title: '预约管理', icon: 'CalendarOutlined', collectionName: 'clinicAppointments', fields: ['appointmentDate','timeSlot','doctor','department','status','reason'], formFields: ['appointmentDate','timeSlot','doctor','department','status','reason','notes'] },
-        { title: '病历记录', icon: 'FileTextOutlined', collectionName: 'clinicMedicalRecords', fields: ['visitDate','doctor','department','chiefComplaint','diagnosis','fee','paymentStatus'], formFields: ['visitDate','doctor','department','chiefComplaint','diagnosis','treatment','prescription','fee','paymentStatus','followUpDate'] },
-        { title: '处方管理', icon: 'ExperimentOutlined', collectionName: 'clinicPrescriptions', fields: ['prescriptionNo','doctor','prescriptionDate','status','totalCost'], formFields: ['doctor','prescriptionDate','medications','dosageInstructions','status','totalCost'] },
+        {
+          title: '患者管理',
+          icon: 'UserOutlined',
+          collectionName: 'clinicPatients',
+          fields: ['patientNo', 'name', 'gender', 'phone', 'bloodType', 'allergies'],
+          formFields: [
+            'name',
+            'gender',
+            'birthDate',
+            'phone',
+            'idNumber',
+            'bloodType',
+            'allergies',
+            'medicalHistory',
+            'emergencyContact',
+            'emergencyPhone',
+            'address',
+          ],
+        },
+        {
+          title: '预约管理',
+          icon: 'CalendarOutlined',
+          collectionName: 'clinicAppointments',
+          fields: ['appointmentDate', 'timeSlot', 'doctor', 'department', 'status', 'reason'],
+          formFields: ['appointmentDate', 'timeSlot', 'doctor', 'department', 'status', 'reason', 'notes'],
+        },
+        {
+          title: '病历记录',
+          icon: 'FileTextOutlined',
+          collectionName: 'clinicMedicalRecords',
+          fields: ['visitDate', 'doctor', 'department', 'chiefComplaint', 'diagnosis', 'fee', 'paymentStatus'],
+          formFields: [
+            'visitDate',
+            'doctor',
+            'department',
+            'chiefComplaint',
+            'diagnosis',
+            'treatment',
+            'prescription',
+            'fee',
+            'paymentStatus',
+            'followUpDate',
+          ],
+        },
+        {
+          title: '处方管理',
+          icon: 'ExperimentOutlined',
+          collectionName: 'clinicPrescriptions',
+          fields: ['prescriptionNo', 'doctor', 'prescriptionDate', 'status', 'totalCost'],
+          formFields: ['doctor', 'prescriptionDate', 'medications', 'dosageInstructions', 'status', 'totalCost'],
+        },
       ]);
-    } catch (e) { this.app.logger.warn(`[clinic] UI skipped: ${(e as any).message}`); }
+    } catch (e) {
+      this.app.logger.warn(`[clinic] UI skipped: ${(e as any).message}`);
+    }
   }
 
   async load() {
@@ -46,7 +122,13 @@ export default class PluginClinicTemplateServer extends Plugin {
       if (!model.get('prescriptionNo')) {
         const date = new Date();
         const count = await this.db.getRepository('clinicPrescriptions').count();
-        model.set('prescriptionNo', `RX${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}-${String(count+1).padStart(4,'0')}`);
+        model.set(
+          'prescriptionNo',
+          `RX${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}-${String(count + 1).padStart(
+            4,
+            '0',
+          )}`,
+        );
       }
     });
   }
