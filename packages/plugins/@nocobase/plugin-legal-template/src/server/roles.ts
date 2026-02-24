@@ -10,6 +10,7 @@
 export async function createLegalRoles(app: any): Promise<number> {
   const roleRepo = app.db.getRepository('roles');
   if (!roleRepo) return 0;
+  const dashboardAction = 'legalDashboard:stats';
 
   let created = 0;
   try {
@@ -31,6 +32,7 @@ export async function createLegalRoles(app: any): Promise<number> {
               'legalDocuments:create',
               'legalDocuments:update',
               'legalDocuments:destroy',
+              dashboardAction,
             ],
           },
         },
@@ -58,6 +60,7 @@ export async function createLegalRoles(app: any): Promise<number> {
               'legalDocuments:get',
               'legalDocuments:create',
               'legalDocuments:update',
+              dashboardAction,
             ],
           },
         },
@@ -83,6 +86,7 @@ export async function createLegalRoles(app: any): Promise<number> {
               'legalDocuments:get',
               'legalDocuments:create',
               'legalDocuments:update',
+              dashboardAction,
             ],
           },
         },

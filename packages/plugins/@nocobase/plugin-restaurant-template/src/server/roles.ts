@@ -10,6 +10,7 @@
 export async function createRestaurantRoles(app: any): Promise<number> {
   const roleRepo = app.db.getRepository('roles');
   if (!roleRepo) return 0;
+  const dashboardAction = 'restDashboard:stats';
 
   let created = 0;
   try {
@@ -36,6 +37,7 @@ export async function createRestaurantRoles(app: any): Promise<number> {
               'restTables:create',
               'restTables:update',
               'restTables:destroy',
+              dashboardAction,
             ],
           },
         },
@@ -64,6 +66,7 @@ export async function createRestaurantRoles(app: any): Promise<number> {
               'restTables:update',
               'restMenuItems:list',
               'restMenuItems:get',
+              dashboardAction,
             ],
           },
         },
@@ -89,6 +92,7 @@ export async function createRestaurantRoles(app: any): Promise<number> {
               'restMenuItems:list',
               'restMenuItems:get',
               'restMenuItems:update',
+              dashboardAction,
             ],
           },
         },

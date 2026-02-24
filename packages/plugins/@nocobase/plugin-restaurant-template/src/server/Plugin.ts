@@ -12,6 +12,7 @@ import { createTemplateUI } from './ui-schema-generator';
 import { createRestaurantRoles } from './roles';
 import { createRestaurantWorkflows } from './workflows';
 const COLLECTIONS = ['restMenuItems', 'restOrders', 'restTables'];
+const DASHBOARD_ACTION = 'restDashboard:stats';
 export default class PluginRestaurantTemplateServer extends Plugin {
   async install(options?: InstallOptions) {
     if (this.app.name && this.app.name !== 'main') return;
@@ -81,7 +82,60 @@ export default class PluginRestaurantTemplateServer extends Plugin {
   }
   async load() {
     for (const c of COLLECTIONS) this.app.acl.allow(c, '*', 'loggedIn');
-    this.app.acl.registerSnippet({ name: `pm.${this.name}`, actions: COLLECTIONS.map((c) => `${c}:*`) });
+    this.app.acl.registerSnippet({
+      name: `pm.${this.name}`,
+      actions: [...COLLECTIONS.map((c) => `${c}:*`), DASHBOARD_ACTION],
+    });
+
+    this.registerDashboardAction();
+    this.registerHooks();
+  }
+
+  private registerDashboardAction() {
+    this.app.resourceManager.define({
+      name: 'restDashboard',
+      actions: {
+        stats: async (ctx: any, next: any) => {
+          const [menus, orders, tables] = await Promise.all([
+            ctx.db.getRepository('restMenuItems').find({
+              fields: ['status', 'price'],
+            }),
+            ctx.db.getRepository('restOrders').find({
+              fields: ['status', 'totalAmount'],
+            }),
+            ctx.db.getRepository('restTables').find({
+              fields: ['status'],
+            }),
+          ]);
+
+          const menuList = (menus || []).map((item: any) => (item.toJSON ? item.toJSON() : item));
+          const orderList = (orders || []).map((item: any) => (item.toJSON ? item.toJSON() : item));
+          const tableList = (tables || []).map((item: any) => (item.toJSON ? item.toJSON() : item));
+
+          const activeOrders = orderList.filter((item: any) =>
+            ['pending', 'preparing', 'served'].includes(item.status),
+          );
+          const paidOrders = orderList.filter((item: any) => item.status === 'paid');
+
+          ctx.body = {
+            totalMenus: menuList.length,
+            availableMenus: menuList.filter((item: any) => item.status === 'available').length,
+            totalOrders: orderList.length,
+            activeOrders: activeOrders.length,
+            paidOrders: paidOrders.length,
+            totalRevenue: paidOrders.reduce((sum: number, item: any) => sum + (item.totalAmount || 0), 0),
+            totalTables: tableList.length,
+            occupiedTables: tableList.filter((item: any) => item.status === 'occupied').length,
+            reservedTables: tableList.filter((item: any) => item.status === 'reserved').length,
+          };
+          await next();
+        },
+      },
+    });
+    this.app.acl.allow('restDashboard', 'stats', 'loggedIn');
+  }
+
+  private registerHooks() {
     this.db.on('restOrders.beforeCreate', async (model: any) => {
       if (!model.get('orderNo')) {
         const c = await this.db.getRepository('restOrders').count();

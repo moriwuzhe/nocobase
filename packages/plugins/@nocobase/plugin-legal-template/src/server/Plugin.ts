@@ -12,6 +12,7 @@ import { createTemplateUI } from './ui-schema-generator';
 import { createLegalRoles } from './roles';
 import { createLegalWorkflows } from './workflows';
 const COLLECTIONS = ['legalCases', 'legalDocuments'];
+const DASHBOARD_ACTION = 'legalDashboard:stats';
 export default class PluginLegalTemplateServer extends Plugin {
   async install(options?: InstallOptions) {
     if (this.app.name && this.app.name !== 'main') return;
@@ -98,7 +99,52 @@ export default class PluginLegalTemplateServer extends Plugin {
   }
   async load() {
     for (const c of COLLECTIONS) this.app.acl.allow(c, '*', 'loggedIn');
-    this.app.acl.registerSnippet({ name: `pm.${this.name}`, actions: COLLECTIONS.map((c) => `${c}:*`) });
+    this.app.acl.registerSnippet({
+      name: `pm.${this.name}`,
+      actions: [...COLLECTIONS.map((c) => `${c}:*`), DASHBOARD_ACTION],
+    });
+
+    this.registerDashboardAction();
+    this.registerHooks();
+  }
+
+  private registerDashboardAction() {
+    this.app.resourceManager.define({
+      name: 'legalDashboard',
+      actions: {
+        stats: async (ctx: any, next: any) => {
+          const [cases, docs] = await Promise.all([
+            ctx.db.getRepository('legalCases').find({
+              fields: ['status', 'priority'],
+            }),
+            ctx.db.getRepository('legalDocuments').find({
+              fields: ['status'],
+            }),
+          ]);
+
+          const caseList = (cases || []).map((item: any) => (item.toJSON ? item.toJSON() : item));
+          const docList = (docs || []).map((item: any) => (item.toJSON ? item.toJSON() : item));
+
+          ctx.body = {
+            totalCases: caseList.length,
+            openCases: caseList.filter((item: any) => item.status === 'open').length,
+            trialCases: caseList.filter((item: any) => item.status === 'trial').length,
+            closedCases: caseList.filter((item: any) => item.status === 'closed').length,
+            urgentCases: caseList.filter(
+              (item: any) => ['high', 'urgent'].includes(item.priority) && item.status !== 'closed',
+            ).length,
+            totalDocuments: docList.length,
+            reviewDocuments: docList.filter((item: any) => item.status === 'review').length,
+            finalizedDocuments: docList.filter((item: any) => item.status === 'finalized').length,
+          };
+          await next();
+        },
+      },
+    });
+    this.app.acl.allow('legalDashboard', 'stats', 'loggedIn');
+  }
+
+  private registerHooks() {
     this.db.on('legalCases.beforeCreate', async (model: any) => {
       if (!model.get('caseNo')) {
         const c = await this.db.getRepository('legalCases').count();

@@ -10,6 +10,7 @@
 export async function createItAssetRoles(app: any): Promise<number> {
   const roleRepo = app.db.getRepository('roles');
   if (!roleRepo) return 0;
+  const dashboardAction = 'itAssetDashboard:stats';
 
   let created = 0;
   try {
@@ -31,6 +32,7 @@ export async function createItAssetRoles(app: any): Promise<number> {
               'itLicenses:create',
               'itLicenses:update',
               'itLicenses:destroy',
+              dashboardAction,
             ],
           },
         },
@@ -58,6 +60,7 @@ export async function createItAssetRoles(app: any): Promise<number> {
               'itLicenses:get',
               'itLicenses:create',
               'itLicenses:update',
+              dashboardAction,
             ],
           },
         },
@@ -76,7 +79,7 @@ export async function createItAssetRoles(app: any): Promise<number> {
           title: '资产审计',
           hidden: false,
           strategy: {
-            actions: ['itDevices:list', 'itDevices:get', 'itLicenses:list', 'itLicenses:get'],
+            actions: ['itDevices:list', 'itDevices:get', 'itLicenses:list', 'itLicenses:get', dashboardAction],
           },
         },
       });

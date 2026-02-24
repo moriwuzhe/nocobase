@@ -10,6 +10,7 @@
 export async function createLogisticsRoles(app: any): Promise<number> {
   const roleRepo = app.db.getRepository('roles');
   if (!roleRepo) return 0;
+  const dashboardAction = 'logisticsDashboard:stats';
 
   let created = 0;
   try {
@@ -31,6 +32,7 @@ export async function createLogisticsRoles(app: any): Promise<number> {
               'logDrivers:create',
               'logDrivers:update',
               'logDrivers:destroy',
+              dashboardAction,
             ],
           },
         },
@@ -57,6 +59,7 @@ export async function createLogisticsRoles(app: any): Promise<number> {
               'logDrivers:list',
               'logDrivers:get',
               'logDrivers:update',
+              dashboardAction,
             ],
           },
         },
@@ -81,6 +84,7 @@ export async function createLogisticsRoles(app: any): Promise<number> {
               'logShipments:update',
               'logDrivers:list',
               'logDrivers:get',
+              dashboardAction,
             ],
           },
         },

@@ -12,6 +12,7 @@ import { createTemplateUI } from './ui-schema-generator';
 import { createItAssetRoles } from './roles';
 import { createItAssetWorkflows } from './workflows';
 const COLLECTIONS = ['itDevices', 'itLicenses'];
+const DASHBOARD_ACTION = 'itAssetDashboard:stats';
 export default class extends Plugin {
   async install(options?: InstallOptions) {
     if (this.app.name && this.app.name !== 'main') return;
@@ -145,7 +146,57 @@ export default class extends Plugin {
   }
   async load() {
     for (const c of COLLECTIONS) this.app.acl.allow(c, '*', 'loggedIn');
-    this.app.acl.registerSnippet({ name: `pm.${this.name}`, actions: COLLECTIONS.map((c) => `${c}:*`) });
+    this.app.acl.registerSnippet({
+      name: `pm.${this.name}`,
+      actions: [...COLLECTIONS.map((c) => `${c}:*`), DASHBOARD_ACTION],
+    });
+
+    this.registerDashboardAction();
+    this.registerHooks();
+  }
+
+  private registerDashboardAction() {
+    this.app.resourceManager.define({
+      name: 'itAssetDashboard',
+      actions: {
+        stats: async (ctx: any, next: any) => {
+          const [devices, licenses] = await Promise.all([
+            ctx.db.getRepository('itDevices').find({
+              fields: ['status'],
+            }),
+            ctx.db.getRepository('itLicenses').find({
+              fields: ['expiryDate', 'seats', 'usedSeats'],
+            }),
+          ]);
+
+          const deviceList = (devices || []).map((item: any) => (item.toJSON ? item.toJSON() : item));
+          const licenseList = (licenses || []).map((item: any) => (item.toJSON ? item.toJSON() : item));
+
+          const now = new Date();
+          const in30Days = new Date();
+          in30Days.setDate(in30Days.getDate() + 30);
+
+          ctx.body = {
+            totalDevices: deviceList.length,
+            inUseDevices: deviceList.filter((item: any) => item.status === 'in_use').length,
+            inStockDevices: deviceList.filter((item: any) => item.status === 'in_stock').length,
+            repairingDevices: deviceList.filter((item: any) => item.status === 'repairing').length,
+            totalLicenses: licenseList.length,
+            expiringLicenses: licenseList.filter((item: any) => {
+              if (!item.expiryDate) return false;
+              const expiry = new Date(item.expiryDate);
+              return expiry >= now && expiry <= in30Days;
+            }).length,
+            overusedLicenses: licenseList.filter((item: any) => (item.usedSeats || 0) > (item.seats || 0)).length,
+          };
+          await next();
+        },
+      },
+    });
+    this.app.acl.allow('itAssetDashboard', 'stats', 'loggedIn');
+  }
+
+  private registerHooks() {
     this.db.on('itDevices.beforeCreate', async (m: any) => {
       if (!m.get('assetTag')) {
         const c = await this.db.getRepository('itDevices').count();

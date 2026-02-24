@@ -12,6 +12,7 @@ import { createTemplateUI } from './ui-schema-generator';
 import { createLogisticsRoles } from './roles';
 import { createLogisticsWorkflows } from './workflows';
 const COLLECTIONS = ['logShipments', 'logDrivers'];
+const DASHBOARD_ACTION = 'logisticsDashboard:stats';
 export default class extends Plugin {
   async install(options?: InstallOptions) {
     if (this.app.name && this.app.name !== 'main') return;
@@ -128,7 +129,56 @@ export default class extends Plugin {
   }
   async load() {
     for (const c of COLLECTIONS) this.app.acl.allow(c, '*', 'loggedIn');
-    this.app.acl.registerSnippet({ name: `pm.${this.name}`, actions: COLLECTIONS.map((c) => `${c}:*`) });
+    this.app.acl.registerSnippet({
+      name: `pm.${this.name}`,
+      actions: [...COLLECTIONS.map((c) => `${c}:*`), DASHBOARD_ACTION],
+    });
+
+    this.registerDashboardAction();
+    this.registerHooks();
+  }
+
+  private registerDashboardAction() {
+    this.app.resourceManager.define({
+      name: 'logisticsDashboard',
+      actions: {
+        stats: async (ctx: any, next: any) => {
+          const [shipments, drivers] = await Promise.all([
+            ctx.db.getRepository('logShipments').find({
+              fields: ['status'],
+            }),
+            ctx.db.getRepository('logDrivers').find({
+              fields: ['status'],
+            }),
+          ]);
+
+          const shipmentList = (shipments || []).map((item: any) => (item.toJSON ? item.toJSON() : item));
+          const driverList = (drivers || []).map((item: any) => (item.toJSON ? item.toJSON() : item));
+
+          const inTransit = shipmentList.filter((item: any) =>
+            ['in_transit', 'delivering'].includes(item.status),
+          ).length;
+          const delivered = shipmentList.filter((item: any) => item.status === 'delivered').length;
+          const pending = shipmentList.filter((item: any) => item.status === 'pending').length;
+
+          ctx.body = {
+            totalShipments: shipmentList.length,
+            inTransitShipments: inTransit,
+            deliveredShipments: delivered,
+            pendingShipments: pending,
+            deliveryRate: shipmentList.length ? Math.round((delivered / shipmentList.length) * 100) : 0,
+            totalDrivers: driverList.length,
+            availableDrivers: driverList.filter((item: any) => item.status === 'available').length,
+            onRouteDrivers: driverList.filter((item: any) => item.status === 'on_route').length,
+          };
+          await next();
+        },
+      },
+    });
+    this.app.acl.allow('logisticsDashboard', 'stats', 'loggedIn');
+  }
+
+  private registerHooks() {
     this.db.on('logShipments.beforeCreate', async (m: any) => {
       if (!m.get('trackingNo')) {
         const c = await this.db.getRepository('logShipments').count();

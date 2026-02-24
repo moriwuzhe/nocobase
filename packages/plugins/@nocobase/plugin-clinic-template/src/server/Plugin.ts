@@ -13,6 +13,7 @@ import { createClinicRoles } from './roles';
 import { createClinicWorkflows } from './workflows';
 
 const COLLECTIONS = ['clinicPatients', 'clinicAppointments', 'clinicMedicalRecords', 'clinicPrescriptions'];
+const DASHBOARD_ACTION = 'clinicDashboard:stats';
 
 export default class PluginClinicTemplateServer extends Plugin {
   async install(options?: InstallOptions) {
@@ -109,8 +110,69 @@ export default class PluginClinicTemplateServer extends Plugin {
 
   async load() {
     for (const c of COLLECTIONS) this.app.acl.allow(c, '*', 'loggedIn');
-    this.app.acl.registerSnippet({ name: `pm.${this.name}`, actions: COLLECTIONS.map((c) => `${c}:*`) });
+    this.app.acl.registerSnippet({
+      name: `pm.${this.name}`,
+      actions: [...COLLECTIONS.map((c) => `${c}:*`), DASHBOARD_ACTION],
+    });
 
+    this.registerDashboardAction();
+    this.registerHooks();
+  }
+
+  private registerDashboardAction() {
+    this.app.resourceManager.define({
+      name: 'clinicDashboard',
+      actions: {
+        stats: async (ctx: any, next: any) => {
+          const [patients, appointments, records, prescriptions] = await Promise.all([
+            ctx.db.getRepository('clinicPatients').count(),
+            ctx.db.getRepository('clinicAppointments').find({
+              fields: ['status', 'appointmentDate'],
+            }),
+            ctx.db.getRepository('clinicMedicalRecords').find({
+              fields: ['paymentStatus'],
+            }),
+            ctx.db.getRepository('clinicPrescriptions').count(),
+          ]);
+
+          const appointmentList = (appointments || []).map((item: any) => (item.toJSON ? item.toJSON() : item));
+          const recordList = (records || []).map((item: any) => (item.toJSON ? item.toJSON() : item));
+
+          const waitingAppointments = appointmentList.filter((item: any) =>
+            ['scheduled', 'checked_in', 'in_progress'].includes(item.status),
+          ).length;
+          const completedAppointments = appointmentList.filter((item: any) => item.status === 'completed').length;
+          const unpaidRecords = recordList.filter((item: any) => item.paymentStatus === 'unpaid').length;
+
+          const startOfToday = new Date();
+          startOfToday.setHours(0, 0, 0, 0);
+          const endOfToday = new Date(startOfToday);
+          endOfToday.setDate(endOfToday.getDate() + 1);
+
+          const todayAppointments = appointmentList.filter((item: any) => {
+            if (!item.appointmentDate) return false;
+            const visitDate = new Date(item.appointmentDate);
+            return visitDate >= startOfToday && visitDate < endOfToday;
+          }).length;
+
+          ctx.body = {
+            totalPatients: patients,
+            totalAppointments: appointmentList.length,
+            waitingAppointments,
+            completedAppointments,
+            todayAppointments,
+            totalRecords: recordList.length,
+            unpaidRecords,
+            totalPrescriptions: prescriptions,
+          };
+          await next();
+        },
+      },
+    });
+    this.app.acl.allow('clinicDashboard', 'stats', 'loggedIn');
+  }
+
+  private registerHooks() {
     this.db.on('clinicPatients.beforeCreate', async (model: any) => {
       if (!model.get('patientNo')) {
         const count = await this.db.getRepository('clinicPatients').count();

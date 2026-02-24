@@ -10,6 +10,7 @@
 export async function createClinicRoles(app: any): Promise<number> {
   const roleRepo = app.db.getRepository('roles');
   if (!roleRepo) return 0;
+  const dashboardAction = 'clinicDashboard:stats';
 
   let created = 0;
   try {
@@ -41,6 +42,7 @@ export async function createClinicRoles(app: any): Promise<number> {
               'clinicPrescriptions:create',
               'clinicPrescriptions:update',
               'clinicPrescriptions:destroy',
+              dashboardAction,
             ],
           },
         },
@@ -73,6 +75,7 @@ export async function createClinicRoles(app: any): Promise<number> {
               'clinicPrescriptions:get',
               'clinicPrescriptions:create',
               'clinicPrescriptions:update',
+              dashboardAction,
             ],
           },
         },
@@ -102,6 +105,7 @@ export async function createClinicRoles(app: any): Promise<number> {
               'clinicAppointments:update',
               'clinicPrescriptions:list',
               'clinicPrescriptions:get',
+              dashboardAction,
             ],
           },
         },
