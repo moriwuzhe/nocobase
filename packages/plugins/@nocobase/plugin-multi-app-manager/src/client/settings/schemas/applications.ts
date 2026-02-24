@@ -27,6 +27,7 @@ import {
 import React from 'react';
 import { i18nText } from '../../utils';
 import { NAMESPACE } from '../../../locale';
+import { useTranslation } from 'react-i18next';
 
 const collection = {
   name: 'applications',
@@ -89,6 +90,65 @@ const collection = {
     },
   ],
 };
+
+const TRANSIENT_GATEWAY_STATUSES = new Set([502, 503, 504]);
+const APP_READY_STATUSES = new Set(['initialized', 'running']);
+
+async function sleep(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForAppReady(api: any, appName: string, timeoutMs = 6 * 60 * 1000): Promise<boolean> {
+  const startAt = Date.now();
+  let attempt = 0;
+
+  while (Date.now() - startAt < timeoutMs) {
+    attempt += 1;
+
+    try {
+      const appRes = await api.request({
+        url: 'applications:get',
+        method: 'get',
+        params: {
+          filterByTk: appName,
+        },
+      });
+      const status = appRes?.data?.data?.status;
+      if (APP_READY_STATUSES.has(status)) {
+        return true;
+      }
+      if (status === 'error' || status === 'not_found') {
+        return false;
+      }
+    } catch (e) {
+      const status = (e as any)?.response?.status;
+      if (status && !TRANSIENT_GATEWAY_STATUSES.has(status)) {
+        // For non-gateway errors, continue trying until timeout.
+      }
+    }
+
+    try {
+      await api.request({
+        url: 'app:getInfo',
+        method: 'get',
+        headers: {
+          'X-App': appName,
+        },
+      });
+      return true;
+    } catch (e) {
+      const status = (e as any)?.response?.status;
+      if (status && !TRANSIENT_GATEWAY_STATUSES.has(status) && status !== 404) {
+        // Keep retrying until timeout, some intermediate statuses can be temporary.
+      }
+    }
+
+    const delay = Math.min(6000, 1500 + attempt * 300);
+    await sleep(delay);
+  }
+
+  return false;
+}
 
 export const useDestroy = () => {
   const { refresh } = useResourceActionContext();
@@ -344,6 +404,7 @@ export function useManualInstallTemplateAction() {
   const { refresh } = useResourceActionContext();
   const api = useAPIClient();
   const { message, modal } = App.useApp();
+  const { t } = useTranslation(NAMESPACE);
 
   return {
     async run() {
@@ -354,7 +415,7 @@ export function useManualInstallTemplateAction() {
 
         const templateKey = form.values?.templateKey;
         if (!templateKey) {
-          message.warning(tval('Please select a template first', { ns: '@nocobase/plugin-multi-app-manager' }));
+          message.warning(t('Please select a template first'));
           return;
         }
 
@@ -379,6 +440,7 @@ export const useCreateActionWithTemplate = () => {
   const { resource } = useResourceContext();
   const api = useAPIClient();
   const { message, modal } = App.useApp();
+  const { t } = useTranslation(NAMESPACE);
 
   return {
     async run() {
@@ -401,39 +463,13 @@ export const useCreateActionWithTemplate = () => {
 
         if (templateKey) {
           const appName = values.name;
-          message.loading({ content: `正在等待应用 "${values.displayName}" 初始化...`, key: 'tpl-wait', duration: 0 });
+          message.loading({
+            content: t('Waiting for app {{name}} to initialize...', { name: values.displayName || appName }),
+            key: 'tpl-wait',
+            duration: 0,
+          });
 
-          let ready = false;
-          let gatewayTimeoutCount = 0;
-          for (let i = 0; i < 40; i++) {
-            await new Promise((resolve) => setTimeout(resolve, 3000));
-            try {
-              const appRes = await api.request({
-                url: 'applications:get',
-                method: 'get',
-                params: {
-                  filterByTk: appName,
-                },
-              });
-              const status = appRes?.data?.data?.status;
-              if (status === 'initialized') {
-                ready = true;
-                break;
-              }
-              if (status === 'error') {
-                break;
-              }
-            } catch (e) {
-              const status = (e as any)?.response?.status;
-              // Stop aggressive polling when gateway is overloaded.
-              if ([502, 503, 504].includes(status)) {
-                gatewayTimeoutCount += 1;
-                if (gatewayTimeoutCount >= 3) {
-                  break;
-                }
-              }
-            }
-          }
+          const ready = await waitForAppReady(api, appName);
 
           message.destroy('tpl-wait');
 
@@ -442,9 +478,7 @@ export const useCreateActionWithTemplate = () => {
             refresh();
           } else {
             message.warning(
-              tval('Initialization timeout, you can manually initialize the template from the action column.', {
-                ns: '@nocobase/plugin-multi-app-manager',
-              }),
+              t('Initialization timeout, you can manually initialize the template from the action column.'),
             );
           }
         }

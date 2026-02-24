@@ -20,5 +20,6 @@
   "Standalone deployment": "Standalone deployment",
   "Start mode": "Start mode",
   "Start on first visit": "Start on first visit",
-  "Start with main application": "Start with main application"
+  "Start with main application": "Start with main application",
+  "Waiting for app {{name}} to initialize...": "Waiting for app {{name}} to initialize..."
 }
