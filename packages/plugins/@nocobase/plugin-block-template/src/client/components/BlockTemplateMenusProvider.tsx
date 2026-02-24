@@ -17,7 +17,7 @@ import {
   SchemaInitializerItemType,
   useCurrentUserContext,
 } from '@nocobase/client';
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useRef } from 'react';
 import PluginBlockTemplateClient from '..';
 import PluginMobileClient from '@nocobase/plugin-mobile/client';
 import { useT } from '../locale';
@@ -51,6 +51,7 @@ export const BlockTemplateMenusProvider = ({ children }) => {
   const isMobile = window.location.pathname.startsWith(mobilePlugin.mobileBasename);
   const location = useLocation();
   const previousPathRef = React.useRef(location.pathname);
+  const mountedRef = useRef(false);
   const user = useCurrentUserContext();
 
   const { data, loading, refresh } = useRequest<{
@@ -75,26 +76,37 @@ export const BlockTemplateMenusProvider = ({ children }) => {
       },
     },
     {
-      cacheKey: 'blockTemplates',
       manual: true,
     },
   );
+
+  const safeRefresh = useMemoizedFn(() => {
+    if (!mountedRef.current) return;
+    refresh();
+  });
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const isLeavingTemplatesPage =
       previousPathRef.current.includes('/settings/block-templates/inherited') &&
       !location.pathname.includes('/settings/block-templates/inherited');
     if (isLeavingTemplatesPage) {
-      refresh();
+      safeRefresh();
     }
     previousPathRef.current = location.pathname;
-  }, [location.pathname, refresh]);
+  }, [location.pathname, safeRefresh]);
 
   useEffect(() => {
-    if (user?.data) {
-      refresh();
+    if (user?.data?.data) {
+      safeRefresh();
     }
-  }, [user, refresh]);
+  }, [user?.data?.data, safeRefresh]);
 
   const handleTemplateClick = useMemoizedFn(async ({ item }, options?: any, insert?: any) => {
     const { uid } = item;
@@ -200,6 +212,9 @@ export const BlockTemplateMenusProvider = ({ children }) => {
       return children;
     };
     registerInitializerMenusGenerator('block_template', generator);
+    return () => {
+      registerInitializerMenusGenerator('block_template', () => null);
+    };
   }, [data?.data, plugin.isInBlockTemplateConfigPage, handleTemplateClick, t, plugin]);
 
   return (
