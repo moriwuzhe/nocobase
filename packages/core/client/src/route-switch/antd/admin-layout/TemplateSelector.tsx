@@ -1036,6 +1036,7 @@ export async function installTemplate(
   appName: string,
   templateKey: string,
   ui: TemplateInstallUI,
+  options?: { skipConfirm?: boolean },
 ): Promise<boolean> {
   const tpl = builtInTemplates.find((t) => t.key === templateKey);
   if (!tpl) return false;
@@ -1047,7 +1048,7 @@ export async function installTemplate(
   const sampleCount = sampleBatches.reduce((sum, b) => sum + b.records.length, 0);
 
   return new Promise((resolve) => {
-    ui.modal.confirm({
+    const confirmConfig: any = {
       title: `安装模板：${tpl.title}`,
       width: 560,
       content: (
@@ -1554,7 +1555,14 @@ export async function installTemplate(
         }
       },
       onCancel: () => resolve(false),
-    });
+    };
+
+    if (options?.skipConfirm) {
+      void confirmConfig.onOk();
+      return;
+    }
+
+    ui.modal.confirm(confirmConfig);
   });
 }
 

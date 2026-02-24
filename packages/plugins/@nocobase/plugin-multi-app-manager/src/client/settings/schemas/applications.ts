@@ -480,7 +480,7 @@ export const useCreateActionWithTemplate = () => {
 
           // Always attempt installation once to avoid "menu created but page blank" half-initialized state.
           // installTemplate has its own readiness retries and explicit failure feedback.
-          const installed = await installTemplate(api, appName, templateKey, { modal, message });
+          const installed = await installTemplate(api, appName, templateKey, { modal, message }, { skipConfirm: true });
           if (installed) {
             refresh();
           }
