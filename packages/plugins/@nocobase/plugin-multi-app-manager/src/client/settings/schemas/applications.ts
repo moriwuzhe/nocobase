@@ -96,6 +96,7 @@ const APP_READY_STATUSES = new Set(['initialized', 'running']);
 const APP_AUTH_READY_STATUSES = new Set([401, 403]);
 const TEMPLATE_INSTALL_MAX_ATTEMPTS = 2;
 const TEMPLATE_INSTALL_RETRY_BASE_DELAY = 3000;
+const BULK_TEMPLATE_RETRY_CONCURRENCY = 3;
 
 interface TemplateInstallErrorDetail {
   step: string;
@@ -292,11 +293,13 @@ async function installTemplateWithRetry(
   templateKey: string,
   ui: { modal: any; message: any },
   maxAttempts = TEMPLATE_INSTALL_MAX_ATTEMPTS,
+  messageKey?: string,
 ): Promise<TemplateInstallResult> {
   let lastError: TemplateInstallErrorDetail | undefined;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const installed = await installTemplate(api, appName, templateKey, ui, {
       skipConfirm: true,
+      messageKey,
       onError: (detail) => {
         lastError = detail;
       },
@@ -391,8 +394,9 @@ export const useRetrySelectedTemplateInitsAction = () => {
 
   return {
     async run() {
-      const selectedRowKeys = state?.selectedRowKeys || [];
-      if (!selectedRowKeys.length) {
+      const selectedRowKeys = (state?.selectedRowKeys || []).map((key) => String(key)).filter(Boolean);
+      const appNames = Array.from(new Set(selectedRowKeys));
+      if (!appNames.length) {
         message.warning(t('Please select applications first'));
         return;
       }
@@ -401,72 +405,126 @@ export const useRetrySelectedTemplateInitsAction = () => {
       let failedCount = 0;
       let skippedCount = 0;
       let ignoredCount = 0;
+      let completedCount = 0;
 
-      message.loading({
-        content: t('Retrying template initialization for selected applications...'),
-        key: 'tpl-bulk-retry',
-        duration: 0,
-      });
+      const renderBulkProgress = () => {
+        message.loading({
+          content: t(
+            'Bulk retry progress: {{done}}/{{total}} (success {{success}}, failed {{failed}}, skipped {{skipped}}, ignored {{ignored}})',
+            {
+              done: completedCount,
+              total: appNames.length,
+              success: successCount,
+              failed: failedCount,
+              skipped: skippedCount,
+              ignored: ignoredCount,
+            },
+          ),
+          key: 'tpl-bulk-retry',
+          duration: 0,
+        });
+      };
 
-      try {
-        for (const appName of selectedRowKeys) {
-          try {
-            const appRes = await api.request({
-              url: 'applications:get',
-              method: 'get',
-              params: {
-                filterByTk: appName,
-              },
-            });
-            const appRecord = appRes?.data?.data;
-            const templateKey = appRecord?.options?.pendingTemplateKey || appRecord?.options?.installedTemplateKey;
+      const retrySingleApp = async (appName: string): Promise<'success' | 'failed' | 'skipped' | 'ignored'> => {
+        try {
+          const appRes = await api.request({
+            url: 'applications:get',
+            method: 'get',
+            params: {
+              filterByTk: appName,
+            },
+          });
+          const appRecord = appRes?.data?.data;
+          const templateKey = appRecord?.options?.pendingTemplateKey || appRecord?.options?.installedTemplateKey;
 
-            if (!templateKey) {
-              skippedCount += 1;
-              continue;
-            }
+          if (!templateKey) {
+            return 'skipped';
+          }
 
-            if (!isTemplateRetryable(appRecord)) {
-              ignoredCount += 1;
-              continue;
-            }
+          if (!isTemplateRetryable(appRecord)) {
+            return 'ignored';
+          }
 
+          await updateApplicationTemplateOptions(api, appName, {
+            pendingTemplateKey: templateKey,
+            templateInstallState: 'installing',
+            templateInstallError: '',
+            templateInstallUpdatedAt: new Date().toISOString(),
+          });
+
+          const result = await installTemplateWithRetry(
+            api,
+            appName,
+            templateKey,
+            { modal, message },
+            TEMPLATE_INSTALL_MAX_ATTEMPTS,
+            `tpl-${appName}`,
+          );
+          if (result.installed) {
             await updateApplicationTemplateOptions(api, appName, {
-              pendingTemplateKey: templateKey,
-              templateInstallState: 'installing',
+              pendingTemplateKey: '',
+              installedTemplateKey: templateKey,
+              templateInstallState: 'installed',
               templateInstallError: '',
               templateInstallUpdatedAt: new Date().toISOString(),
             });
-
-            const result = await installTemplateWithRetry(api, appName, templateKey, { modal, message });
-            if (result.installed) {
-              successCount += 1;
-              await updateApplicationTemplateOptions(api, appName, {
-                pendingTemplateKey: '',
-                installedTemplateKey: templateKey,
-                templateInstallState: 'installed',
-                templateInstallError: '',
-                templateInstallUpdatedAt: new Date().toISOString(),
-              });
-              continue;
-            }
-
-            failedCount += 1;
-            await updateApplicationTemplateOptions(api, appName, {
-              pendingTemplateKey: templateKey,
-              templateInstallState: 'failed',
-              templateInstallError: stringifyTemplateInstallError(result.error),
-              templateInstallUpdatedAt: new Date().toISOString(),
-            });
-          } catch (error: any) {
-            failedCount += 1;
-            await updateApplicationTemplateOptions(api, appName, {
-              templateInstallState: 'failed',
-              templateInstallError: error?.message || 'install_failed',
-              templateInstallUpdatedAt: new Date().toISOString(),
-            });
+            return 'success';
           }
+
+          await updateApplicationTemplateOptions(api, appName, {
+            pendingTemplateKey: templateKey,
+            templateInstallState: 'failed',
+            templateInstallError: stringifyTemplateInstallError(result.error),
+            templateInstallUpdatedAt: new Date().toISOString(),
+          });
+          return 'failed';
+        } catch (error: any) {
+          await updateApplicationTemplateOptions(api, appName, {
+            templateInstallState: 'failed',
+            templateInstallError: error?.message || 'install_failed',
+            templateInstallUpdatedAt: new Date().toISOString(),
+          });
+          return 'failed';
         }
+      };
+
+      renderBulkProgress();
+
+      try {
+        let nextIndex = 0;
+        const workerCount = Math.min(BULK_TEMPLATE_RETRY_CONCURRENCY, appNames.length);
+        const getNextAppName = () => {
+          if (nextIndex >= appNames.length) {
+            return undefined;
+          }
+          const appName = appNames[nextIndex];
+          nextIndex += 1;
+          return appName;
+        };
+
+        const workers = Array.from({ length: workerCount }, () =>
+          (async () => {
+            let appName = getNextAppName();
+            while (appName) {
+              const result = await retrySingleApp(appName);
+              if (result === 'success') {
+                successCount += 1;
+              } else if (result === 'failed') {
+                failedCount += 1;
+              } else if (result === 'skipped') {
+                skippedCount += 1;
+              } else {
+                ignoredCount += 1;
+              }
+
+              completedCount += 1;
+              renderBulkProgress();
+              appName = getNextAppName();
+            }
+          })(),
+        );
+
+        await Promise.all(workers);
       } finally {
         message.destroy('tpl-bulk-retry');
       }

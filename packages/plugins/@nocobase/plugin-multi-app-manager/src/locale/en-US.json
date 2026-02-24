@@ -19,6 +19,7 @@
   "Selected {{count}} retryable applications.": "Selected {{count}} retryable applications.",
   "Retry selected template inits": "Retry selected template inits",
   "Retrying template initialization for selected applications...": "Retrying template initialization for selected applications...",
+  "Bulk retry progress: {{done}}/{{total}} (success {{success}}, failed {{failed}}, skipped {{skipped}}, ignored {{ignored}})": "Bulk retry progress: {{done}}/{{total}} (success {{success}}, failed {{failed}}, skipped {{skipped}}, ignored {{ignored}})",
   "Bulk template retry finished: {{success}} succeeded, {{failed}} failed, {{skipped}} skipped, {{ignored}} ignored.": "Bulk template retry finished: {{success}} succeeded, {{failed}} failed, {{skipped}} skipped, {{ignored}} ignored.",
   "Custom domain": "Custom domain",
   "Clear template status": "Clear template status",

@@ -19,6 +19,7 @@
   "Selected {{count}} retryable applications.": "已选中 {{count}} 个可重试应用。",
   "Retry selected template inits": "重试所选模板初始化",
   "Retrying template initialization for selected applications...": "正在重试所选应用的模板初始化...",
+  "Bulk retry progress: {{done}}/{{total}} (success {{success}}, failed {{failed}}, skipped {{skipped}}, ignored {{ignored}})": "批量重试进度：{{done}}/{{total}}（成功 {{success}}，失败 {{failed}}，跳过 {{skipped}}，忽略 {{ignored}}）",
   "Bulk template retry finished: {{success}} succeeded, {{failed}} failed, {{skipped}} skipped, {{ignored}} ignored.": "批量模板重试完成：成功 {{success}}，失败 {{failed}}，跳过 {{skipped}}，忽略 {{ignored}}。",
   "Custom domain": "自定义域名",
   "Clear template status": "清除模板状态",

@@ -1019,6 +1019,7 @@ interface TemplateInstallErrorDetail {
 interface TemplateInstallOptions {
   skipConfirm?: boolean;
   onError?: (detail: TemplateInstallErrorDetail) => void;
+  messageKey?: string;
 }
 
 function getAxiosErrorMessage(err: any): string {
@@ -1090,6 +1091,7 @@ export async function installTemplate(
 ): Promise<boolean> {
   const tpl = builtInTemplates.find((t) => t.key === templateKey);
   if (!tpl) return false;
+  const messageKey = options?.messageKey || 'tpl';
 
   const kanbanCount = countViewConfigs(tpl.menu, 'kanban');
   const calendarCount = countViewConfigs(tpl.menu, 'calendar');
@@ -1149,7 +1151,7 @@ export async function installTemplate(
 
           // Wait for sub-app to be ready with retry
           currentStep = 'waitForAppReady';
-          ui.message.loading({ content: '等待应用启动...', key: 'tpl', duration: 0 });
+          ui.message.loading({ content: '等待应用启动...', key: messageKey, duration: 0 });
           let appReady = false;
           for (let attempt = 0; attempt < 15; attempt++) {
             try {
@@ -1168,7 +1170,7 @@ export async function installTemplate(
           }
           if (!appReady) {
             notifyError({ step: currentStep, message: 'app_start_timeout' });
-            ui.message.error({ content: '应用启动超时，请稍后重试', key: 'tpl' });
+            ui.message.error({ content: '应用启动超时，请稍后重试', key: messageKey });
             resolve(false);
             return;
           }
@@ -1192,7 +1194,7 @@ export async function installTemplate(
             // Auth may fail if password changed, continue with main app token
           }
 
-          ui.message.loading({ content: '正在创建数据表...', key: 'tpl', duration: 0 });
+          ui.message.loading({ content: '正在创建数据表...', key: messageKey, duration: 0 });
 
           for (const col of tpl.collections) {
             currentStep = `createCollection:${col.name}`;
@@ -1269,7 +1271,7 @@ export async function installTemplate(
             }
           }
 
-          ui.message.loading({ content: '正在创建关联关系...', key: 'tpl', duration: 0 });
+          ui.message.loading({ content: '正在创建关联关系...', key: messageKey, duration: 0 });
 
           for (const rel of tpl.relations) {
             try {
@@ -1307,7 +1309,7 @@ export async function installTemplate(
             }
           }
 
-          ui.message.loading({ content: '正在配置页面...', key: 'tpl', duration: 0 });
+          ui.message.loading({ content: '正在配置页面...', key: messageKey, duration: 0 });
 
           const collectionMap = new Map<string, CollectionDef>();
           for (const col of tpl.collections) {
@@ -1592,7 +1594,7 @@ export async function installTemplate(
             // refresh may be unavailable in some deployments
           }
 
-          ui.message.loading({ content: '正在插入示例数据...', key: 'tpl', duration: 0 });
+          ui.message.loading({ content: '正在插入示例数据...', key: messageKey, duration: 0 });
 
           const idMap: Record<string, Record<string, number>> = {};
 
@@ -1642,7 +1644,7 @@ export async function installTemplate(
           }
 
           if (tpl.workflows.length > 0) {
-            ui.message.loading({ content: '正在创建工作流...', key: 'tpl', duration: 0 });
+            ui.message.loading({ content: '正在创建工作流...', key: messageKey, duration: 0 });
 
             for (const wf of tpl.workflows) {
               try {
@@ -1693,12 +1695,12 @@ export async function installTemplate(
             }
           }
 
-          ui.message.success({ content: `模板 "${tpl.title}" 安装完成！`, key: 'tpl' });
+          ui.message.success({ content: `模板 "${tpl.title}" 安装完成！`, key: messageKey });
           resolve(true);
         } catch (err: any) {
           notifyError({ step: currentStep, message: getAxiosErrorMessage(err) });
           console.error('Template installation failed:', err);
-          ui.message.error({ content: `安装失败: ${err?.message || '未知错误'}`, key: 'tpl' });
+          ui.message.error({ content: `安装失败: ${err?.message || '未知错误'}`, key: messageKey });
           resolve(false);
         }
       },
