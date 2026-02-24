@@ -244,6 +244,16 @@ function stringifyTemplateInstallError(error?: TemplateInstallErrorDetail): stri
   return `${error.step}: ${error.message}`;
 }
 
+function normalizeTemplateInstallError(error?: TemplateInstallErrorDetail): TemplateInstallErrorDetail {
+  if (!error) {
+    return { step: 'unknown', message: 'install_failed' };
+  }
+  return {
+    step: error.step || 'unknown',
+    message: error.message || 'install_failed',
+  };
+}
+
 export const useDestroy = () => {
   const { refresh } = useResourceActionContext();
   const { resource, targetKey } = useResourceContext();
@@ -541,6 +551,14 @@ export function useManualInstallTemplateAction() {
           templateInstallError: stringifyTemplateInstallError(result.error),
           templateInstallUpdatedAt: new Date().toISOString(),
         });
+
+        const detail = normalizeTemplateInstallError(result.error);
+        message.error(
+          t('Template initialization failed at {{step}}: {{message}}', {
+            step: detail.step,
+            message: detail.message,
+          }),
+        );
       } finally {
         field.data.loading = false;
       }
@@ -617,6 +635,13 @@ export const useCreateActionWithTemplate = () => {
             templateInstallError: stringifyTemplateInstallError(result.error),
             templateInstallUpdatedAt: new Date().toISOString(),
           });
+          const detail = normalizeTemplateInstallError(result.error);
+          message.error(
+            t('Template initialization failed at {{step}}: {{message}}', {
+              step: detail.step,
+              message: detail.message,
+            }),
+          );
           message.error(t('Automatic template initialization failed, please retry from action column.'));
         }
       } finally {

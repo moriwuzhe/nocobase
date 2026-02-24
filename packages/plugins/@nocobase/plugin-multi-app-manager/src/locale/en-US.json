@@ -21,6 +21,7 @@
   "Start mode": "Start mode",
   "Start on first visit": "Start on first visit",
   "Start with main application": "Start with main application",
+  "Template initialization failed at {{step}}: {{message}}": "Template initialization failed at {{step}}: {{message}}",
   "Waiting for app {{name}} to initialize...": "Waiting for app {{name}} to initialize...",
   "Automatic template initialization failed, please retry from action column.": "Automatic template initialization failed, please retry from action column."
 }
