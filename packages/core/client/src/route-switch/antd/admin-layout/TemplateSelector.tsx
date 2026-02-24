@@ -1180,7 +1180,12 @@ export async function installTemplate(
             let appReady = false;
             for (let attempt = 0; attempt < 15; attempt++) {
               try {
-                await requestWithRetry(api, { url: 'app:getInfo', headers }, { maxAttempts: 2, initialDelayMs: 1200 });
+                await api.silent().request({
+                  url: 'app:getInfo',
+                  method: 'get',
+                  headers,
+                  skipNotify: true,
+                });
                 appReady = true;
                 break;
               } catch (e: any) {
@@ -1190,7 +1195,11 @@ export async function installTemplate(
                   appReady = true;
                   break;
                 }
-                await sleep(2000);
+                // Fast-fail non-transient errors to avoid noisy loops.
+                if (status && status !== 404 && !isTransientStartupError(e)) {
+                  break;
+                }
+                await sleep(Math.min(5000, 1500 + attempt * 350));
               }
             }
             if (!appReady) {
