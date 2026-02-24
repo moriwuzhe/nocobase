@@ -94,6 +94,8 @@ const collection = {
 const TRANSIENT_GATEWAY_STATUSES = new Set([502, 503, 504]);
 const APP_READY_STATUSES = new Set(['initialized', 'running']);
 const APP_AUTH_READY_STATUSES = new Set([401, 403]);
+const TEMPLATE_INSTALL_MAX_ATTEMPTS = 2;
+const TEMPLATE_INSTALL_RETRY_BASE_DELAY = 3000;
 
 async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -152,6 +154,67 @@ async function waitForAppReady(api: any, appName: string, timeoutMs = 6 * 60 * 1
     await sleep(delay);
   }
 
+  return false;
+}
+
+async function updateApplicationTemplateOptions(
+  api: any,
+  appName: string,
+  patch: {
+    pendingTemplateKey?: string;
+    installedTemplateKey?: string;
+    templateInstallState?: 'installing' | 'installed' | 'failed';
+    templateInstallError?: string;
+    templateInstallUpdatedAt?: string;
+  },
+) {
+  try {
+    const appRes = await api.request({
+      url: 'applications:get',
+      method: 'get',
+      params: {
+        filterByTk: appName,
+      },
+    });
+    const currentOptions = appRes?.data?.data?.options || {};
+    const nextOptions = {
+      ...currentOptions,
+      ...patch,
+    };
+    await api.request({
+      url: 'applications:update',
+      method: 'post',
+      params: {
+        filterByTk: appName,
+      },
+      data: {
+        values: {
+          options: nextOptions,
+        },
+      },
+    });
+  } catch (error) {
+    // Do not block main flow when status sync fails.
+    void error;
+  }
+}
+
+async function installTemplateWithRetry(
+  api: any,
+  appName: string,
+  templateKey: string,
+  ui: { modal: any; message: any },
+  maxAttempts = TEMPLATE_INSTALL_MAX_ATTEMPTS,
+) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const installed = await installTemplate(api, appName, templateKey, ui, { skipConfirm: true });
+    if (installed) {
+      return true;
+    }
+    if (attempt < maxAttempts) {
+      await sleep(TEMPLATE_INSTALL_RETRY_BASE_DELAY * attempt);
+    }
+  }
   return false;
 }
 
@@ -424,12 +487,34 @@ export function useManualInstallTemplateAction() {
           return;
         }
 
-        const ok = await installTemplate(api, record.name, templateKey, { modal, message });
+        await updateApplicationTemplateOptions(api, record.name, {
+          pendingTemplateKey: templateKey,
+          templateInstallState: 'installing',
+          templateInstallError: '',
+          templateInstallUpdatedAt: new Date().toISOString(),
+        });
+
+        const ok = await installTemplateWithRetry(api, record.name, templateKey, { modal, message }, 1);
         if (ok) {
+          await updateApplicationTemplateOptions(api, record.name, {
+            pendingTemplateKey: '',
+            installedTemplateKey: templateKey,
+            templateInstallState: 'installed',
+            templateInstallError: '',
+            templateInstallUpdatedAt: new Date().toISOString(),
+          });
           ctx.setVisible(false);
           await form.reset();
           refresh();
+          return;
         }
+
+        await updateApplicationTemplateOptions(api, record.name, {
+          pendingTemplateKey: templateKey,
+          templateInstallState: 'failed',
+          templateInstallError: 'install_failed',
+          templateInstallUpdatedAt: new Date().toISOString(),
+        });
       } finally {
         field.data.loading = false;
       }
@@ -474,16 +559,39 @@ export const useCreateActionWithTemplate = () => {
             duration: 0,
           });
 
-          const ready = await waitForAppReady(api, appName);
+          await waitForAppReady(api, appName);
 
           message.destroy('tpl-wait');
 
           // Always attempt installation once to avoid "menu created but page blank" half-initialized state.
           // installTemplate has its own readiness retries and explicit failure feedback.
-          const installed = await installTemplate(api, appName, templateKey, { modal, message }, { skipConfirm: true });
+          await updateApplicationTemplateOptions(api, appName, {
+            pendingTemplateKey: templateKey,
+            templateInstallState: 'installing',
+            templateInstallError: '',
+            templateInstallUpdatedAt: new Date().toISOString(),
+          });
+
+          const installed = await installTemplateWithRetry(api, appName, templateKey, { modal, message });
           if (installed) {
+            await updateApplicationTemplateOptions(api, appName, {
+              pendingTemplateKey: '',
+              installedTemplateKey: templateKey,
+              templateInstallState: 'installed',
+              templateInstallError: '',
+              templateInstallUpdatedAt: new Date().toISOString(),
+            });
             refresh();
+            return;
           }
+
+          await updateApplicationTemplateOptions(api, appName, {
+            pendingTemplateKey: templateKey,
+            templateInstallState: 'failed',
+            templateInstallError: 'install_failed',
+            templateInstallUpdatedAt: new Date().toISOString(),
+          });
+          message.error(t('Automatic template initialization failed, please retry from action column.'));
         }
       } finally {
         field.data.loading = false;
