@@ -1021,6 +1021,7 @@ interface TemplateInstallOptions {
   skipConfirm?: boolean;
   onError?: (detail: TemplateInstallErrorDetail) => void;
   messageKey?: string;
+  skipAppReadyCheck?: boolean;
 }
 
 function getAxiosErrorMessage(err: any): string {
@@ -1172,30 +1173,32 @@ export async function installTemplate(
         try {
           const headers = { 'X-App': appName };
 
-          // Wait for sub-app to be ready with retry
-          currentStep = 'waitForAppReady';
-          ui.message.loading({ content: '等待应用启动...', key: messageKey, duration: 0 });
-          let appReady = false;
-          for (let attempt = 0; attempt < 15; attempt++) {
-            try {
-              await requestWithRetry(api, { url: 'app:getInfo', headers }, { maxAttempts: 2, initialDelayMs: 1200 });
-              appReady = true;
-              break;
-            } catch (e: any) {
-              const status = e?.response?.status;
-              // 401/403 means sub-app is running but current token is not accepted by this app.
-              if (status === 401 || status === 403) {
+          if (!options?.skipAppReadyCheck) {
+            // Wait for sub-app to be ready with retry
+            currentStep = 'waitForAppReady';
+            ui.message.loading({ content: '等待应用启动...', key: messageKey, duration: 0 });
+            let appReady = false;
+            for (let attempt = 0; attempt < 15; attempt++) {
+              try {
+                await requestWithRetry(api, { url: 'app:getInfo', headers }, { maxAttempts: 2, initialDelayMs: 1200 });
                 appReady = true;
                 break;
+              } catch (e: any) {
+                const status = e?.response?.status;
+                // 401/403 means sub-app is running but current token is not accepted by this app.
+                if (status === 401 || status === 403) {
+                  appReady = true;
+                  break;
+                }
+                await sleep(2000);
               }
-              await sleep(2000);
             }
-          }
-          if (!appReady) {
-            notifyError({ step: currentStep, message: 'app_start_timeout' });
-            ui.message.error({ content: '应用启动超时，请稍后重试', key: messageKey });
-            resolve(false);
-            return;
+            if (!appReady) {
+              notifyError({ step: currentStep, message: 'app_start_timeout' });
+              ui.message.error({ content: '应用启动超时，请稍后重试', key: messageKey });
+              resolve(false);
+              return;
+            }
           }
 
           let authHeaders: Record<string, string> = { ...headers };

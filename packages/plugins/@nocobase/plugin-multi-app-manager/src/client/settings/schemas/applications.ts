@@ -219,6 +219,7 @@ async function waitForAppReady(api: any, appName: string, timeoutMs = 6 * 60 * 1
 
   while (Date.now() - startAt < timeoutMs) {
     attempt += 1;
+    let status: string | undefined;
 
     try {
       const appRes = await api.request({
@@ -228,7 +229,7 @@ async function waitForAppReady(api: any, appName: string, timeoutMs = 6 * 60 * 1
           filterByTk: appName,
         },
       });
-      const status = appRes?.data?.data?.status;
+      status = appRes?.data?.data?.status;
       if (APP_READY_STATUSES.has(status)) {
         return true;
       }
@@ -242,27 +243,35 @@ async function waitForAppReady(api: any, appName: string, timeoutMs = 6 * 60 * 1
       }
     }
 
-    try {
-      await api.request({
-        url: 'app:getInfo',
-        method: 'get',
-        headers: {
-          'X-App': appName,
-        },
-      });
-      return true;
-    } catch (e) {
-      const status = (e as any)?.response?.status;
-      // Cross-app token may be different. 401/403 indicates sub-app is up.
-      if (APP_AUTH_READY_STATUSES.has(status)) {
+    // Probe sub-app info at low frequency to avoid flooding 503 logs while app is booting.
+    const shouldProbeSubApp = attempt === 1 || attempt % 4 === 0;
+    if (shouldProbeSubApp) {
+      try {
+        await api.silent().request({
+          url: 'app:getInfo',
+          method: 'get',
+          headers: {
+            'X-App': appName,
+          },
+          skipNotify: true,
+        });
         return true;
-      }
-      if (status && !TRANSIENT_GATEWAY_STATUSES.has(status) && status !== 404) {
-        // Keep retrying until timeout, some intermediate statuses can be temporary.
+      } catch (e) {
+        const infoStatus = (e as any)?.response?.status;
+        // Cross-app token may be different. 401/403 indicates sub-app is up.
+        if (APP_AUTH_READY_STATUSES.has(infoStatus)) {
+          return true;
+        }
+        if (status && APP_READY_STATUSES.has(status)) {
+          return true;
+        }
+        if (infoStatus && !TRANSIENT_GATEWAY_STATUSES.has(infoStatus) && infoStatus !== 404) {
+          // Keep retrying until timeout, some intermediate statuses can be temporary.
+        }
       }
     }
 
-    const delay = Math.min(6000, 1500 + attempt * 300);
+    const delay = Math.min(8000, 1800 + attempt * 500);
     await sleep(delay);
   }
 
@@ -317,13 +326,17 @@ async function installTemplateWithRetry(
   templateKey: string,
   ui: { modal: any; message: any },
   maxAttempts = TEMPLATE_INSTALL_MAX_ATTEMPTS,
-  messageKey?: string,
+  installOptions?: {
+    messageKey?: string;
+    skipAppReadyCheck?: boolean;
+  },
 ): Promise<TemplateInstallResult> {
   let lastError: TemplateInstallErrorDetail | undefined;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const installed = await installTemplate(api, appName, templateKey, ui, {
       skipConfirm: true,
-      messageKey,
+      messageKey: installOptions?.messageKey,
+      skipAppReadyCheck: installOptions?.skipAppReadyCheck,
       onError: (detail) => {
         lastError = detail;
       },
@@ -487,7 +500,7 @@ export const useRetrySelectedTemplateInitsAction = () => {
             templateKey,
             { modal, message },
             TEMPLATE_INSTALL_MAX_ATTEMPTS,
-            `tpl-${appName}`,
+            { messageKey: `tpl-${appName}` },
           );
           if (result.installed) {
             await updateApplicationTemplateOptions(api, appName, {
@@ -1147,9 +1160,22 @@ export const useCreateActionWithTemplate = () => {
             duration: 0,
           });
 
-          await waitForAppReady(api, appName);
+          const appReady = await waitForAppReady(api, appName);
 
           message.destroy('tpl-wait');
+          if (!appReady) {
+            await updateApplicationTemplateOptions(api, appName, {
+              pendingTemplateKey: templateKey,
+              templateInstallState: 'failed',
+              templateInstallError: 'waitForAppReady: app_start_timeout',
+              templateInstallUpdatedAt: new Date().toISOString(),
+            });
+            message.warning(
+              t('Initialization timeout, you can manually initialize the template from the action column.'),
+            );
+            refresh();
+            return;
+          }
 
           // Always attempt installation once to avoid "menu created but page blank" half-initialized state.
           // installTemplate has its own readiness retries and explicit failure feedback.
@@ -1160,7 +1186,14 @@ export const useCreateActionWithTemplate = () => {
             templateInstallUpdatedAt: new Date().toISOString(),
           });
 
-          const result = await installTemplateWithRetry(api, appName, templateKey, { modal, message });
+          const result = await installTemplateWithRetry(
+            api,
+            appName,
+            templateKey,
+            { modal, message },
+            TEMPLATE_INSTALL_MAX_ATTEMPTS,
+            { skipAppReadyCheck: true },
+          );
           if (result.installed) {
             await updateApplicationTemplateOptions(api, appName, {
               pendingTemplateKey: '',
