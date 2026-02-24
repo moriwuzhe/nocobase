@@ -1298,7 +1298,12 @@ export async function installTemplate(
                 { maxAttempts: 3, initialDelayMs: 800 },
               );
             } catch (e) {
-              console.warn(`Failed to create relation ${rel.sourceCollection}.${rel.name}:`, e);
+              if (isAlreadyExistsError(e)) {
+                // Support repair/retry flow: continue when relation already exists.
+                continue;
+              }
+              const detail = getAxiosErrorMessage(e);
+              throw new Error(`Failed to create relation "${rel.sourceCollection}.${rel.name}": ${detail}`);
             }
           }
 
@@ -1612,12 +1617,16 @@ export async function installTemplate(
               }
 
               try {
-                const res = await api.request({
-                  url: `${batch.collection}:create`,
-                  method: 'post',
-                  headers: authHeaders,
-                  data: cleanRecord,
-                });
+                const res = await requestWithRetry(
+                  api,
+                  {
+                    url: `${batch.collection}:create`,
+                    method: 'post',
+                    headers: authHeaders,
+                    data: cleanRecord,
+                  },
+                  { maxAttempts: 3, initialDelayMs: 500 },
+                );
                 const createdId = res?.data?.data?.id;
                 if (createdId) {
                   for (const [k, v] of Object.entries(record)) {
@@ -1638,35 +1647,43 @@ export async function installTemplate(
             for (const wf of tpl.workflows) {
               try {
                 currentStep = `createWorkflow:${wf.title}`;
-                const wfRes = await api.request({
-                  url: 'workflows:create',
-                  method: 'post',
-                  headers: authHeaders,
-                  data: {
-                    title: wf.title,
-                    description: wf.description,
-                    type: wf.type,
-                    enabled: true,
-                    config: wf.triggerConfig,
+                const wfRes = await requestWithRetry(
+                  api,
+                  {
+                    url: 'workflows:create',
+                    method: 'post',
+                    headers: authHeaders,
+                    data: {
+                      title: wf.title,
+                      description: wf.description,
+                      type: wf.type,
+                      enabled: true,
+                      config: wf.triggerConfig,
+                    },
                   },
-                });
+                  { maxAttempts: 3, initialDelayMs: 700 },
+                );
                 const workflowId = wfRes?.data?.data?.id;
                 if (workflowId && wf.nodes.length > 0) {
                   let upstreamId: number | null = null;
                   for (const node of wf.nodes) {
                     currentStep = `createWorkflowNode:${wf.title}:${node.title}`;
-                    const nodeRes = await api.request({
-                      url: 'flow_nodes:create',
-                      method: 'post',
-                      headers: authHeaders,
-                      data: {
-                        title: node.title,
-                        type: node.type,
-                        workflowId,
-                        upstreamId,
-                        config: node.config,
+                    const nodeRes = await requestWithRetry(
+                      api,
+                      {
+                        url: 'flow_nodes:create',
+                        method: 'post',
+                        headers: authHeaders,
+                        data: {
+                          title: node.title,
+                          type: node.type,
+                          workflowId,
+                          upstreamId,
+                          config: node.config,
+                        },
                       },
-                    });
+                      { maxAttempts: 3, initialDelayMs: 700 },
+                    );
                     upstreamId = nodeRes?.data?.data?.id || null;
                   }
                 }
