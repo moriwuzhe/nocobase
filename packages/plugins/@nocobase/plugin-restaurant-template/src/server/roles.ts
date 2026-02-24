@@ -103,5 +103,29 @@ export async function createRestaurantRoles(app: any): Promise<number> {
     app.logger.debug(`[restaurant] Role skipped: ${(e as any).message}`);
   }
 
+  try {
+    for (const roleName of ['rest-admin', 'rest-cashier', 'rest-chef']) {
+      const role = await roleRepo.findOne({ filter: { name: roleName } });
+      if (!role) continue;
+
+      const roleData = role.toJSON ? role.toJSON() : role;
+      const strategy = roleData.strategy || {};
+      const actions = Array.isArray(strategy.actions) ? strategy.actions : [];
+      if (actions.includes(dashboardAction)) continue;
+
+      await roleRepo.update({
+        filterByTk: roleData.id,
+        values: {
+          strategy: {
+            ...strategy,
+            actions: [...actions, dashboardAction],
+          },
+        },
+      });
+    }
+  } catch (e) {
+    app.logger.debug(`[restaurant] Role upgrade skipped: ${(e as any).message}`);
+  }
+
   return created;
 }

@@ -95,5 +95,29 @@ export async function createLogisticsRoles(app: any): Promise<number> {
     app.logger.debug(`[logistics] Role skipped: ${(e as any).message}`);
   }
 
+  try {
+    for (const roleName of ['logistics-admin', 'logistics-dispatcher', 'logistics-driver']) {
+      const role = await roleRepo.findOne({ filter: { name: roleName } });
+      if (!role) continue;
+
+      const roleData = role.toJSON ? role.toJSON() : role;
+      const strategy = roleData.strategy || {};
+      const actions = Array.isArray(strategy.actions) ? strategy.actions : [];
+      if (actions.includes(dashboardAction)) continue;
+
+      await roleRepo.update({
+        filterByTk: roleData.id,
+        values: {
+          strategy: {
+            ...strategy,
+            actions: [...actions, dashboardAction],
+          },
+        },
+      });
+    }
+  } catch (e) {
+    app.logger.debug(`[logistics] Role upgrade skipped: ${(e as any).message}`);
+  }
+
   return created;
 }
