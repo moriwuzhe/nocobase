@@ -336,7 +336,7 @@ export const tableActionColumnSchema: ISchema = {
   },
 };
 
-export const useManualInstallTemplateAction = () => {
+export function useManualInstallTemplateAction() {
   const form = useForm();
   const field = useField();
   const record = useRecord();
@@ -369,7 +369,7 @@ export const useManualInstallTemplateAction = () => {
       }
     },
   };
-};
+}
 
 export const useCreateActionWithTemplate = () => {
   const form = useForm();
