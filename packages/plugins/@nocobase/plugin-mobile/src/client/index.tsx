@@ -10,7 +10,7 @@
 import { PagePopups, Plugin, RouterManager, createRouterManager } from '@nocobase/client';
 import React from 'react';
 // @ts-ignore
-import { name } from '../../package.json';
+import pkg from '../../package.json';
 
 import { Outlet } from 'react-router-dom';
 
@@ -51,8 +51,6 @@ import './js-bridge';
 import { MobileSettings } from './mobile-blocks/settings-block/MobileSettings';
 import { MobileSettingsBlockInitializer } from './mobile-blocks/settings-block/MobileSettingsBlockInitializer';
 import { MobileSettingsBlockSchemaSettings } from './mobile-blocks/settings-block/schemaSettings';
-// @ts-ignore
-import pkg from './../../package.json';
 import { MobileComponentsProvider } from './MobileComponentsProvider';
 
 export { MobilePopup } from './adaptor-of-desktop/ActionDrawer';
@@ -88,7 +86,7 @@ export class PluginMobileClient extends Plugin {
       method: 'post',
       params: {
         filter: {
-          packageName: name,
+          packageName: pkg.name,
         },
       },
       data: {

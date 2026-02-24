@@ -85,7 +85,7 @@ const AppVisitor = () => {
 
 export const AppManager = () => {
   return (
-    <Card bordered={false}>
+    <Card variant="borderless">
       <SchemaComponent schema={schema} components={{ AppVisitor, JwtSecretInput, TemplateRadio }} />
     </Card>
   );

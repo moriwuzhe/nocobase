@@ -603,11 +603,7 @@ const rowSelectCheckboxCheckedClassHover = css`
 `;
 
 const HeaderWrapperComponent = React.memo((props) => {
-  return (
-    <DndContext>
-      <thead {...props} />
-    </DndContext>
-  );
+  return <thead {...props} />;
 });
 
 // Style when Hidden is enabled in table column configuration
@@ -1039,28 +1035,25 @@ export const Table: any = withDynamicSchemaProps(
         // If we don't depend on "value?.length", it will cause no response when clicking "Add new" in the SubTable
       }, [value, value?.length]);
 
-      const BodyWrapperComponent = useMemo(() => {
-        return (props) => {
-          const onDragEndCallback = useCallback((e) => {
-            if (!e.active || !e.over) {
-              console.warn('move cancel');
-              return;
-            }
-            const fromIndex = e.active?.data.current?.sortable?.index;
-            const toIndex = e.over?.data.current?.sortable?.index;
-            const from = valueRef.current?.[fromIndex] || e.active;
-            const to = valueRef.current?.[toIndex] || e.over;
-            void field.move(fromIndex, toIndex);
-            onRowDragEnd({ from, to });
-          }, []);
+      const onDragEndCallback = useCallback(
+        (e) => {
+          if (!e.active || !e.over) {
+            console.warn('move cancel');
+            return;
+          }
+          const fromIndex = e.active?.data.current?.sortable?.index;
+          const toIndex = e.over?.data.current?.sortable?.index;
+          const from = valueRef.current?.[fromIndex] || e.active;
+          const to = valueRef.current?.[toIndex] || e.over;
+          void field.move(fromIndex, toIndex);
+          onRowDragEnd({ from, to });
+        },
+        [field, onRowDragEnd],
+      );
 
-          return (
-            <DndContext onDragEnd={onDragEndCallback}>
-              <tbody {...props} />
-            </DndContext>
-          );
-        };
-      }, [field, onRowDragEnd]); // Don't put 'value' in dependencies, otherwise it will cause the performance issue
+      const BodyWrapperComponent = useMemo(() => {
+        return (props) => <tbody {...props} />;
+      }, []);
 
       // @ts-ignore
       BodyWrapperComponent.displayName = 'BodyWrapperComponent';
@@ -1225,25 +1218,27 @@ export const Table: any = withDynamicSchemaProps(
            * so setting a fixed value here improves BlockRequestLoadingContext rendering performance
            */}
           <BlockRequestLoadingContext.Provider value={false}>
-            <InternalNocoBaseTable
-              tableHeight={tableHeight}
-              SortableWrapper={SortableWrapper}
-              tableSizeRefCallback={tableSizeRefCallback}
-              defaultRowKey={defaultRowKey}
-              dataSource={dataSource}
-              {...others}
-              {...restProps}
-              paginationProps={paginationProps}
-              components={components}
-              onTableChange={onTableChange}
-              onRow={onRow}
-              rowClassName={rowClassName}
-              scroll={scroll}
-              columns={columns}
-              expandable={expandable}
-              field={field}
-              size={size}
-            />
+            <DndContext onDragEnd={dragSort ? onDragEndCallback : undefined}>
+              <InternalNocoBaseTable
+                tableHeight={tableHeight}
+                SortableWrapper={SortableWrapper}
+                tableSizeRefCallback={tableSizeRefCallback}
+                defaultRowKey={defaultRowKey}
+                dataSource={dataSource}
+                {...others}
+                {...restProps}
+                paginationProps={paginationProps}
+                components={components}
+                onTableChange={onTableChange}
+                onRow={onRow}
+                rowClassName={rowClassName}
+                scroll={scroll}
+                columns={columns}
+                expandable={expandable}
+                field={field}
+                size={size}
+              />
+            </DndContext>
           </BlockRequestLoadingContext.Provider>
         </HighPerformanceSpin>
       );

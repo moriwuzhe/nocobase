@@ -30,7 +30,7 @@ export const MobileRoutesManager: FC = () => {
   return (
     <ExtendCollectionsProvider collections={[mobileRoutes]}>
       <SchemaComponentContext.Provider value={schemaComponentContext}>
-        <Card bordered={false}>
+        <Card variant="borderless">
           <SchemaComponent
             schema={routesSchema}
             scope={{
