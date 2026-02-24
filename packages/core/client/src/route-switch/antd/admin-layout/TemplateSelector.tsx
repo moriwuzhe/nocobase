@@ -1011,6 +1011,26 @@ interface TemplateInstallUI {
   };
 }
 
+function getAxiosErrorMessage(err: any): string {
+  const responseData = err?.response?.data;
+  const serverMessage =
+    responseData?.message ||
+    responseData?.error?.message ||
+    (Array.isArray(responseData?.errors)
+      ? responseData.errors
+          .map((e: any) => e?.message)
+          .filter(Boolean)
+          .join('; ')
+      : '');
+  return String(serverMessage || err?.message || 'Unknown error');
+}
+
+function isAlreadyExistsError(err: any): boolean {
+  const status = err?.response?.status;
+  const text = getAxiosErrorMessage(err).toLowerCase();
+  return status === 409 || text.includes('already exists') || text.includes('duplicate') || text.includes('unique');
+}
+
 export async function installTemplate(
   api: any,
   appName: string,
@@ -1113,55 +1133,63 @@ export async function installTemplate(
               return fieldDef;
             });
 
-            await api.request({
-              url: 'collections:create',
-              method: 'post',
-              headers: authHeaders,
-              data: {
-                name: col.name,
-                title: col.title,
-                fields: [
-                  ...fields,
-                  {
-                    name: 'id',
-                    type: 'bigInt',
-                    autoIncrement: true,
-                    primaryKey: true,
-                    allowNull: false,
-                    interface: 'id',
-                  },
-                  {
-                    name: 'createdAt',
-                    type: 'date',
-                    interface: 'createdAt',
-                    field: 'createdAt',
-                    uiSchema: {
-                      type: 'datetime',
-                      title: '{{t("Created at")}}',
-                      'x-component': 'DatePicker',
-                      'x-component-props': { showTime: true },
+            try {
+              await api.request({
+                url: 'collections:create',
+                method: 'post',
+                headers: authHeaders,
+                data: {
+                  name: col.name,
+                  title: col.title,
+                  fields: [
+                    ...fields,
+                    {
+                      name: 'id',
+                      type: 'bigInt',
+                      autoIncrement: true,
+                      primaryKey: true,
+                      allowNull: false,
+                      interface: 'id',
                     },
-                  },
-                  {
-                    name: 'updatedAt',
-                    type: 'date',
-                    interface: 'updatedAt',
-                    field: 'updatedAt',
-                    uiSchema: {
-                      type: 'datetime',
-                      title: '{{t("Last updated at")}}',
-                      'x-component': 'DatePicker',
-                      'x-component-props': { showTime: true },
+                    {
+                      name: 'createdAt',
+                      type: 'date',
+                      interface: 'createdAt',
+                      field: 'createdAt',
+                      uiSchema: {
+                        type: 'datetime',
+                        title: '{{t("Created at")}}',
+                        'x-component': 'DatePicker',
+                        'x-component-props': { showTime: true },
+                      },
                     },
-                  },
-                ],
-                createdBy: true,
-                updatedBy: true,
-                sortable: true,
-                autoGenId: false,
-                logging: true,
-              },
-            });
+                    {
+                      name: 'updatedAt',
+                      type: 'date',
+                      interface: 'updatedAt',
+                      field: 'updatedAt',
+                      uiSchema: {
+                        type: 'datetime',
+                        title: '{{t("Last updated at")}}',
+                        'x-component': 'DatePicker',
+                        'x-component-props': { showTime: true },
+                      },
+                    },
+                  ],
+                  createdBy: true,
+                  updatedBy: true,
+                  sortable: true,
+                  autoGenId: false,
+                  logging: true,
+                },
+              });
+            } catch (e) {
+              if (isAlreadyExistsError(e)) {
+                // Support repair/retry flow: continue installation if collection already exists.
+                continue;
+              }
+              throw e;
+            }
           }
 
           ui.message.loading({ content: '正在创建关联关系...', key: 'tpl', duration: 0 });
@@ -1217,7 +1245,7 @@ export async function installTemplate(
                 });
               } catch (routeErr: any) {
                 const routeTitle = routeData?.title || routeData?.type || 'unknown';
-                const detail = routeErr?.message || desktopErr?.message || 'Unknown route creation error';
+                const detail = getAxiosErrorMessage(routeErr) || getAxiosErrorMessage(desktopErr);
                 throw new Error(`Failed to create route "${routeTitle}": ${detail}`);
               }
             }
