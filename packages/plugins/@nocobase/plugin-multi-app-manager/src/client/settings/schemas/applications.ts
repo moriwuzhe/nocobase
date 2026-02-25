@@ -689,6 +689,31 @@ function isTemplateRetryable(appRecord: any): boolean {
   );
 }
 
+function hasTemplateBinding(appRecord: any): boolean {
+  const templateKey = String(
+    appRecord?.options?.pendingTemplateKey || appRecord?.options?.installedTemplateKey || '',
+  ).trim();
+  return Boolean(templateKey);
+}
+
+function isTemplateHealthUnhealthy(appRecord: any): boolean {
+  if (!hasTemplateBinding(appRecord)) {
+    return false;
+  }
+  const installState = String(appRecord?.options?.templateInstallState || '').trim();
+  const installError = String(appRecord?.options?.templateInstallError || '').trim();
+  if (installState === 'failed' || !!installError || !!appRecord?.options?.pendingTemplateKey) {
+    return true;
+  }
+  const report = parseTemplateInstallHealthReport(appRecord?.options?.templateInstallHealthReport);
+  if (!report) {
+    return false;
+  }
+  return Boolean(
+    report.missingCollections.length > 0 || report.missingPages.length > 0 || report.missingWorkflows.length > 0,
+  );
+}
+
 function normalizeApplicationRows(payload: any): any[] {
   if (Array.isArray(payload?.data?.data?.rows)) {
     return payload.data.data.rows;
@@ -1195,6 +1220,54 @@ export const useSelectRetryableTemplateAppsAction = () => {
 
       setState?.({ selectedRowKeys: retryableKeys });
       message.success(t('Selected {{count}} retryable applications.', { count: retryableKeys.length }));
+    },
+  };
+};
+
+export const useSelectTemplateBoundAppsAction = () => {
+  const { data, setState } = useResourceActionContext();
+  const { message } = App.useApp();
+  const { t } = useTranslation(NAMESPACE);
+
+  return {
+    async run() {
+      const rows = normalizeApplicationRows(data);
+      const templateBoundKeys = rows
+        .filter((row) => hasTemplateBinding(row))
+        .map((row) => row?.name)
+        .filter(Boolean);
+
+      if (!templateBoundKeys.length) {
+        message.info(t('No template-bound applications in current page.'));
+        return;
+      }
+
+      setState?.({ selectedRowKeys: templateBoundKeys });
+      message.success(t('Selected {{count}} template-bound applications.', { count: templateBoundKeys.length }));
+    },
+  };
+};
+
+export const useSelectUnhealthyTemplateAppsAction = () => {
+  const { data, setState } = useResourceActionContext();
+  const { message } = App.useApp();
+  const { t } = useTranslation(NAMESPACE);
+
+  return {
+    async run() {
+      const rows = normalizeApplicationRows(data);
+      const unhealthyKeys = rows
+        .filter((row) => isTemplateHealthUnhealthy(row))
+        .map((row) => row?.name)
+        .filter(Boolean);
+
+      if (!unhealthyKeys.length) {
+        message.info(t('No unhealthy template applications in current page.'));
+        return;
+      }
+
+      setState?.({ selectedRowKeys: unhealthyKeys });
+      message.success(t('Selected {{count}} unhealthy template applications.', { count: unhealthyKeys.length }));
     },
   };
 };
@@ -2455,6 +2528,24 @@ export const schema: ISchema = {
               'x-component-props': {
                 icon: 'CheckSquareOutlined',
                 useAction: useSelectRetryableTemplateAppsAction,
+              },
+            },
+            selectTemplateBoundApps: {
+              type: 'void',
+              title: `{{t("Select template-bound apps", { ns: "${NAMESPACE}" })}}`,
+              'x-component': 'Action',
+              'x-component-props': {
+                icon: 'AppstoreOutlined',
+                useAction: useSelectTemplateBoundAppsAction,
+              },
+            },
+            selectUnhealthyTemplateApps: {
+              type: 'void',
+              title: `{{t("Select unhealthy template apps", { ns: "${NAMESPACE}" })}}`,
+              'x-component': 'Action',
+              'x-component-props': {
+                icon: 'WarningOutlined',
+                useAction: useSelectUnhealthyTemplateAppsAction,
               },
             },
             precheckSelectedTemplateApps: {
