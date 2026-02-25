@@ -1057,7 +1057,9 @@ function isTransientStartupError(err: any): boolean {
   return (
     message.includes('application may be starting up') ||
     message.includes('app_initializing') ||
-    message.includes('bad gateway')
+    message.includes('bad gateway') ||
+    message.includes('app_commanding') ||
+    message.includes('maintaining')
   );
 }
 
@@ -1082,6 +1084,40 @@ async function requestWithRetry(
     }
   }
   throw lastError;
+}
+
+async function waitForAppReady(
+  api: any,
+  headers: Record<string, string>,
+  options?: { maxAttempts?: number; initialDelayMs?: number },
+) {
+  const maxAttempts = options?.maxAttempts ?? 15;
+  const initialDelayMs = options?.initialDelayMs ?? 1500;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      await api.silent().request({
+        url: 'app:getInfo',
+        method: 'get',
+        headers,
+        skipNotify: true,
+      });
+      return true;
+    } catch (e: any) {
+      const status = e?.response?.status;
+      // 401/403 means sub-app is running but current token is not accepted by this app.
+      if (status === 401 || status === 403) {
+        return true;
+      }
+      // Fast-fail non-transient errors to avoid noisy loops.
+      if (status && status !== 404 && !isTransientStartupError(e)) {
+        return false;
+      }
+      await sleep(Math.min(6000, initialDelayMs + attempt * 350));
+    }
+  }
+
+  return false;
 }
 
 function normalizeListRows(res: any): any[] {
@@ -1177,31 +1213,7 @@ export async function installTemplate(
             // Wait for sub-app to be ready with retry
             currentStep = 'waitForAppReady';
             ui.message.loading({ content: '等待应用启动...', key: messageKey, duration: 0 });
-            let appReady = false;
-            for (let attempt = 0; attempt < 15; attempt++) {
-              try {
-                await api.silent().request({
-                  url: 'app:getInfo',
-                  method: 'get',
-                  headers,
-                  skipNotify: true,
-                });
-                appReady = true;
-                break;
-              } catch (e: any) {
-                const status = e?.response?.status;
-                // 401/403 means sub-app is running but current token is not accepted by this app.
-                if (status === 401 || status === 403) {
-                  appReady = true;
-                  break;
-                }
-                // Fast-fail non-transient errors to avoid noisy loops.
-                if (status && status !== 404 && !isTransientStartupError(e)) {
-                  break;
-                }
-                await sleep(Math.min(5000, 1500 + attempt * 350));
-              }
-            }
+            const appReady = await waitForAppReady(api, headers, { maxAttempts: 15, initialDelayMs: 1500 });
             if (!appReady) {
               notifyError({ step: currentStep, message: 'app_start_timeout' });
               ui.message.error({ content: '应用启动超时，请稍后重试', key: messageKey });
@@ -1697,7 +1709,13 @@ export async function installTemplate(
               },
               { maxAttempts: 2, initialDelayMs: 800 },
             );
-            await sleep(500);
+            const readyAfterRefresh = await waitForAppReady(api, authHeaders, {
+              maxAttempts: 20,
+              initialDelayMs: 1200,
+            });
+            if (!readyAfterRefresh) {
+              throw new Error('app_not_ready_after_refresh');
+            }
           } catch {
             // refresh may be unavailable in some deployments
           }
@@ -1735,7 +1753,7 @@ export async function installTemplate(
                     headers: authHeaders,
                     data: cleanRecord,
                   },
-                  { maxAttempts: 3, initialDelayMs: 500 },
+                  { maxAttempts: 8, initialDelayMs: 700 },
                 );
                 const createdId = res?.data?.data?.id;
                 if (createdId) {
