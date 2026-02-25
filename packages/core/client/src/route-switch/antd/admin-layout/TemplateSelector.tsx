@@ -2058,6 +2058,28 @@ export async function installTemplate(
                 }
               }
             }
+
+            currentStep = 'validateWorkflows';
+            const workflowListRes = await requestWithRetry(
+              api,
+              {
+                url: 'workflows:list',
+                method: 'get',
+                headers: authHeaders,
+                params: { paginate: false },
+              },
+              { maxAttempts: 2, initialDelayMs: 600 },
+            );
+            const workflowRows = normalizeListRows(workflowListRes);
+            const existingWorkflowTitles = new Set(
+              workflowRows.map((row: any) => String(row?.title || '').trim()).filter(Boolean),
+            );
+            const missingWorkflows = tpl.workflows
+              .map((wf) => String(wf?.title || '').trim())
+              .filter((title) => !!title && !existingWorkflowTitles.has(title));
+            if (missingWorkflows.length > 0) {
+              throw new Error(`Missing workflows after installation: ${missingWorkflows.join(', ')}`);
+            }
           }
 
           // Refresh once more after sample/workflow creation to avoid stale metadata in newly opened app.
