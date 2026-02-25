@@ -696,6 +696,7 @@ function buildEditAction(collectionName: string, formFieldNames: string[], requi
 
 function buildDuplicateAction(collectionName: string, formFieldNames: string[], requiredFields?: Set<string>) {
   const duplicateFormBlock = buildCreateFormBlock(collectionName, formFieldNames, requiredFields);
+  const duplicateFields = [...formFieldNames];
   return {
     type: 'void',
     title: '{{ t("Duplicate") }}',
@@ -709,11 +710,11 @@ function buildDuplicateAction(collectionName: string, formFieldNames: string[], 
       icon: 'CopyOutlined',
       component: 'DuplicateAction',
       duplicateMode: 'quickDulicate',
-      duplicateFields: formFieldNames,
+      duplicateFields,
       duplicateCollection: collectionName,
     },
     'x-decorator': 'DuplicateActionDecorator',
-    'x-action-settings': { duplicateMode: 'quickDulicate', duplicateFields: formFieldNames },
+    'x-action-settings': { duplicateMode: 'quickDulicate', duplicateFields },
     properties: {
       drawer: {
         type: 'void',
@@ -780,6 +781,15 @@ function buildActionsColumn(
   detailFieldNames: string[],
   requiredFields?: Set<string>,
 ) {
+  const actionProperties: Record<string, any> = {
+    [uid()]: buildViewAction(collectionName, formFieldNames, detailFieldNames),
+    [uid()]: buildEditAction(collectionName, formFieldNames, requiredFields),
+    [uid()]: buildDeleteAction(),
+  };
+  if (formFieldNames.length > 0) {
+    actionProperties[uid()] = buildDuplicateAction(collectionName, formFieldNames, requiredFields);
+  }
+
   return {
     type: 'void',
     title: '{{ t("Actions") }}',
@@ -795,12 +805,7 @@ function buildActionsColumn(
         'x-decorator': 'DndContext',
         'x-component': 'Space',
         'x-component-props': { split: '|' },
-        properties: {
-          [uid()]: buildViewAction(collectionName, formFieldNames, detailFieldNames),
-          [uid()]: buildEditAction(collectionName, formFieldNames, requiredFields),
-          [uid()]: buildDuplicateAction(collectionName, formFieldNames, requiredFields),
-          [uid()]: buildDeleteAction(),
-        },
+        properties: actionProperties,
       },
     },
   };
@@ -1920,52 +1925,136 @@ export async function installTemplate(
           if (tpl.workflows.length > 0) {
             ui.message.loading({ content: '正在创建工作流...', key: messageKey, duration: 0 });
 
-            for (const wf of tpl.workflows) {
-              currentStep = `createWorkflow:${wf.title}`;
-              const wfRes = await requestWithRetry(
-                api,
-                {
-                  url: 'workflows:create',
-                  method: 'post',
-                  headers: authHeaders,
-                  data: {
-                    values: {
-                      title: wf.title,
-                      description: wf.description,
-                      type: wf.type,
-                      enabled: true,
-                      config: wf.triggerConfig,
-                    },
-                  },
-                },
-                { maxAttempts: 3, initialDelayMs: 700 },
-              );
-              const workflowId = Number(wfRes?.data?.data?.id || 0);
-              if (!workflowId) {
-                throw new Error(`Failed to create workflow "${wf.title}": empty workflow id`);
+            const toNumericId = (value: any): number | null => {
+              const num = Number(value);
+              return Number.isFinite(num) && num > 0 ? num : null;
+            };
+
+            const extractCreatedId = (res: any): number | null => {
+              const payload = res?.data?.data;
+              if (Array.isArray(payload)) {
+                return toNumericId(payload[0]?.id);
               }
-              if (wf.nodes.length > 0) {
-                let upstreamId: number | null = null;
-                for (const node of wf.nodes) {
-                  currentStep = `createWorkflowNode:${wf.title}:${node.title}`;
+              return toNumericId(payload?.id);
+            };
+
+            const createWorkflowWithCompat = async (wf: (typeof tpl.workflows)[number]): Promise<number> => {
+              const workflowValues = {
+                title: wf.title,
+                description: wf.description,
+                type: wf.type,
+                enabled: true,
+                config: wf.triggerConfig,
+              };
+              const attemptPayloads = [
+                { label: 'values', data: { values: workflowValues } },
+                { label: 'legacy', data: workflowValues },
+              ];
+              let lastError: any;
+
+              for (const attempt of attemptPayloads) {
+                try {
+                  currentStep = `createWorkflow:${wf.title}:${attempt.label}`;
+                  const wfRes = await requestWithRetry(
+                    api,
+                    {
+                      url: 'workflows:create',
+                      method: 'post',
+                      headers: authHeaders,
+                      data: attempt.data,
+                    },
+                    { maxAttempts: 3, initialDelayMs: 700 },
+                  );
+                  const workflowId = extractCreatedId(wfRes);
+                  if (workflowId) {
+                    return workflowId;
+                  }
+                  lastError = new Error(`empty workflow id (${attempt.label})`);
+                } catch (err) {
+                  lastError = err;
+                }
+              }
+
+              throw new Error(`Failed to create workflow "${wf.title}": ${getAxiosErrorMessage(lastError)}`);
+            };
+
+            const createWorkflowNodeWithCompat = async (
+              workflowId: number,
+              wfTitle: string,
+              node: (typeof tpl.workflows)[number]['nodes'][number],
+              upstreamId: number | null,
+            ): Promise<number> => {
+              const nodeValues = {
+                title: node.title,
+                type: node.type,
+                upstreamId,
+                config: node.config,
+              };
+              const attemptPayloads = [
+                { label: 'values', data: { values: nodeValues } },
+                { label: 'legacy', data: nodeValues },
+              ];
+              let lastError: any;
+
+              for (const attempt of attemptPayloads) {
+                try {
+                  currentStep = `createWorkflowNode:${wfTitle}:${node.title}:${attempt.label}`;
                   const nodeRes = await requestWithRetry(
                     api,
                     {
                       url: `workflows/${workflowId}/nodes:create`,
                       method: 'post',
                       headers: authHeaders,
-                      data: {
-                        values: {
-                          title: node.title,
-                          type: node.type,
-                          upstreamId,
-                          config: node.config,
-                        },
-                      },
+                      data: attempt.data,
                     },
                     { maxAttempts: 3, initialDelayMs: 700 },
                   );
-                  upstreamId = Number(nodeRes?.data?.data?.id || 0) || null;
+                  const nodeId = extractCreatedId(nodeRes);
+                  if (nodeId) {
+                    return nodeId;
+                  }
+                  lastError = new Error(`empty workflow node id (${attempt.label})`);
+                } catch (err) {
+                  lastError = err;
+                }
+              }
+
+              throw new Error(
+                `Failed to create workflow node "${wfTitle}:${node.title}": ${getAxiosErrorMessage(lastError)}`,
+              );
+            };
+
+            const countWorkflowNodes = async (workflowId: number): Promise<number | null> => {
+              try {
+                currentStep = `validateWorkflowNodes:${workflowId}`;
+                const listRes = await requestWithRetry(
+                  api,
+                  {
+                    url: 'flow_nodes:list',
+                    method: 'get',
+                    headers: authHeaders,
+                    params: { filter: { workflowId }, paginate: false },
+                  },
+                  { maxAttempts: 2, initialDelayMs: 600 },
+                );
+                return normalizeListRows(listRes).length;
+              } catch {
+                return null;
+              }
+            };
+
+            for (const wf of tpl.workflows) {
+              const workflowId = await createWorkflowWithCompat(wf);
+              if (wf.nodes.length > 0) {
+                let upstreamId: number | null = null;
+                for (const node of wf.nodes) {
+                  upstreamId = await createWorkflowNodeWithCompat(workflowId, wf.title, node, upstreamId);
+                }
+                const nodeCount = await countWorkflowNodes(workflowId);
+                if (nodeCount !== null && nodeCount < wf.nodes.length) {
+                  throw new Error(
+                    `Workflow "${wf.title}" has ${nodeCount} nodes, expected at least ${wf.nodes.length}`,
+                  );
                 }
               }
             }
