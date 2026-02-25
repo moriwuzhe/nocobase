@@ -161,9 +161,14 @@ function buildBulkEditAction() {
     'x-component': 'Action',
     'x-toolbar': 'ActionSchemaToolbar',
     'x-settings': 'actionSettings:bulkEdit',
-    'x-component-props': { icon: 'EditOutlined' },
+    'x-component-props': { icon: 'EditOutlined', openMode: 'drawer' },
     'x-action-settings': { assignedValues: {}, updateMode: 'selected' },
-    'x-decorator': 'Action.Decorator',
+    'x-align': 'right',
+    'x-decorator': 'ACLActionProvider',
+    'x-acl-action': 'update',
+    'x-acl-action-props': {
+      skipScopeCheck: true,
+    },
   };
 }
 
@@ -349,30 +354,30 @@ function buildCalendarBlock(collectionName: string, titleField: string, startDat
                       today: {
                         type: 'void',
                         title: '{{ t("Today") }}',
-                        'x-component': 'CalendarV2.ActionBar.Today',
+                        'x-component': 'CalendarV2.Today',
                         'x-action': 'calendar:today',
                         'x-align': 'left',
                       },
                       nav: {
                         type: 'void',
                         title: '{{ t("Navigate") }}',
-                        'x-component': 'CalendarV2.ActionBar.Nav',
+                        'x-component': 'CalendarV2.Nav',
                         'x-action': 'calendar:nav',
                         'x-align': 'left',
                       },
                       title: {
                         type: 'void',
-                        'x-component': 'CalendarV2.ActionBar.Title',
+                        'x-component': 'CalendarV2.Title',
                         'x-action': 'calendar:title',
                         'x-align': 'left',
                       },
                       viewSelect: {
                         type: 'void',
                         title: '{{ t("Select view") }}',
-                        'x-component': 'CalendarV2.ActionBar.ViewSelect',
+                        'x-component': 'CalendarV2.ViewSelect',
                         'x-action': 'calendar:viewSelect',
                         'x-align': 'right',
-                        'x-designer': 'CalendarV2.ActionBar.ViewSelect.Designer',
+                        'x-designer': 'Action.Designer',
                       },
                     },
                   },
