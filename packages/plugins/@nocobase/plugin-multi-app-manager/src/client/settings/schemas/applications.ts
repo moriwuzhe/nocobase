@@ -162,6 +162,8 @@ interface TemplatePrecheckReport {
   templateInstallState: string;
   templateInstallError: string;
   templateInstallHealthReport: string;
+  templateInstallHealthUpdatedAt: string;
+  healthRecheckError: string;
   recommendation: TemplatePrecheckRecommendation;
   checkedAt: string;
 }
@@ -860,7 +862,14 @@ function buildTemplatePrecheckReportText(t: any, report: TemplatePrecheckReport)
   return JSON.stringify(payload, null, 2);
 }
 
-async function runTemplatePrecheck(api: any, appName: string): Promise<TemplatePrecheckReport> {
+async function runTemplatePrecheck(
+  api: any,
+  appName: string,
+  precheckOptions?: {
+    recheckHealth?: boolean;
+    persistHealthReport?: boolean;
+  },
+): Promise<TemplatePrecheckReport> {
   const appRes = await api.request({
     url: 'applications:get',
     method: 'get',
@@ -869,19 +878,14 @@ async function runTemplatePrecheck(api: any, appName: string): Promise<TemplateP
     },
   });
   const appRecord = appRes?.data?.data || {};
-  const options = appRecord?.options || {};
-  const templateKey = String(options?.pendingTemplateKey || options?.installedTemplateKey || '').trim();
+  const appOptions = appRecord?.options || {};
+  const templateKey = String(appOptions?.pendingTemplateKey || appOptions?.installedTemplateKey || '').trim();
   const appStatus = String(appRecord?.status || '');
-  const templateInstallState = String(options?.templateInstallState || '').trim();
-  const templateInstallError = String(options?.templateInstallError || '').trim();
-  const templateInstallHealthReport = String(options?.templateInstallHealthReport || '').trim();
-  const parsedHealthReport = parseTemplateInstallHealthReport(templateInstallHealthReport);
-  const hasMissingHealthItems = Boolean(
-    parsedHealthReport &&
-      (parsedHealthReport.missingCollections.length > 0 ||
-        parsedHealthReport.missingPages.length > 0 ||
-        parsedHealthReport.missingWorkflows.length > 0),
-  );
+  const templateInstallState = String(appOptions?.templateInstallState || '').trim();
+  const templateInstallError = String(appOptions?.templateInstallError || '').trim();
+  let templateInstallHealthReport = String(appOptions?.templateInstallHealthReport || '').trim();
+  let templateInstallHealthUpdatedAt = String(appOptions?.templateInstallHealthUpdatedAt || '').trim();
+  let healthRecheckError = '';
 
   let waitResult: AppReadyWaitResult = {
     ready: false,
@@ -895,6 +899,30 @@ async function runTemplatePrecheck(api: any, appName: string): Promise<TemplateP
     waitResult = await waitForAppReady(api, appName, { timeoutMs: 45 * 1000, probeInterval: 2 });
   }
 
+  if (templateKey && waitResult.ready && precheckOptions?.recheckHealth !== false) {
+    try {
+      const report = await runTemplateHealthRecheck(api, appName, templateKey);
+      templateInstallHealthReport = stringifyTemplateInstallHealthReport(report);
+      templateInstallHealthUpdatedAt = String(report?.checkedAt || '').trim() || new Date().toISOString();
+      if (precheckOptions?.persistHealthReport !== false) {
+        await updateApplicationTemplateOptions(api, appName, {
+          templateInstallHealthReport,
+          templateInstallHealthUpdatedAt,
+        });
+      }
+    } catch (error: any) {
+      healthRecheckError = String(error?.message || 'health_recheck_failed');
+    }
+  }
+
+  const parsedHealthReport = parseTemplateInstallHealthReport(templateInstallHealthReport);
+  const hasMissingHealthItems = Boolean(
+    parsedHealthReport &&
+      (parsedHealthReport.missingCollections.length > 0 ||
+        parsedHealthReport.missingPages.length > 0 ||
+        parsedHealthReport.missingWorkflows.length > 0),
+  );
+
   let recommendation: TemplatePrecheckRecommendation = 'healthy';
   if (!templateKey) {
     recommendation = 'no_template';
@@ -902,11 +930,11 @@ async function runTemplatePrecheck(api: any, appName: string): Promise<TemplateP
     recommendation = 'app_not_ready';
   } else if (templateInstallState === 'failed') {
     recommendation = 'retry_template_init';
-  } else if (options?.pendingTemplateKey) {
+  } else if (appOptions?.pendingTemplateKey) {
     recommendation = 'manual_init_template';
   } else if (hasMissingHealthItems) {
     recommendation = 'retry_template_init';
-  } else if (templateInstallError) {
+  } else if (templateInstallError || healthRecheckError) {
     recommendation = 'review_template_error';
   }
 
@@ -924,6 +952,8 @@ async function runTemplatePrecheck(api: any, appName: string): Promise<TemplateP
     templateInstallState,
     templateInstallError,
     templateInstallHealthReport,
+    templateInstallHealthUpdatedAt,
+    healthRecheckError,
     recommendation,
     checkedAt: new Date().toISOString(),
   };
@@ -1341,7 +1371,10 @@ export const usePrecheckSelectedTemplateAppsAction = () => {
             let currentAppName = getNextAppName();
             while (currentAppName) {
               try {
-                const report = await runTemplatePrecheck(api, currentAppName);
+                const report = await runTemplatePrecheck(api, currentAppName, {
+                  recheckHealth: true,
+                  persistHealthReport: true,
+                });
                 reports.push(report);
                 classify(report);
               } catch (error: any) {
@@ -1359,6 +1392,8 @@ export const usePrecheckSelectedTemplateAppsAction = () => {
                   templateInstallState: '',
                   templateInstallError: String(error?.message || 'precheck_failed'),
                   templateInstallHealthReport: '',
+                  templateInstallHealthUpdatedAt: '',
+                  healthRecheckError: '',
                   recommendation: 'app_not_ready',
                   checkedAt: new Date().toISOString(),
                 };
@@ -2086,7 +2121,10 @@ export function useTemplatePrecheckAction() {
         duration: 0,
       });
       try {
-        const report = await runTemplatePrecheck(api, appName);
+        const report = await runTemplatePrecheck(api, appName, {
+          recheckHealth: true,
+          persistHealthReport: true,
+        });
         const recommendationText = resolveTemplatePrecheckRecommendation(t, report.recommendation);
         const reportText = buildTemplatePrecheckReportText(t, report);
 
