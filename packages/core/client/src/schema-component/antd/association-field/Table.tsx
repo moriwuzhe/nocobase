@@ -598,6 +598,7 @@ const InternalNocoBaseTable = React.memo(
       ...others
     } = props;
     const { token } = useToken();
+    const fieldErrors = Array.isArray(field?.errors) ? field.errors : [];
 
     return (
       <div
@@ -651,10 +652,11 @@ const InternalNocoBaseTable = React.memo(
             expandable={expandable}
           />
         </SortableWrapper>
-        {field.errors.length > 0 && (
+        {fieldErrors.length > 0 && (
           <div className="ant-formily-item-error-help ant-formily-item-help ant-formily-item-help-enter ant-formily-item-help-enter-active">
-            {field.errors.map((error) => {
-              return error.messages.map((message) => <div key={message}>{message}</div>);
+            {fieldErrors.map((error) => {
+              const messages = Array.isArray(error?.messages) ? error.messages : [];
+              return messages.map((message) => <div key={message}>{message}</div>);
             })}
           </div>
         )}
