@@ -535,6 +535,59 @@ function buildCreateFormBlock(collectionName: string, formFieldNames: string[], 
   };
 }
 
+function buildEditFormBlock(collectionName: string, formFieldNames: string[], requiredFields?: Set<string>) {
+  const formGridProperties: Record<string, any> = {};
+  for (const fn of formFieldNames) {
+    formGridProperties[uid()] = buildFormField(collectionName, fn, requiredFields?.has(fn));
+  }
+
+  return {
+    type: 'void',
+    'x-acl-action-props': { skipScopeCheck: false },
+    'x-acl-action': `${collectionName}:update`,
+    'x-decorator': 'FormBlockProvider',
+    'x-use-decorator-props': 'useEditFormBlockDecoratorProps',
+    'x-decorator-props': { action: 'get', dataSource: 'main', collection: collectionName },
+    'x-toolbar': 'BlockSchemaToolbar',
+    'x-settings': 'blockSettings:editForm',
+    'x-component': 'CardItem',
+    properties: {
+      [uid()]: {
+        type: 'void',
+        'x-component': 'FormV2',
+        'x-use-component-props': 'useEditFormBlockProps',
+        properties: {
+          grid: {
+            type: 'void',
+            'x-component': 'Grid',
+            'x-initializer': 'form:configureFields',
+            properties: formGridProperties,
+          },
+          [uid()]: {
+            type: 'void',
+            'x-initializer': 'editForm:configureActions',
+            'x-component': 'ActionBar',
+            'x-component-props': { layout: 'one-column', style: { marginTop: 24 } },
+            properties: {
+              [uid()]: {
+                title: '{{ t("Submit") }}',
+                'x-action': 'submit',
+                'x-component': 'Action',
+                'x-use-component-props': 'useUpdateActionProps',
+                'x-toolbar': 'ActionSchemaToolbar',
+                'x-settings': 'actionSettings:updateSubmit',
+                'x-component-props': { type: 'primary', htmlType: 'submit' },
+                'x-action-settings': { triggerWorkflows: [] },
+                type: 'void',
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
 function buildViewAction(collectionName: string, formFieldNames: string[], detailFieldNames: string[]) {
   const detailBlock = buildDetailBlock(collectionName, detailFieldNames);
   return {
@@ -585,37 +638,123 @@ function buildViewAction(collectionName: string, formFieldNames: string[], detai
   };
 }
 
-function buildEditAction(collectionName: string, formFieldNames: string[]) {
+function buildEditAction(collectionName: string, formFieldNames: string[], requiredFields?: Set<string>) {
+  const editFormBlock = buildEditFormBlock(collectionName, formFieldNames, requiredFields);
   return {
     type: 'void',
     title: '{{ t("Edit") }}',
     'x-action': 'update',
+    'x-acl-action': 'update',
     'x-toolbar': 'ActionSchemaToolbar',
     'x-settings': 'actionSettings:edit',
     'x-component': 'Action.Link',
     'x-component-props': { openMode: 'drawer', icon: 'EditOutlined' },
+    'x-decorator': 'ACLActionProvider',
     properties: {
       drawer: {
         type: 'void',
         title: '{{ t("Edit record") }}',
         'x-component': 'Action.Container',
         'x-component-props': { className: 'nb-action-popup' },
+        properties: {
+          tabs: {
+            type: 'void',
+            'x-component': 'Tabs',
+            properties: {
+              tab1: {
+                type: 'void',
+                title: '{{t("Edit")}}',
+                'x-component': 'Tabs.TabPane',
+                'x-designer': 'Tabs.Designer',
+                properties: {
+                  grid: {
+                    type: 'void',
+                    'x-component': 'Grid',
+                    properties: {
+                      [uid()]: {
+                        type: 'void',
+                        'x-component': 'Grid.Row',
+                        properties: {
+                          [uid()]: {
+                            type: 'void',
+                            'x-component': 'Grid.Col',
+                            properties: { [uid()]: editFormBlock },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     },
   };
 }
 
-function buildDuplicateAction() {
+function buildDuplicateAction(collectionName: string, formFieldNames: string[], requiredFields?: Set<string>) {
+  const duplicateFormBlock = buildCreateFormBlock(collectionName, formFieldNames, requiredFields);
   return {
     type: 'void',
     title: '{{ t("Duplicate") }}',
     'x-action': 'duplicate',
+    'x-acl-action': 'create',
     'x-toolbar': 'ActionSchemaToolbar',
     'x-settings': 'actionSettings:duplicate',
     'x-component': 'Action.Link',
-    'x-component-props': { openMode: 'drawer', icon: 'CopyOutlined' },
+    'x-component-props': {
+      openMode: 'drawer',
+      icon: 'CopyOutlined',
+      component: 'DuplicateAction',
+      duplicateMode: 'quickDulicate',
+      duplicateFields: formFieldNames,
+      duplicateCollection: collectionName,
+    },
     'x-decorator': 'DuplicateActionDecorator',
-    'x-action-settings': { duplicateMode: 'quickDuplicate', duplicateFields: [] },
+    'x-action-settings': { duplicateMode: 'quickDulicate', duplicateFields: formFieldNames },
+    properties: {
+      drawer: {
+        type: 'void',
+        title: '{{ t("Duplicate") }}',
+        'x-component': 'Action.Container',
+        'x-component-props': { className: 'nb-action-popup' },
+        properties: {
+          tabs: {
+            type: 'void',
+            'x-component': 'Tabs',
+            properties: {
+              tab1: {
+                type: 'void',
+                title: '{{t("Duplicate")}}',
+                'x-component': 'Tabs.TabPane',
+                'x-designer': 'Tabs.Designer',
+                properties: {
+                  grid: {
+                    type: 'void',
+                    'x-component': 'Grid',
+                    properties: {
+                      [uid()]: {
+                        type: 'void',
+                        'x-component': 'Grid.Row',
+                        properties: {
+                          [uid()]: {
+                            type: 'void',
+                            'x-component': 'Grid.Col',
+                            properties: { [uid()]: duplicateFormBlock },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   };
 }
 
@@ -635,7 +774,12 @@ function buildDeleteAction() {
   };
 }
 
-function buildActionsColumn(collectionName: string, formFieldNames: string[], detailFieldNames: string[]) {
+function buildActionsColumn(
+  collectionName: string,
+  formFieldNames: string[],
+  detailFieldNames: string[],
+  requiredFields?: Set<string>,
+) {
   return {
     type: 'void',
     title: '{{ t("Actions") }}',
@@ -653,8 +797,8 @@ function buildActionsColumn(collectionName: string, formFieldNames: string[], de
         'x-component-props': { split: '|' },
         properties: {
           [uid()]: buildViewAction(collectionName, formFieldNames, detailFieldNames),
-          [uid()]: buildEditAction(collectionName, formFieldNames),
-          [uid()]: buildDuplicateAction(),
+          [uid()]: buildEditAction(collectionName, formFieldNames, requiredFields),
+          [uid()]: buildDuplicateAction(collectionName, formFieldNames, requiredFields),
           [uid()]: buildDeleteAction(),
         },
       },
@@ -776,13 +920,12 @@ function buildTableBlockSchema(
   detailFieldNames: string[],
   collection: CollectionDef,
 ) {
+  const requiredFields = getRequiredFields(collection);
   const columnProperties: Record<string, any> = {};
   for (const fn of columnFieldNames) {
     columnProperties[uid()] = buildColumn(fn);
   }
-  columnProperties[uid()] = buildActionsColumn(collectionName, formFieldNames, detailFieldNames);
-
-  const requiredFields = getRequiredFields(collection);
+  columnProperties[uid()] = buildActionsColumn(collectionName, formFieldNames, detailFieldNames, requiredFields);
 
   return {
     type: 'void',
@@ -1778,15 +1921,15 @@ export async function installTemplate(
             ui.message.loading({ content: '正在创建工作流...', key: messageKey, duration: 0 });
 
             for (const wf of tpl.workflows) {
-              try {
-                currentStep = `createWorkflow:${wf.title}`;
-                const wfRes = await requestWithRetry(
-                  api,
-                  {
-                    url: 'workflows:create',
-                    method: 'post',
-                    headers: authHeaders,
-                    data: {
+              currentStep = `createWorkflow:${wf.title}`;
+              const wfRes = await requestWithRetry(
+                api,
+                {
+                  url: 'workflows:create',
+                  method: 'post',
+                  headers: authHeaders,
+                  data: {
+                    values: {
                       title: wf.title,
                       description: wf.description,
                       type: wf.type,
@@ -1794,34 +1937,36 @@ export async function installTemplate(
                       config: wf.triggerConfig,
                     },
                   },
-                  { maxAttempts: 3, initialDelayMs: 700 },
-                );
-                const workflowId = wfRes?.data?.data?.id;
-                if (workflowId && wf.nodes.length > 0) {
-                  let upstreamId: number | null = null;
-                  for (const node of wf.nodes) {
-                    currentStep = `createWorkflowNode:${wf.title}:${node.title}`;
-                    const nodeRes = await requestWithRetry(
-                      api,
-                      {
-                        url: 'flow_nodes:create',
-                        method: 'post',
-                        headers: authHeaders,
-                        data: {
+                },
+                { maxAttempts: 3, initialDelayMs: 700 },
+              );
+              const workflowId = Number(wfRes?.data?.data?.id || 0);
+              if (!workflowId) {
+                throw new Error(`Failed to create workflow "${wf.title}": empty workflow id`);
+              }
+              if (wf.nodes.length > 0) {
+                let upstreamId: number | null = null;
+                for (const node of wf.nodes) {
+                  currentStep = `createWorkflowNode:${wf.title}:${node.title}`;
+                  const nodeRes = await requestWithRetry(
+                    api,
+                    {
+                      url: `workflows/${workflowId}/nodes:create`,
+                      method: 'post',
+                      headers: authHeaders,
+                      data: {
+                        values: {
                           title: node.title,
                           type: node.type,
-                          workflowId,
                           upstreamId,
                           config: node.config,
                         },
                       },
-                      { maxAttempts: 3, initialDelayMs: 700 },
-                    );
-                    upstreamId = nodeRes?.data?.data?.id || null;
-                  }
+                    },
+                    { maxAttempts: 3, initialDelayMs: 700 },
+                  );
+                  upstreamId = Number(nodeRes?.data?.data?.id || 0) || null;
                 }
-              } catch (e) {
-                console.warn(`Failed to create workflow ${wf.title}:`, e);
               }
             }
           }
