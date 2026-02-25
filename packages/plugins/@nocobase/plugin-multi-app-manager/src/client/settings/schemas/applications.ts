@@ -13,6 +13,7 @@ import { uid } from '@formily/shared';
 import { tval } from '@nocobase/utils/client';
 import { App, Tag, Tooltip, Typography } from 'antd';
 import {
+  builtInTemplates,
   installTemplate,
   SchemaComponentOptions,
   useActionContext,
@@ -172,6 +173,12 @@ interface BulkRetryFailureDetail {
   message: string;
 }
 
+interface BulkHealthRecheckFailureDetail {
+  appName: string;
+  templateKey: string;
+  message: string;
+}
+
 function stringifyProbeValue(value: unknown): string {
   if (value === undefined || value === null || value === '') {
     return '-';
@@ -230,6 +237,40 @@ function buildTemplateInstallHealthSummary(t: any, report: TemplateInstallHealth
     pages: `${report.actualPages}/${report.expectedPages}`,
     workflows: `${report.actualWorkflows}/${report.expectedWorkflows}`,
   });
+}
+
+function collectTemplatePageTitles(menu: any[]): string[] {
+  const titles = new Set<string>();
+  const walk = (items: any[]) => {
+    for (const item of items || []) {
+      const title = String(item?.title || '').trim();
+      if (item?.type === 'page' && title) {
+        titles.add(title);
+      }
+      if (Array.isArray(item?.children) && item.children.length > 0) {
+        walk(item.children);
+      }
+    }
+  };
+  walk(menu || []);
+  return Array.from(titles);
+}
+
+function collectDesktopRoutePageTitles(routes: any[]): string[] {
+  const titles = new Set<string>();
+  const walk = (items: any[]) => {
+    for (const item of items || []) {
+      const title = String(item?.title || '').trim();
+      if (item?.type === 'page' && title) {
+        titles.add(title);
+      }
+      if (Array.isArray(item?.children) && item.children.length > 0) {
+        walk(item.children);
+      }
+    }
+  };
+  walk(routes || []);
+  return Array.from(titles);
 }
 
 function TemplateKeyField() {
@@ -659,6 +700,112 @@ function normalizeApplicationRows(payload: any): any[] {
     return payload.data.rows;
   }
   return [];
+}
+
+async function listDesktopRouteRows(api: any, appName: string): Promise<any[]> {
+  const headers = { 'X-App': appName };
+  const listConfigs = [
+    { url: 'desktopRoutes:list', params: { paginate: false } },
+    { url: 'desktopRoutes:list', params: { filter: { type: 'page' }, paginate: false } },
+    { url: 'routes:list', params: { paginate: false } },
+    { url: 'routes:list', params: { filter: { type: 'page' }, paginate: false } },
+  ];
+  let lastError: any;
+  for (const config of listConfigs) {
+    try {
+      const routeRes = await api.request({
+        url: config.url,
+        method: 'get',
+        headers,
+        params: config.params,
+      });
+      return normalizeApplicationRows(routeRes);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('list_routes_failed');
+}
+
+async function runTemplateHealthRecheck(
+  api: any,
+  appName: string,
+  templateKey: string,
+): Promise<TemplateInstallHealthReport> {
+  const template = builtInTemplates.find((item: any) => String(item?.key || '').trim() === templateKey);
+  if (!template) {
+    throw new Error(`template_not_found: ${templateKey}`);
+  }
+  const headers = { 'X-App': appName };
+
+  const expectedCollectionNames = Array.from(
+    new Set(
+      (Array.isArray(template?.collections) ? template.collections : [])
+        .map((collection: any) => String(collection?.name || '').trim())
+        .filter(Boolean),
+    ),
+  );
+  const expectedPageTitles = collectTemplatePageTitles(Array.isArray(template?.menu) ? template.menu : []);
+  const expectedWorkflowTitles = Array.from(
+    new Set(
+      (Array.isArray(template?.workflows) ? template.workflows : [])
+        .map((workflow: any) => String(workflow?.title || '').trim())
+        .filter(Boolean),
+    ),
+  );
+
+  const collectionRes = await api.request({
+    url: 'collections:list',
+    method: 'get',
+    headers,
+    params: {
+      paginate: false,
+    },
+  });
+  const collectionRows = normalizeApplicationRows(collectionRes);
+  const existingCollectionNames = new Set(
+    collectionRows.map((row: any) => String(row?.name || '').trim()).filter(Boolean),
+  );
+  const missingCollections = expectedCollectionNames.filter((name) => !existingCollectionNames.has(name));
+
+  const desktopRouteRows = await listDesktopRouteRows(api, appName);
+  const existingPageTitles = new Set(collectDesktopRoutePageTitles(desktopRouteRows));
+  const missingPages = expectedPageTitles.filter((title) => !existingPageTitles.has(title));
+
+  const missingWorkflows: string[] = [];
+  if (expectedWorkflowTitles.length > 0) {
+    const workflowRes = await api.request({
+      url: 'workflows:list',
+      method: 'get',
+      headers,
+      params: {
+        paginate: false,
+      },
+    });
+    const workflowRows = normalizeApplicationRows(workflowRes);
+    const existingWorkflowTitles = new Set(
+      workflowRows.map((row: any) => String(row?.title || '').trim()).filter(Boolean),
+    );
+    for (const title of expectedWorkflowTitles) {
+      if (!existingWorkflowTitles.has(title)) {
+        missingWorkflows.push(title);
+      }
+    }
+  }
+
+  return {
+    templateKey,
+    expectedCollections: expectedCollectionNames.length,
+    actualCollections: expectedCollectionNames.length - missingCollections.length,
+    missingCollections,
+    expectedPages: expectedPageTitles.length,
+    actualPages: expectedPageTitles.length - missingPages.length,
+    missingPages,
+    expectedWorkflows: expectedWorkflowTitles.length,
+    actualWorkflows: expectedWorkflowTitles.length - missingWorkflows.length,
+    missingWorkflows,
+    checkedAt: new Date().toISOString(),
+  };
 }
 
 function resolveTemplatePrecheckRecommendation(t: any, recommendation: TemplatePrecheckRecommendation): string {
@@ -1230,6 +1377,177 @@ export const usePrecheckSelectedTemplateAppsAction = () => {
   };
 };
 
+export const useRecheckSelectedTemplateHealthAction = () => {
+  const { state, setState, refresh } = useResourceActionContext();
+  const api = useAPIClient();
+  const { message, modal } = App.useApp();
+  const { t } = useTranslation(NAMESPACE);
+
+  return {
+    async run() {
+      const selectedRowKeys: string[] = ((state?.selectedRowKeys || []) as Array<string | number>)
+        .map((key) => String(key))
+        .filter(Boolean);
+      const appNames: string[] = Array.from(new Set(selectedRowKeys));
+      if (!appNames.length) {
+        message.warning(t('Please select applications first'));
+        return;
+      }
+
+      let successCount = 0;
+      let failedCount = 0;
+      let skippedCount = 0;
+      let completedCount = 0;
+      const failedDetails: BulkHealthRecheckFailureDetail[] = [];
+
+      const renderProgress = () => {
+        message.loading({
+          content: t(
+            'Bulk template health recheck progress: {{done}}/{{total}} (success {{success}}, failed {{failed}}, skipped {{skipped}})',
+            {
+              done: completedCount,
+              total: appNames.length,
+              success: successCount,
+              failed: failedCount,
+              skipped: skippedCount,
+            },
+          ),
+          key: 'tpl-health-recheck-bulk',
+          duration: 0,
+        });
+      };
+
+      const recheckSingleApp = async (
+        appName: string,
+      ): Promise<{ status: 'success' | 'failed' | 'skipped'; failureDetail?: BulkHealthRecheckFailureDetail }> => {
+        let templateKey = '';
+        try {
+          const appRes = await api.request({
+            url: 'applications:get',
+            method: 'get',
+            params: {
+              filterByTk: appName,
+            },
+          });
+          const appRecord = appRes?.data?.data;
+          templateKey = String(
+            appRecord?.options?.pendingTemplateKey || appRecord?.options?.installedTemplateKey || '',
+          ).trim();
+          if (!templateKey) {
+            return { status: 'skipped' };
+          }
+
+          const report = await runTemplateHealthRecheck(api, appName, templateKey);
+          await updateApplicationTemplateOptions(api, appName, {
+            templateInstallHealthReport: stringifyTemplateInstallHealthReport(report),
+            templateInstallHealthUpdatedAt: new Date().toISOString(),
+          });
+          return { status: 'success' };
+        } catch (error: any) {
+          const errorMessage = String(error?.message || 'health_recheck_failed');
+          return {
+            status: 'failed',
+            failureDetail: {
+              appName,
+              templateKey,
+              message: errorMessage,
+            },
+          };
+        }
+      };
+
+      renderProgress();
+      try {
+        let nextIndex = 0;
+        const workerCount = Math.min(BULK_TEMPLATE_RETRY_CONCURRENCY, appNames.length);
+        const getNextAppName = () => {
+          if (nextIndex >= appNames.length) {
+            return undefined;
+          }
+          const appName = appNames[nextIndex];
+          nextIndex += 1;
+          return appName;
+        };
+        const workers = Array.from({ length: workerCount }, () =>
+          (async () => {
+            let currentAppName = getNextAppName();
+            while (currentAppName) {
+              const result = await recheckSingleApp(currentAppName);
+              if (result.status === 'success') {
+                successCount += 1;
+              } else if (result.status === 'failed') {
+                failedCount += 1;
+                if (result.failureDetail) {
+                  failedDetails.push(result.failureDetail);
+                }
+              } else {
+                skippedCount += 1;
+              }
+              completedCount += 1;
+              renderProgress();
+              currentAppName = getNextAppName();
+            }
+          })(),
+        );
+        await Promise.all(workers);
+      } finally {
+        message.destroy('tpl-health-recheck-bulk');
+      }
+
+      message.info(
+        t('Bulk template health recheck finished: {{success}} succeeded, {{failed}} failed, {{skipped}} skipped.', {
+          success: successCount,
+          failed: failedCount,
+          skipped: skippedCount,
+        }),
+      );
+
+      if (failedDetails.length > 0) {
+        const header = [t('App'), t('Template'), t('Message')].join('\t');
+        const rows = failedDetails.map((detail) =>
+          [detail.appName, detail.templateKey || '-', detail.message || 'health_recheck_failed'].join('\t'),
+        );
+        const failedReport = [header, ...rows].join('\n');
+        modal.info({
+          width: 920,
+          title: t('Bulk template health recheck details'),
+          content: React.createElement(
+            'div',
+            { style: { maxHeight: 420, overflow: 'auto' } },
+            React.createElement(
+              Typography.Paragraph,
+              {
+                copyable: {
+                  text: failedReport,
+                  tooltips: [t('Copy failed list'), t('Copied')],
+                },
+              },
+              t('Copy failed list'),
+            ),
+            React.createElement(
+              'pre',
+              {
+                style: {
+                  margin: 0,
+                  padding: 12,
+                  borderRadius: 6,
+                  background: '#f7f7f7',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                },
+              },
+              failedReport,
+            ),
+          ),
+        });
+      }
+
+      setState?.({ selectedRowKeys: [] });
+      refresh();
+    },
+  };
+};
+
 export const formSchema: ISchema = {
   type: 'void',
   'x-component': 'div',
@@ -1458,6 +1776,15 @@ export const tableActionColumnSchema: ISchema = {
       'x-visible': `{{ !!($record && $record.options && ($record.options.pendingTemplateKey || $record.options.installedTemplateKey || $record.options.templateInstallState || $record.options.templateInstallError || $record.options.templateInstallHealthReport)) }}`,
       'x-component-props': {
         useAction: useTemplatePrecheckAction,
+      },
+    },
+    templateHealthRecheck: {
+      type: 'void',
+      title: `{{t("Template health recheck", { ns: "${NAMESPACE}" })}}`,
+      'x-component': 'Action.Link',
+      'x-visible': `{{ !!($record && $record.options && ($record.options.pendingTemplateKey || $record.options.installedTemplateKey)) }}`,
+      'x-component-props': {
+        useAction: useTemplateHealthRecheckAction,
       },
     },
     copyTemplateDiagnostics: {
@@ -1739,6 +2066,102 @@ export function useTemplatePrecheckAction() {
   };
 }
 
+export function useTemplateHealthRecheckAction() {
+  const record = useRecord() as any;
+  const api = useAPIClient();
+  const { refresh } = useResourceActionContext();
+  const { message, modal } = App.useApp();
+  const { t } = useTranslation(NAMESPACE);
+
+  return {
+    async run() {
+      const appName = String(record?.name || '').trim();
+      if (!appName) {
+        message.error(t('Unable to locate app record.'));
+        return;
+      }
+
+      const templateKey = String(
+        record?.options?.pendingTemplateKey || record?.options?.installedTemplateKey || '',
+      ).trim();
+      if (!templateKey) {
+        message.warning(t('No template available for health recheck.'));
+        return;
+      }
+
+      const messageKey = `tpl-health-recheck-${appName}`;
+      message.loading({
+        content: t('Running template health recheck...'),
+        key: messageKey,
+        duration: 0,
+      });
+      try {
+        const report = await runTemplateHealthRecheck(api, appName, templateKey);
+        await updateApplicationTemplateOptions(api, appName, {
+          templateInstallHealthReport: stringifyTemplateInstallHealthReport(report),
+          templateInstallHealthUpdatedAt: new Date().toISOString(),
+        });
+
+        const summary = buildTemplateInstallHealthSummary(t, report);
+        const reportText = JSON.stringify(
+          {
+            ...report,
+            summary,
+          },
+          null,
+          2,
+        );
+
+        modal.info({
+          width: 920,
+          title: t('Template health recheck report'),
+          content: React.createElement(
+            'div',
+            { style: { maxHeight: 420, overflow: 'auto' } },
+            React.createElement(Typography.Paragraph, null, summary),
+            React.createElement(
+              Typography.Paragraph,
+              {
+                copyable: {
+                  text: reportText,
+                  tooltips: [t('Copy template health report'), t('Copied')],
+                },
+              },
+              t('Copy template health report'),
+            ),
+            React.createElement(
+              'pre',
+              {
+                style: {
+                  margin: 0,
+                  padding: 12,
+                  borderRadius: 6,
+                  background: '#f7f7f7',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                },
+              },
+              reportText,
+            ),
+          ),
+        });
+        message.success({
+          content: t('Template health recheck completed.'),
+          key: messageKey,
+        });
+        refresh();
+      } catch (error: any) {
+        message.error({
+          content: t('Template health recheck failed: {{message}}', {
+            message: String(error?.message || 'health_recheck_failed'),
+          }),
+          key: messageKey,
+        });
+      }
+    },
+  };
+}
+
 export function useCopyTemplateDiagnosticsAction() {
   const record = useRecord() as any;
   const { message } = App.useApp();
@@ -1762,7 +2185,12 @@ export function useCopyTemplateDiagnosticsAction() {
         templateStartupLastProbeStatus: record?.options?.templateStartupLastProbeStatus || '',
       };
 
-      const hasDiagnostics = Object.values(diagnostics).some((value) => String(value || '').trim() !== '');
+      const hasDiagnostics = Object.values(diagnostics).some((value) => {
+        if (typeof value === 'number') {
+          return value > 0;
+        }
+        return String(value || '').trim() !== '';
+      });
       if (!hasDiagnostics) {
         message.info(t('No template diagnostics to copy.'));
         return;
@@ -2036,6 +2464,15 @@ export const schema: ISchema = {
               'x-component-props': {
                 icon: 'SearchOutlined',
                 useAction: usePrecheckSelectedTemplateAppsAction,
+              },
+            },
+            recheckSelectedTemplateHealth: {
+              type: 'void',
+              title: `{{t("Recheck selected template health", { ns: "${NAMESPACE}" })}}`,
+              'x-component': 'Action',
+              'x-component-props': {
+                icon: 'SafetyOutlined',
+                useAction: useRecheckSelectedTemplateHealthAction,
               },
             },
             retrySelectedTemplateInits: {
