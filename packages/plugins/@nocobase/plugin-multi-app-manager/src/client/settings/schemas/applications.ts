@@ -103,9 +103,24 @@ interface TemplateInstallErrorDetail {
   message: string;
 }
 
+interface TemplateInstallHealthReport {
+  templateKey: string;
+  expectedCollections: number;
+  actualCollections: number;
+  missingCollections: string[];
+  expectedPages: number;
+  actualPages: number;
+  missingPages: string[];
+  expectedWorkflows: number;
+  actualWorkflows: number;
+  missingWorkflows: string[];
+  checkedAt: string;
+}
+
 interface TemplateInstallResult {
   installed: boolean;
   error?: TemplateInstallErrorDetail;
+  healthReport?: TemplateInstallHealthReport;
 }
 
 interface AppReadyProgressDetail {
@@ -145,6 +160,7 @@ interface TemplatePrecheckReport {
   waitProbeStatus: string;
   templateInstallState: string;
   templateInstallError: string;
+  templateInstallHealthReport: string;
   recommendation: TemplatePrecheckRecommendation;
   checkedAt: string;
 }
@@ -161,6 +177,59 @@ function stringifyProbeValue(value: unknown): string {
     return '-';
   }
   return String(value);
+}
+
+function parseTemplateInstallHealthReport(raw: unknown): TemplateInstallHealthReport | null {
+  const text = String(raw || '').trim();
+  if (!text) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+    const toSafeNumber = (value: unknown) => {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : 0;
+    };
+    const toSafeStringArray = (value: unknown) =>
+      Array.isArray(value) ? value.map((item) => String(item || '').trim()).filter(Boolean) : [];
+    return {
+      templateKey: String((parsed as any)?.templateKey || '').trim(),
+      expectedCollections: toSafeNumber((parsed as any)?.expectedCollections),
+      actualCollections: toSafeNumber((parsed as any)?.actualCollections),
+      missingCollections: toSafeStringArray((parsed as any)?.missingCollections),
+      expectedPages: toSafeNumber((parsed as any)?.expectedPages),
+      actualPages: toSafeNumber((parsed as any)?.actualPages),
+      missingPages: toSafeStringArray((parsed as any)?.missingPages),
+      expectedWorkflows: toSafeNumber((parsed as any)?.expectedWorkflows),
+      actualWorkflows: toSafeNumber((parsed as any)?.actualWorkflows),
+      missingWorkflows: toSafeStringArray((parsed as any)?.missingWorkflows),
+      checkedAt: String((parsed as any)?.checkedAt || '').trim(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function stringifyTemplateInstallHealthReport(report?: TemplateInstallHealthReport): string {
+  if (!report) {
+    return '';
+  }
+  try {
+    return JSON.stringify(report);
+  } catch {
+    return '';
+  }
+}
+
+function buildTemplateInstallHealthSummary(t: any, report: TemplateInstallHealthReport): string {
+  return t('Template health: collections {{collections}}, pages {{pages}}, workflows {{workflows}}', {
+    collections: `${report.actualCollections}/${report.expectedCollections}`,
+    pages: `${report.actualPages}/${report.expectedPages}`,
+    workflows: `${report.actualWorkflows}/${report.expectedWorkflows}`,
+  });
 }
 
 function TemplateKeyField() {
@@ -281,6 +350,36 @@ function TemplateStartupProbeField() {
     Tooltip,
     { title: text },
     React.createElement(Typography.Text, { copyable: { text } }, text),
+  );
+}
+
+function TemplateInstallHealthField() {
+  const record = useRecord() as any;
+  const { t } = useTranslation(NAMESPACE);
+  const report = parseTemplateInstallHealthReport(record?.options?.templateInstallHealthReport);
+  if (!report) {
+    return React.createElement(Typography.Text, { type: 'secondary' }, '-');
+  }
+
+  const summary = buildTemplateInstallHealthSummary(t, report);
+  const hasMissing =
+    report.missingCollections.length > 0 || report.missingPages.length > 0 || report.missingWorkflows.length > 0;
+  const detailText = JSON.stringify(report, null, 2);
+  const copyableText = `${summary}\n${detailText}`;
+  return React.createElement(
+    Tooltip,
+    { title: summary },
+    React.createElement(
+      Typography.Text,
+      {
+        type: hasMissing ? 'danger' : undefined,
+        copyable: {
+          text: copyableText,
+          tooltips: [t('Copy template health report'), t('Copied')],
+        },
+      },
+      summary,
+    ),
   );
 }
 
@@ -442,6 +541,8 @@ async function updateApplicationTemplateOptions(
     templateInstallState?: 'installing' | 'installed' | 'failed' | '';
     templateInstallError?: string;
     templateInstallUpdatedAt?: string;
+    templateInstallHealthReport?: string;
+    templateInstallHealthUpdatedAt?: string;
     templateStartupAttempts?: number;
     templateStartupElapsedMs?: number;
     templateStartupLastAppStatus?: string;
@@ -491,6 +592,7 @@ async function installTemplateWithRetry(
   },
 ): Promise<TemplateInstallResult> {
   let lastError: TemplateInstallErrorDetail | undefined;
+  let latestHealthReport: TemplateInstallHealthReport | undefined;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const installed = await installTemplate(api, appName, templateKey, ui, {
       skipConfirm: true,
@@ -499,9 +601,12 @@ async function installTemplateWithRetry(
       onError: (detail) => {
         lastError = detail;
       },
+      onHealthReport: (report) => {
+        latestHealthReport = report;
+      },
     });
     if (installed) {
-      return { installed: true };
+      return { installed: true, healthReport: latestHealthReport };
     }
     if (attempt < maxAttempts) {
       await sleep(TEMPLATE_INSTALL_RETRY_BASE_DELAY * attempt);
@@ -597,6 +702,14 @@ async function runTemplatePrecheck(api: any, appName: string): Promise<TemplateP
   const appStatus = String(appRecord?.status || '');
   const templateInstallState = String(options?.templateInstallState || '').trim();
   const templateInstallError = String(options?.templateInstallError || '').trim();
+  const templateInstallHealthReport = String(options?.templateInstallHealthReport || '').trim();
+  const parsedHealthReport = parseTemplateInstallHealthReport(templateInstallHealthReport);
+  const hasMissingHealthItems = Boolean(
+    parsedHealthReport &&
+      (parsedHealthReport.missingCollections.length > 0 ||
+        parsedHealthReport.missingPages.length > 0 ||
+        parsedHealthReport.missingWorkflows.length > 0),
+  );
 
   let waitResult: AppReadyWaitResult = {
     ready: false,
@@ -619,6 +732,8 @@ async function runTemplatePrecheck(api: any, appName: string): Promise<TemplateP
     recommendation = 'retry_template_init';
   } else if (options?.pendingTemplateKey) {
     recommendation = 'manual_init_template';
+  } else if (hasMissingHealthItems) {
+    recommendation = 'retry_template_init';
   } else if (templateInstallError) {
     recommendation = 'review_template_error';
   }
@@ -636,6 +751,7 @@ async function runTemplatePrecheck(api: any, appName: string): Promise<TemplateP
     waitProbeStatus: stringifyProbeValue(waitResult.probeStatus),
     templateInstallState,
     templateInstallError,
+    templateInstallHealthReport,
     recommendation,
     checkedAt: new Date().toISOString(),
   };
@@ -736,6 +852,8 @@ export const useRetrySelectedTemplateInitsAction = () => {
             templateInstallState: 'installing',
             templateInstallError: '',
             templateInstallUpdatedAt: new Date().toISOString(),
+            templateInstallHealthReport: '',
+            templateInstallHealthUpdatedAt: '',
           });
 
           const result = await installTemplateWithRetry(
@@ -753,6 +871,8 @@ export const useRetrySelectedTemplateInitsAction = () => {
               templateInstallState: 'installed',
               templateInstallError: '',
               templateInstallUpdatedAt: new Date().toISOString(),
+              templateInstallHealthReport: stringifyTemplateInstallHealthReport(result.healthReport),
+              templateInstallHealthUpdatedAt: new Date().toISOString(),
             });
             return { status: 'success' };
           }
@@ -763,6 +883,8 @@ export const useRetrySelectedTemplateInitsAction = () => {
             templateInstallState: 'failed',
             templateInstallError: stringifyTemplateInstallError(result.error),
             templateInstallUpdatedAt: new Date().toISOString(),
+            templateInstallHealthReport: '',
+            templateInstallHealthUpdatedAt: '',
           });
           return {
             status: 'failed',
@@ -779,6 +901,8 @@ export const useRetrySelectedTemplateInitsAction = () => {
             templateInstallState: 'failed',
             templateInstallError: errorMessage,
             templateInstallUpdatedAt: new Date().toISOString(),
+            templateInstallHealthReport: '',
+            templateInstallHealthUpdatedAt: '',
           });
           return {
             status: 'failed',
@@ -1014,6 +1138,7 @@ export const usePrecheckSelectedTemplateAppsAction = () => {
                   waitProbeStatus: '-',
                   templateInstallState: '',
                   templateInstallError: String(error?.message || 'precheck_failed'),
+                  templateInstallHealthReport: '',
                   recommendation: 'app_not_ready',
                   checkedAt: new Date().toISOString(),
                 };
@@ -1330,7 +1455,7 @@ export const tableActionColumnSchema: ISchema = {
       type: 'void',
       title: `{{t("Template precheck", { ns: "${NAMESPACE}" })}}`,
       'x-component': 'Action.Link',
-      'x-visible': `{{ !!($record && $record.options && ($record.options.pendingTemplateKey || $record.options.installedTemplateKey || $record.options.templateInstallState || $record.options.templateInstallError)) }}`,
+      'x-visible': `{{ !!($record && $record.options && ($record.options.pendingTemplateKey || $record.options.installedTemplateKey || $record.options.templateInstallState || $record.options.templateInstallError || $record.options.templateInstallHealthReport)) }}`,
       'x-component-props': {
         useAction: useTemplatePrecheckAction,
       },
@@ -1339,7 +1464,7 @@ export const tableActionColumnSchema: ISchema = {
       type: 'void',
       title: `{{t("Copy template diagnostics", { ns: "${NAMESPACE}" })}}`,
       'x-component': 'Action.Link',
-      'x-visible': `{{ !!($record && $record.options && ($record.options.templateInstallState || $record.options.templateInstallError || $record.options.pendingTemplateKey || $record.options.installedTemplateKey)) }}`,
+      'x-visible': `{{ !!($record && $record.options && ($record.options.templateInstallState || $record.options.templateInstallError || $record.options.pendingTemplateKey || $record.options.installedTemplateKey || $record.options.templateInstallHealthReport)) }}`,
       'x-component-props': {
         useAction: useCopyTemplateDiagnosticsAction,
       },
@@ -1348,7 +1473,7 @@ export const tableActionColumnSchema: ISchema = {
       type: 'void',
       title: `{{t("Clear template status", { ns: "${NAMESPACE}" })}}`,
       'x-component': 'Action.Link',
-      'x-visible': `{{ !!($record && $record.options && ($record.options.templateInstallState || $record.options.templateInstallError)) }}`,
+      'x-visible': `{{ !!($record && $record.options && ($record.options.templateInstallState || $record.options.templateInstallError || $record.options.templateInstallHealthReport)) }}`,
       'x-component-props': {
         useAction: useResetTemplateInstallStatusAction,
         confirm: {
@@ -1400,6 +1525,8 @@ export function useManualInstallTemplateAction() {
           templateInstallState: 'installing',
           templateInstallError: '',
           templateInstallUpdatedAt: new Date().toISOString(),
+          templateInstallHealthReport: '',
+          templateInstallHealthUpdatedAt: '',
         });
 
         const result = await installTemplateWithRetry(api, record.name, templateKey, { modal, message }, 1);
@@ -1410,6 +1537,8 @@ export function useManualInstallTemplateAction() {
             templateInstallState: 'installed',
             templateInstallError: '',
             templateInstallUpdatedAt: new Date().toISOString(),
+            templateInstallHealthReport: stringifyTemplateInstallHealthReport(result.healthReport),
+            templateInstallHealthUpdatedAt: new Date().toISOString(),
           });
           ctx.setVisible(false);
           await form.reset();
@@ -1422,6 +1551,8 @@ export function useManualInstallTemplateAction() {
           templateInstallState: 'failed',
           templateInstallError: stringifyTemplateInstallError(result.error),
           templateInstallUpdatedAt: new Date().toISOString(),
+          templateInstallHealthReport: '',
+          templateInstallHealthUpdatedAt: '',
         });
 
         const detail = normalizeTemplateInstallError(result.error);
@@ -1447,7 +1578,11 @@ export function useResetTemplateInstallStatusAction() {
 
   return {
     async run() {
-      const hasState = Boolean(record?.options?.templateInstallState || record?.options?.templateInstallError);
+      const hasState = Boolean(
+        record?.options?.templateInstallState ||
+          record?.options?.templateInstallError ||
+          record?.options?.templateInstallHealthReport,
+      );
       if (!hasState) {
         message.info(t('No template status to clear.'));
         return;
@@ -1458,6 +1593,8 @@ export function useResetTemplateInstallStatusAction() {
         templateInstallState: '',
         templateInstallError: '',
         templateInstallUpdatedAt: new Date().toISOString(),
+        templateInstallHealthReport: '',
+        templateInstallHealthUpdatedAt: '',
         templateStartupAttempts: 0,
         templateStartupElapsedMs: 0,
         templateStartupLastAppStatus: '',
@@ -1489,6 +1626,8 @@ export function useRetryTemplateInstallAction() {
         templateInstallState: 'installing',
         templateInstallError: '',
         templateInstallUpdatedAt: new Date().toISOString(),
+        templateInstallHealthReport: '',
+        templateInstallHealthUpdatedAt: '',
       });
 
       const result = await installTemplateWithRetry(api, record.name, templateKey, { modal, message });
@@ -1499,6 +1638,8 @@ export function useRetryTemplateInstallAction() {
           templateInstallState: 'installed',
           templateInstallError: '',
           templateInstallUpdatedAt: new Date().toISOString(),
+          templateInstallHealthReport: stringifyTemplateInstallHealthReport(result.healthReport),
+          templateInstallHealthUpdatedAt: new Date().toISOString(),
         });
         message.success(t('Template initialized successfully.'));
         refresh();
@@ -1510,6 +1651,8 @@ export function useRetryTemplateInstallAction() {
         templateInstallState: 'failed',
         templateInstallError: stringifyTemplateInstallError(result.error),
         templateInstallUpdatedAt: new Date().toISOString(),
+        templateInstallHealthReport: '',
+        templateInstallHealthUpdatedAt: '',
       });
       const detail = normalizeTemplateInstallError(result.error);
       message.error(
@@ -1611,6 +1754,8 @@ export function useCopyTemplateDiagnosticsAction() {
         templateInstallState: record?.options?.templateInstallState || '',
         templateInstallError: record?.options?.templateInstallError || '',
         templateInstallUpdatedAt: record?.options?.templateInstallUpdatedAt || '',
+        templateInstallHealthReport: record?.options?.templateInstallHealthReport || '',
+        templateInstallHealthUpdatedAt: record?.options?.templateInstallHealthUpdatedAt || '',
         templateStartupAttempts: record?.options?.templateStartupAttempts || 0,
         templateStartupElapsedMs: record?.options?.templateStartupElapsedMs || 0,
         templateStartupLastAppStatus: record?.options?.templateStartupLastAppStatus || '',
@@ -1671,6 +1816,8 @@ export const useCreateActionWithTemplate = () => {
             templateInstallState: 'installing',
             templateInstallError: '',
             templateInstallUpdatedAt: new Date().toISOString(),
+            templateInstallHealthReport: '',
+            templateInstallHealthUpdatedAt: '',
             templateStartupAttempts: 0,
             templateStartupElapsedMs: 0,
             templateStartupLastAppStatus: '',
@@ -1707,6 +1854,8 @@ export const useCreateActionWithTemplate = () => {
               templateInstallState: 'failed',
               templateInstallError: `waitForAppReady: ${readyResult.reason}`,
               templateInstallUpdatedAt: new Date().toISOString(),
+              templateInstallHealthReport: '',
+              templateInstallHealthUpdatedAt: '',
               templateStartupAttempts: readyResult.attempts,
               templateStartupElapsedMs: readyResult.elapsedMs,
               templateStartupLastAppStatus: stringifyProbeValue(readyResult.appStatus),
@@ -1732,6 +1881,8 @@ export const useCreateActionWithTemplate = () => {
             templateInstallState: 'installing',
             templateInstallError: '',
             templateInstallUpdatedAt: new Date().toISOString(),
+            templateInstallHealthReport: '',
+            templateInstallHealthUpdatedAt: '',
             templateStartupAttempts: readyResult.attempts,
             templateStartupElapsedMs: readyResult.elapsedMs,
             templateStartupLastAppStatus: stringifyProbeValue(readyResult.appStatus),
@@ -1751,6 +1902,8 @@ export const useCreateActionWithTemplate = () => {
             templateInstallState: 'installing',
             templateInstallError: '',
             templateInstallUpdatedAt: new Date().toISOString(),
+            templateInstallHealthReport: '',
+            templateInstallHealthUpdatedAt: '',
           });
 
           const result = await installTemplateWithRetry(
@@ -1768,6 +1921,8 @@ export const useCreateActionWithTemplate = () => {
               templateInstallState: 'installed',
               templateInstallError: '',
               templateInstallUpdatedAt: new Date().toISOString(),
+              templateInstallHealthReport: stringifyTemplateInstallHealthReport(result.healthReport),
+              templateInstallHealthUpdatedAt: new Date().toISOString(),
             });
             refresh();
             return;
@@ -1778,6 +1933,8 @@ export const useCreateActionWithTemplate = () => {
             templateInstallState: 'failed',
             templateInstallError: stringifyTemplateInstallError(result.error),
             templateInstallUpdatedAt: new Date().toISOString(),
+            templateInstallHealthReport: '',
+            templateInstallHealthUpdatedAt: '',
           });
           const detail = normalizeTemplateInstallError(result.error);
           message.error(
@@ -2083,6 +2240,22 @@ export const schema: ISchema = {
                 templateStartupProbe: {
                   type: 'string',
                   'x-component': TemplateStartupProbeField,
+                  'x-read-pretty': true,
+                },
+              },
+            },
+            templateInstallHealth: {
+              type: 'void',
+              title: `{{t("Template health", { ns: "${NAMESPACE}" })}}`,
+              'x-decorator': 'Table.Column.Decorator',
+              'x-component': 'Table.Column',
+              'x-component-props': {
+                width: 360,
+              },
+              properties: {
+                templateInstallHealth: {
+                  type: 'string',
+                  'x-component': TemplateInstallHealthField,
                   'x-read-pretty': true,
                 },
               },

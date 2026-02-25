@@ -1170,9 +1170,24 @@ interface TemplateInstallErrorDetail {
   message: string;
 }
 
+export interface TemplateInstallHealthReport {
+  templateKey: string;
+  expectedCollections: number;
+  actualCollections: number;
+  missingCollections: string[];
+  expectedPages: number;
+  actualPages: number;
+  missingPages: string[];
+  expectedWorkflows: number;
+  actualWorkflows: number;
+  missingWorkflows: string[];
+  checkedAt: string;
+}
+
 interface TemplateInstallOptions {
   skipConfirm?: boolean;
   onError?: (detail: TemplateInstallErrorDetail) => void;
+  onHealthReport?: (report: TemplateInstallHealthReport) => void;
   messageKey?: string;
   skipAppReadyCheck?: boolean;
 }
@@ -1355,6 +1370,14 @@ export async function installTemplate(
         const notifyError = (detail: TemplateInstallErrorDetail) => {
           try {
             options?.onError?.(detail);
+          } catch {
+            // Keep installation flow unaffected by diagnostics callback failures.
+          }
+        };
+
+        const notifyHealthReport = (report: TemplateInstallHealthReport) => {
+          try {
+            options?.onHealthReport?.(report);
           } catch {
             // Keep installation flow unaffected by diagnostics callback failures.
           }
@@ -1832,22 +1855,31 @@ export async function installTemplate(
             }
           }
 
+          const missingPages: string[] = [];
           for (const title of expectedPageTitles) {
             currentStep = `validatePageRoute:${title}`;
-            const route = await findDesktopRoute({ type: 'page', title });
-            const schemaUid = route?.schemaUid;
-            if (!schemaUid) {
-              throw new Error(`Template page "${title}" was not created correctly (missing schemaUid)`);
+            try {
+              const route = await findDesktopRoute({ type: 'page', title });
+              const schemaUid = route?.schemaUid;
+              if (!schemaUid) {
+                missingPages.push(title);
+                continue;
+              }
+              await requestWithRetry(
+                api,
+                {
+                  url: `uiSchemas:getJsonSchema/${schemaUid}`,
+                  method: 'get',
+                  headers: authHeaders,
+                },
+                { maxAttempts: 3, initialDelayMs: 600 },
+              );
+            } catch {
+              missingPages.push(title);
             }
-            await requestWithRetry(
-              api,
-              {
-                url: `uiSchemas:getJsonSchema/${schemaUid}`,
-                method: 'get',
-                headers: authHeaders,
-              },
-              { maxAttempts: 3, initialDelayMs: 600 },
-            );
+          }
+          if (missingPages.length > 0) {
+            throw new Error(`Template pages missing after install: ${missingPages.join(', ')}`);
           }
 
           // Refresh sub-app caches after route/schema writes so pages are immediately available.
@@ -1922,6 +1954,7 @@ export async function installTemplate(
             }
           }
 
+          let missingWorkflows: string[] = [];
           if (tpl.workflows.length > 0) {
             ui.message.loading({ content: '正在创建工作流...', key: messageKey, duration: 0 });
 
@@ -2074,13 +2107,43 @@ export async function installTemplate(
             const existingWorkflowTitles = new Set(
               workflowRows.map((row: any) => String(row?.title || '').trim()).filter(Boolean),
             );
-            const missingWorkflows = tpl.workflows
+            missingWorkflows = tpl.workflows
               .map((wf) => String(wf?.title || '').trim())
               .filter((title) => !!title && !existingWorkflowTitles.has(title));
             if (missingWorkflows.length > 0) {
               throw new Error(`Missing workflows after installation: ${missingWorkflows.join(', ')}`);
             }
           }
+
+          const expectedCollectionNames = tpl.collections.map((collection) => String(collection?.name || '').trim());
+          const missingCollections: string[] = [];
+          for (const collectionName of expectedCollectionNames) {
+            if (!collectionName) {
+              continue;
+            }
+            try {
+              await listCollectionFields(collectionName);
+            } catch {
+              missingCollections.push(collectionName);
+            }
+          }
+          if (missingCollections.length > 0) {
+            throw new Error(`Missing collections after installation: ${missingCollections.join(', ')}`);
+          }
+
+          notifyHealthReport({
+            templateKey: tpl.key,
+            expectedCollections: expectedCollectionNames.length,
+            actualCollections: expectedCollectionNames.length - missingCollections.length,
+            missingCollections,
+            expectedPages: expectedPageTitles.length,
+            actualPages: expectedPageTitles.length - missingPages.length,
+            missingPages,
+            expectedWorkflows: tpl.workflows.length,
+            actualWorkflows: tpl.workflows.length - missingWorkflows.length,
+            missingWorkflows,
+            checkedAt: new Date().toISOString(),
+          });
 
           // Refresh once more after sample/workflow creation to avoid stale metadata in newly opened app.
           try {
