@@ -385,12 +385,39 @@ function buildCalendarBlock(collectionName: string, titleField: string, startDat
                   event: {
                     type: 'void',
                     'x-component': 'CalendarV2.Event',
+                    'x-component-props': { openMode: 'drawer' },
                     properties: {
                       drawer: {
                         type: 'void',
-                        'x-component': 'Action.Drawer',
+                        'x-component': 'Action.Container',
+                        'x-component-props': { className: 'nb-action-popup' },
                         title: '{{ t("View record") }}',
-                        properties: {},
+                        properties: {
+                          tabs: {
+                            type: 'void',
+                            'x-component': 'Tabs',
+                            'x-component-props': {},
+                            'x-initializer': 'popup:addTab',
+                            'x-initializer-props': { gridInitializer: 'popup:common:addBlock' },
+                            properties: {
+                              tab1: {
+                                type: 'void',
+                                title: '{{ t("Details") }}',
+                                'x-component': 'Tabs.TabPane',
+                                'x-designer': 'Tabs.Designer',
+                                'x-component-props': {},
+                                properties: {
+                                  grid: {
+                                    type: 'void',
+                                    'x-component': 'Grid',
+                                    'x-initializer-props': { actionInitializers: 'details:configureActions' },
+                                    'x-initializer': 'popup:common:addBlock',
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
                       },
                     },
                   },
@@ -1952,12 +1979,14 @@ export async function installTemplate(
             ui.message.loading({ content: msg('Creating workflows...'), key: messageKey, duration: 0 });
 
             const toNumericId = (value: any): number | null => {
+              if (value == null || value === '') return null;
               const num = Number(value);
               return Number.isFinite(num) && num > 0 ? num : null;
             };
 
             const extractCreatedId = (res: any): number | null => {
-              const payload = res?.data?.data;
+              const body = res?.data;
+              const payload = body?.data ?? body;
               if (Array.isArray(payload)) {
                 return toNumericId(payload[0]?.id);
               }
