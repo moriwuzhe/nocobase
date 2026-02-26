@@ -34,6 +34,8 @@
   "Inserting sample data...": "Inserting sample data...",
   "Creating workflows...": "Creating workflows...",
   "Template \"{{title}}\" installed successfully": "Template \"{{title}}\" installed successfully",
+  "Template \"{{title}}\" installed successfully. {{count}} workflow(s) could not be created.": "Template \"{{title}}\" installed successfully. {{count}} workflow(s) could not be created.",
+  "Workflow": "Workflow",
   "Installation failed: {{message}}": "Installation failed: {{message}}",
   "Automatically generate a JWT secret": "Automatically generate a JWT secret",
   "Copy template diagnostics": "Copy template diagnostics",

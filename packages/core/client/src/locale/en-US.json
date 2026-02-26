@@ -975,6 +975,7 @@
   "Inserting sample data...": "Inserting sample data...",
   "Creating workflows...": "Creating workflows...",
   "Template \"{{title}}\" installed successfully": "Template \"{{title}}\" installed successfully",
+  "Template \"{{title}}\" installed successfully. {{count}} workflow(s) could not be created.": "Template \"{{title}}\" installed successfully. {{count}} workflow(s) could not be created.",
   "Installation failed: {{message}}": "Installation failed: {{message}}",
   "Select view": "Select view",
   "Selected": "Selected",

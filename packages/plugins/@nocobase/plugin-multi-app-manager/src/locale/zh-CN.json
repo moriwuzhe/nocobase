@@ -34,6 +34,8 @@
   "Inserting sample data...": "正在插入示例数据...",
   "Creating workflows...": "正在创建工作流...",
   "Template \"{{title}}\" installed successfully": "模板 \"{{title}}\" 安装完成！",
+  "Template \"{{title}}\" installed successfully. {{count}} workflow(s) could not be created.": "模板 \"{{title}}\" 安装完成！有 {{count}} 个工作流未能创建。",
+  "Workflow": "工作流",
   "Installation failed: {{message}}": "安装失败: {{message}}",
   "Automatically generate a JWT secret": "自动生成 JWT 密钥",
   "Copy template diagnostics": "复制模板诊断信息",

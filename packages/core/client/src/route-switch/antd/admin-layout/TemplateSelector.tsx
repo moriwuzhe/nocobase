@@ -1917,6 +1917,24 @@ export async function installTemplate(
             }
           }
 
+          if (tpl.workflows.length > 0) {
+            currentStep = 'createWorkflowMenuLink';
+            try {
+              await createDesktopRoute({
+                type: 'link',
+                title: msg('Workflow'),
+                icon: 'PartitionOutlined',
+                hideInMenu: false,
+                options: {
+                  href: '/admin/settings/workflow',
+                  openInNewWindow: false,
+                },
+              });
+            } catch (e) {
+              console.warn('Failed to create workflow menu link:', e);
+            }
+          }
+
           const expectedPageTitles: string[] = [];
           for (const menuItem of tpl.menu) {
             if (menuItem.type === 'page') {
@@ -2046,7 +2064,12 @@ export async function installTemplate(
               return toNumericId(payload?.id);
             };
 
-            const createWorkflowWithCompat = async (wf: (typeof tpl.workflows)[number]): Promise<number> => {
+            const mainAppHeaders: Record<string, string> = { ...authHeaders };
+            if (mainAppHeaders['X-App']) delete mainAppHeaders['X-App'];
+            const workflowHeadersToTry: Record<string, string>[] = [authHeaders];
+            if (authHeaders['X-App']) workflowHeadersToTry.push(mainAppHeaders);
+
+            const createWorkflowWithCompat = async (wf: (typeof tpl.workflows)[number]): Promise<number | null> => {
               const workflowValues = {
                 title: wf.title,
                 description: wf.description,
@@ -2060,30 +2083,33 @@ export async function installTemplate(
               ];
               let lastError: any;
 
-              for (const attempt of attemptPayloads) {
-                try {
-                  currentStep = `createWorkflow:${wf.title}:${attempt.label}`;
-                  const wfRes = await requestWithRetry(
-                    api,
-                    {
-                      url: 'workflows:create',
-                      method: 'post',
-                      headers: authHeaders,
-                      data: attempt.data,
-                    },
-                    { maxAttempts: 3, initialDelayMs: 700 },
-                  );
-                  const workflowId = extractCreatedId(wfRes);
-                  if (workflowId) {
-                    return workflowId;
+              for (const headers of workflowHeadersToTry) {
+                for (const attempt of attemptPayloads) {
+                  try {
+                    currentStep = `createWorkflow:${wf.title}:${attempt.label}`;
+                    const wfRes = await requestWithRetry(
+                      api,
+                      {
+                        url: 'workflows:create',
+                        method: 'post',
+                        headers,
+                        data: attempt.data,
+                      },
+                      { maxAttempts: 3, initialDelayMs: 700 },
+                    );
+                    const workflowId = extractCreatedId(wfRes);
+                    if (workflowId) {
+                      return workflowId;
+                    }
+                    lastError = new Error(`empty workflow id (${attempt.label})`);
+                  } catch (err) {
+                    lastError = err;
                   }
-                  lastError = new Error(`empty workflow id (${attempt.label})`);
-                } catch (err) {
-                  lastError = err;
                 }
               }
 
-              throw new Error(`Failed to create workflow "${wf.title}": ${getAxiosErrorMessage(lastError)}`);
+              console.warn(`Workflow "${wf.title}" creation failed:`, getAxiosErrorMessage(lastError));
+              return null;
             };
 
             const createWorkflowNodeWithCompat = async (
@@ -2091,7 +2117,7 @@ export async function installTemplate(
               wfTitle: string,
               node: (typeof tpl.workflows)[number]['nodes'][number],
               upstreamId: number | null,
-            ): Promise<number> => {
+            ): Promise<number | null> => {
               const nodeValues = {
                 title: node.title,
                 type: node.type,
@@ -2104,32 +2130,33 @@ export async function installTemplate(
               ];
               let lastError: any;
 
-              for (const attempt of attemptPayloads) {
-                try {
-                  currentStep = `createWorkflowNode:${wfTitle}:${node.title}:${attempt.label}`;
-                  const nodeRes = await requestWithRetry(
-                    api,
-                    {
-                      url: `workflows/${workflowId}/nodes:create`,
-                      method: 'post',
-                      headers: authHeaders,
-                      data: attempt.data,
-                    },
-                    { maxAttempts: 3, initialDelayMs: 700 },
-                  );
-                  const nodeId = extractCreatedId(nodeRes);
-                  if (nodeId) {
-                    return nodeId;
+              for (const headers of workflowHeadersToTry) {
+                for (const attempt of attemptPayloads) {
+                  try {
+                    currentStep = `createWorkflowNode:${wfTitle}:${node.title}:${attempt.label}`;
+                    const nodeRes = await requestWithRetry(
+                      api,
+                      {
+                        url: `workflows/${workflowId}/nodes:create`,
+                        method: 'post',
+                        headers,
+                        data: attempt.data,
+                      },
+                      { maxAttempts: 3, initialDelayMs: 700 },
+                    );
+                    const nodeId = extractCreatedId(nodeRes);
+                    if (nodeId) {
+                      return nodeId;
+                    }
+                    lastError = new Error(`empty workflow node id (${attempt.label})`);
+                  } catch (err) {
+                    lastError = err;
                   }
-                  lastError = new Error(`empty workflow node id (${attempt.label})`);
-                } catch (err) {
-                  lastError = err;
                 }
               }
 
-              throw new Error(
-                `Failed to create workflow node "${wfTitle}:${node.title}": ${getAxiosErrorMessage(lastError)}`,
-              );
+              console.warn(`Workflow node "${wfTitle}:${node.title}" creation failed:`, getAxiosErrorMessage(lastError));
+              return null;
             };
 
             const countWorkflowNodes = async (workflowId: number): Promise<number | null> => {
@@ -2153,40 +2180,45 @@ export async function installTemplate(
 
             for (const wf of tpl.workflows) {
               const workflowId = await createWorkflowWithCompat(wf);
-              if (wf.nodes.length > 0) {
+              if (workflowId != null && wf.nodes.length > 0) {
                 let upstreamId: number | null = null;
                 for (const node of wf.nodes) {
-                  upstreamId = await createWorkflowNodeWithCompat(workflowId, wf.title, node, upstreamId);
+                  const nodeId = await createWorkflowNodeWithCompat(workflowId, wf.title, node, upstreamId);
+                  upstreamId = nodeId ?? upstreamId;
                 }
-                const nodeCount = await countWorkflowNodes(workflowId);
-                if (nodeCount !== null && nodeCount < wf.nodes.length) {
-                  throw new Error(
-                    `Workflow "${wf.title}" has ${nodeCount} nodes, expected at least ${wf.nodes.length}`,
-                  );
-                }
+              }
+              if (workflowId == null) {
+                missingWorkflows.push(wf.title);
               }
             }
 
             currentStep = 'validateWorkflows';
-            const workflowListRes = await requestWithRetry(
-              api,
-              {
-                url: 'workflows:list',
-                method: 'get',
-                headers: authHeaders,
-                params: { paginate: false },
-              },
-              { maxAttempts: 2, initialDelayMs: 600 },
-            );
-            const workflowRows = normalizeListRows(workflowListRes);
-            const existingWorkflowTitles = new Set(
-              workflowRows.map((row: any) => String(row?.title || '').trim()).filter(Boolean),
-            );
-            missingWorkflows = tpl.workflows
-              .map((wf) => String(wf?.title || '').trim())
-              .filter((title) => !!title && !existingWorkflowTitles.has(title));
-            if (missingWorkflows.length > 0) {
-              throw new Error(`Missing workflows after installation: ${missingWorkflows.join(', ')}`);
+            let workflowListRes: any;
+            for (const headers of workflowHeadersToTry) {
+              try {
+                workflowListRes = await requestWithRetry(
+                  api,
+                  {
+                    url: 'workflows:list',
+                    method: 'get',
+                    headers,
+                    params: { paginate: false },
+                  },
+                  { maxAttempts: 2, initialDelayMs: 600 },
+                );
+                break;
+              } catch {
+                workflowListRes = null;
+              }
+            }
+            if (workflowListRes) {
+              const workflowRows = normalizeListRows(workflowListRes);
+              const existingWorkflowTitles = new Set(
+                workflowRows.map((row: any) => String(row?.title || '').trim()).filter(Boolean),
+              );
+              missingWorkflows = tpl.workflows
+                .map((wf) => String(wf?.title || '').trim())
+                .filter((title) => !!title && !existingWorkflowTitles.has(title));
             }
           }
 
@@ -2236,8 +2268,13 @@ export async function installTemplate(
             // refresh may be unavailable in some deployments
           }
 
+          const successContent =
+            missingWorkflows.length > 0
+              ? msg('Template "{{title}}" installed successfully. {{count}} workflow(s) could not be created.',
+                  { title: displayTitle, count: missingWorkflows.length })
+              : msg('Template "{{title}}" installed successfully', { title: displayTitle });
           ui.message.success({
-            content: msg('Template "{{title}}" installed successfully', { title: displayTitle }),
+            content: successContent,
             key: messageKey,
           });
           resolve(true);
