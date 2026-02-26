@@ -24,6 +24,7 @@ import {
   TemplateDef,
 } from './templates';
 import { templateSampleData, SampleBatch, isRef } from './sampleData';
+import { HIGHLIGHT_I18N_KEYS, TEMPLATE_I18N_KEYS } from './templateConstants';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -2302,16 +2303,6 @@ export async function installTemplate(
 
 // ─── Template Selector component ──────────────────────────
 
-const TEMPLATE_I18N_KEYS: Record<string, { title: string; description: string }> = {
-  'project-management': {
-    title: 'Built-in template: Project Management',
-    description: 'Built-in template: Project Management description',
-  },
-  crm: { title: 'Built-in template: CRM', description: 'Built-in template: CRM description' },
-  hr: { title: 'Built-in template: HR', description: 'Built-in template: HR description' },
-  cms: { title: 'Built-in template: CMS', description: 'Built-in template: CMS description' },
-};
-
 export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => void }> = ({ appName, onInstalled }) => {
   const api = useAPIClient();
   const { modal, message } = App.useApp();
@@ -2343,16 +2334,40 @@ export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => v
           {t('Select template for new app')}
         </Paragraph>
         <Row gutter={[16, 16]}>
-          {builtInTemplates.map((tpl) => {
+          {builtInTemplates.length === 0 ? (
+            <Col span={24}>
+              <Paragraph type="secondary" style={{ textAlign: 'center', padding: 24 }}>
+                {t('No templates available')}
+              </Paragraph>
+            </Col>
+          ) : (
+          builtInTemplates.map((tpl) => {
             const i18n = TEMPLATE_I18N_KEYS[tpl.key];
             const displayTitle = i18n ? t(i18n.title) : tpl.title;
             const displayDesc = i18n ? t(i18n.description) : tpl.description;
             return (
               <Col span={12} key={tpl.key}>
+                <div
+                  role="button"
+                  tabIndex={installing ? -1 : 0}
+                  aria-disabled={installing}
+                  aria-label={displayTitle}
+                  onClick={() => !installing && handleInstall(tpl.key)}
+                  onKeyDown={(e) => {
+                    if (!installing && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      handleInstall(tpl.key);
+                    }
+                  }}
+                  style={{
+                    height: '100%',
+                    cursor: installing ? 'not-allowed' : 'pointer',
+                    opacity: installing ? 0.7 : 1,
+                  }}
+                >
                 <Card
-                  hoverable
-                  onClick={() => handleInstall(tpl.key)}
-                  style={{ borderColor: tpl.color, borderWidth: 2, height: '100%' }}
+                  hoverable={!installing}
+                  style={{ borderColor: tpl.color, borderWidth: 2, height: '100%', pointerEvents: 'none' }}
                   bodyStyle={{ padding: 16 }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
@@ -2376,7 +2391,7 @@ export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => v
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {tpl.highlights.slice(0, 8).map((h) => (
                     <Tag key={h} color={tpl.color} style={{ fontSize: 11, margin: 0 }}>
-                      {h}
+                      {HIGHLIGHT_I18N_KEYS[h] ? t(HIGHLIGHT_I18N_KEYS[h]) : h}
                     </Tag>
                   ))}
                   {tpl.highlights.length > 8 && (
@@ -2384,9 +2399,11 @@ export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => v
                   )}
                 </div>
               </Card>
+                </div>
             </Col>
             );
-          })}
+          })
+          )}
         </Row>
       </div>
     </Spin>

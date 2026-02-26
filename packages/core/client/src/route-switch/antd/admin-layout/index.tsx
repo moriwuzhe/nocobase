@@ -64,6 +64,7 @@ import { userCenterSettings } from './userCenterSettings';
 export * from './useDeleteRouteSchema';
 export { installTemplate, TemplateSelector } from './TemplateSelector';
 export { builtInTemplates } from './templates';
+export { TEMPLATE_I18N_KEYS } from './templateConstants';
 export { KeepAlive, NocoBaseDesktopRouteType, useKeepAlive };
 
 export const NocoBaseRouteContext = createContext<NocoBaseDesktopRoute | null>(null);

@@ -7,7 +7,15 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
-import { builtInTemplates, installTemplate, SchemaComponent, useAPIClient, useApp, useRecord } from '@nocobase/client';
+import {
+  builtInTemplates,
+  installTemplate,
+  SchemaComponent,
+  TEMPLATE_I18N_KEYS,
+  useAPIClient,
+  useApp,
+  useRecord,
+} from '@nocobase/client';
 import { Card, Radio, Space, Typography } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
 import { schema } from './settings/schemas/applications';
@@ -15,16 +23,6 @@ import { usePluginUtils } from './utils';
 import { JwtSecretInput } from './JwtSecretInput';
 
 const { Text } = Typography;
-
-const TEMPLATE_I18N_KEYS: Record<string, { title: string; description: string }> = {
-  'project-management': {
-    title: 'Built-in template: Project Management',
-    description: 'Built-in template: Project Management description',
-  },
-  crm: { title: 'Built-in template: CRM', description: 'Built-in template: CRM description' },
-  hr: { title: 'Built-in template: HR', description: 'Built-in template: HR description' },
-  cms: { title: 'Built-in template: CMS', description: 'Built-in template: CMS description' },
-};
 
 const TemplateRadio: React.FC<{ value?: string; onChange?: (v: string) => void }> = ({ value, onChange }) => {
   const { t } = usePluginUtils();
