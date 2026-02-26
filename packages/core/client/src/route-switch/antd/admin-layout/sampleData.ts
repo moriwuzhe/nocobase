@@ -564,6 +564,7 @@ const hrRecruitments: SampleBatch = {
       deadline: '2025-04-30',
       recruiter: '张丽',
       recruitDeptId: { __ref: 'departments', __field: 'id', __match: { name: '技术研发部' } },
+      recruitPositionId: { __ref: 'positions', __field: 'id', __match: { title: '高级前端工程师' } },
     },
     {
       positionTitle: '市场专员',
@@ -574,6 +575,7 @@ const hrRecruitments: SampleBatch = {
       deadline: '2025-03-31',
       recruiter: '张丽',
       recruitDeptId: { __ref: 'departments', __field: 'id', __match: { name: '市场营销部' } },
+      recruitPositionId: { __ref: 'positions', __field: 'id', __match: { title: '市场专员' } },
     },
   ],
 };

@@ -10,6 +10,7 @@
 import { uid } from '@formily/shared';
 import { App, Card, Col, Row, Spin, Tag, Typography } from 'antd';
 import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAPIClient } from '../../../api-client/hooks/useAPIClient';
 import {
   builtInTemplates,
@@ -2184,9 +2185,20 @@ export async function installTemplate(
 
 // ─── Template Selector component ──────────────────────────
 
+const TEMPLATE_I18N_KEYS: Record<string, { title: string; description: string }> = {
+  'project-management': {
+    title: 'Built-in template: Project Management',
+    description: 'Built-in template: Project Management description',
+  },
+  crm: { title: 'Built-in template: CRM', description: 'Built-in template: CRM description' },
+  hr: { title: 'Built-in template: HR', description: 'Built-in template: HR description' },
+  cms: { title: 'Built-in template: CMS', description: 'Built-in template: CMS description' },
+};
+
 export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => void }> = ({ appName, onInstalled }) => {
   const api = useAPIClient();
   const { modal, message } = App.useApp();
+  const { t } = useTranslation();
   const [installing, setInstalling] = useState(false);
 
   const handleInstall = useCallback(
@@ -2205,38 +2217,45 @@ export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => v
   );
 
   return (
-    <Spin spinning={installing} tip="正在安装模板...">
+    <Spin spinning={installing} tip={t('Installing template...')}>
       <div style={{ padding: '24px 0' }}>
         <Title level={4} style={{ textAlign: 'center', marginBottom: 8 }}>
-          选择模板
+          {t('Select template')}
         </Title>
         <Paragraph type="secondary" style={{ textAlign: 'center', marginBottom: 24 }}>
-          为新应用选择一个模板，将自动创建数据表、页面、示例数据和工作流
+          {t('Select template for new app')}
         </Paragraph>
         <Row gutter={[16, 16]}>
-          {builtInTemplates.map((tpl) => (
-            <Col span={12} key={tpl.key}>
-              <Card
-                hoverable
-                onClick={() => handleInstall(tpl.key)}
-                style={{ borderColor: tpl.color, borderWidth: 2, height: '100%' }}
-                bodyStyle={{ padding: 16 }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontSize: 28, marginRight: 12 }}>{tpl.icon}</span>
-                  <div>
-                    <Text strong style={{ fontSize: 16 }}>
-                      {tpl.title}
-                    </Text>
-                    <br />
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      {tpl.collections.length}表 · {tpl.relations.length}关联
-                    </Text>
+          {builtInTemplates.map((tpl) => {
+            const i18n = TEMPLATE_I18N_KEYS[tpl.key];
+            const displayTitle = i18n ? t(i18n.title) : tpl.title;
+            const displayDesc = i18n ? t(i18n.description) : tpl.description;
+            return (
+              <Col span={12} key={tpl.key}>
+                <Card
+                  hoverable
+                  onClick={() => handleInstall(tpl.key)}
+                  style={{ borderColor: tpl.color, borderWidth: 2, height: '100%' }}
+                  bodyStyle={{ padding: 16 }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontSize: 28, marginRight: 12 }}>{tpl.icon}</span>
+                    <div>
+                      <Text strong style={{ fontSize: 16 }}>
+                        {displayTitle}
+                      </Text>
+                      <br />
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {t('Template stats', {
+                          collections: tpl.collections.length,
+                          relations: tpl.relations.length,
+                        })}
+                      </Text>
+                    </div>
                   </div>
-                </div>
-                <Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 8 }} ellipsis={{ rows: 2 }}>
-                  {tpl.description}
-                </Paragraph>
+                  <Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 8 }} ellipsis={{ rows: 2 }}>
+                    {displayDesc}
+                  </Paragraph>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {tpl.highlights.slice(0, 8).map((h) => (
                     <Tag key={h} color={tpl.color} style={{ fontSize: 11, margin: 0 }}>
@@ -2249,7 +2268,8 @@ export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => v
                 </div>
               </Card>
             </Col>
-          ))}
+            );
+          })}
         </Row>
       </div>
     </Spin>
