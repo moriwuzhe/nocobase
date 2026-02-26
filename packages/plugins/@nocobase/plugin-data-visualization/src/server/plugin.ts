@@ -10,6 +10,12 @@
 import { Cache } from '@nocobase/cache';
 import { InstallOptions, Plugin } from '@nocobase/server';
 import { query } from './actions/query';
+import { registerReportSubscriptionActions } from './report-subscription';
+import { registerAggregationActions } from './aggregation';
+import { registerStatFieldActions } from './stat-fields';
+import { registerConditionalFormatActions } from './conditional-format';
+import { registerSummaryRowActions } from './summary-row';
+import { registerRelationGraphActions } from './relation-graph';
 
 export class PluginDataVisualizationServer extends Plugin {
   cache: Cache;
@@ -33,6 +39,13 @@ export class PluginDataVisualizationServer extends Plugin {
       ttl: 30 * 1000, // millseconds
       max: 1000,
     });
+
+    registerReportSubscriptionActions(this.app);
+    registerAggregationActions(this.app);
+    registerStatFieldActions(this.app);
+    registerConditionalFormatActions(this.app);
+    registerSummaryRowActions(this.app);
+    registerRelationGraphActions(this.app);
   }
 
   async install(options?: InstallOptions) {}

@@ -153,6 +153,14 @@ export class RouterManager {
    */
   getRouterComponent(children?: React.ReactNode) {
     const { type = 'browser', ...opts } = this.options;
+    const routerOptions = {
+      ...(opts as any),
+      future: {
+        ...((opts as any)?.future || {}),
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      },
+    };
 
     const routerCreators = {
       hash: createHashRouter,
@@ -192,14 +200,14 @@ export class RouterManager {
           children: routes,
         },
       ],
-      opts,
+      routerOptions,
     );
 
     const RenderRouter: React.FC<{ BaseLayout?: ComponentType }> = ({ BaseLayout = BlankComponent }) => {
       return (
         <BaseLayoutContext.Provider value={BaseLayout}>
           <RouterContextCleaner>
-            <RouterProvider router={this.router} />
+            <RouterProvider router={this.router} future={(routerOptions as any).future} />
           </RouterContextCleaner>
         </BaseLayoutContext.Provider>
       );

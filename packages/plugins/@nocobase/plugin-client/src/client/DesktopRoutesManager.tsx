@@ -31,7 +31,7 @@ export const DesktopRoutesManager: FC = () => {
   return (
     <ExtendCollectionsProvider collections={[desktopRoutes]}>
       <SchemaComponentContext.Provider value={schemaComponentContext}>
-        <Card bordered={false}>
+        <Card variant="borderless">
           <SchemaComponent
             schema={routesSchema}
             scope={{

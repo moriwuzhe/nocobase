@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'recJobPostings', title: 'Job Postings', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'recJobPostings', title: 'Job Postings', fields: [
   { type: 'string', name: 'title', interface: 'input', uiSchema: { type: 'string', title: 'Job Title', 'x-component': 'Input' } },
   { type: 'string', name: 'department', interface: 'input', uiSchema: { type: 'string', title: 'Department', 'x-component': 'Input' } },
   { type: 'string', name: 'type', interface: 'select', uiSchema: { type: 'string', title: 'Type', 'x-component': 'Select', enum: [{ label: 'Full-time', value: 'fulltime' }, { label: 'Part-time', value: 'parttime' }, { label: 'Contract', value: 'contract' }, { label: 'Intern', value: 'intern' }] } },

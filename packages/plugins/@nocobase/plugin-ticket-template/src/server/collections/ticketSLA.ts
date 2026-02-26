@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'ticketSLA', title: 'SLA Policies',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'ticketSLA', title: 'SLA Policies',
   fields: [
     { type: 'string', name: 'name', interface: 'input', uiSchema: { type: 'string', title: 'SLA Name', 'x-component': 'Input' } },
     { type: 'string', name: 'priority', interface: 'select', uiSchema: { type: 'string', title: 'Priority', 'x-component': 'Select', enum: [{ label: 'Low', value: 'low' }, { label: 'Medium', value: 'medium' }, { label: 'High', value: 'high' }, { label: 'Urgent', value: 'urgent' }] } },

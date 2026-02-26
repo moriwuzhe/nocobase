@@ -1,0 +1,17 @@
+{
+  "name": "@nocobase/plugin-clinic-template",
+  "displayName": "Clinic Management",
+  "displayName.zh-CN": "诊所管理",
+  "description": "Medical clinic management with patients, appointments, medical records, and prescriptions.",
+  "description.zh-CN": "诊所管理系统：患者、预约、病历、处方管理。",
+  "version": "1.9.47",
+  "license": "AGPL-3.0",
+  "main": "./dist/server/index.js",
+  "peerDependencies": {
+    "@nocobase/client": "1.x",
+    "@nocobase/database": "1.x",
+    "@nocobase/server": "1.x",
+    "@nocobase/utils": "1.x"
+  },
+  "keywords": ["Clinic", "Medical", "Healthcare", "Template"]
+}

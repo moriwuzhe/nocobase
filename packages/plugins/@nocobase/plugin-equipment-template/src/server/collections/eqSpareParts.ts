@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'eqSpareParts', title: 'Spare Parts', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'eqSpareParts', title: 'Spare Parts', fields: [
   { type: 'string', name: 'partNo', unique: true, interface: 'input', uiSchema: { type: 'string', title: 'Part No', 'x-component': 'Input' } },
   { type: 'string', name: 'name', interface: 'input', uiSchema: { type: 'string', title: 'Part Name', 'x-component': 'Input' } },
   { type: 'string', name: 'specification', interface: 'input', uiSchema: { type: 'string', title: 'Spec', 'x-component': 'Input' } },

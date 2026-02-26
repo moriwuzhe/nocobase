@@ -39,7 +39,11 @@ export default class PluginGlobalSearchServer extends Plugin {
       },
     });
 
-    this.app.acl.allow('globalSearch', ['search', 'suggest', 'getHistory', 'clearHistory', 'addFavorite', 'removeFavorite', 'getFavorites'], 'loggedIn');
+    this.app.acl.allow(
+      'globalSearch',
+      ['search', 'suggest', 'getHistory', 'clearHistory', 'addFavorite', 'removeFavorite', 'getFavorites'],
+      'loggedIn',
+    );
     this.app.acl.registerSnippet({
       name: `pm.${this.name}`,
       actions: ['globalSearch:*', 'searchHistory:*', 'searchFavorites:*'],
@@ -71,7 +75,7 @@ export default class PluginGlobalSearchServer extends Plugin {
     if (this.searchConfig.size === 0) {
       const collections = Array.from(this.db.collections.values());
       for (const col of collections) {
-        if (col.options.dumpRules?.group === 'log') continue;
+        if ((col.options.dumpRules as any)?.group === 'log') continue;
         const searchableFields: string[] = [];
         for (const field of col.fields.values()) {
           if (['string', 'text'].includes(field.type) && !field.options.hidden) {
@@ -127,7 +131,10 @@ export default class PluginGlobalSearchServer extends Plugin {
         for (const record of records) {
           const data = record.toJSON ? record.toJSON() : record;
           // Build display title from the first non-empty searchable field
-          const title = fields.map((f) => data[f]).filter(Boolean).join(' — ');
+          const title = fields
+            .map((f) => data[f])
+            .filter(Boolean)
+            .join(' — ');
           const filterTargetKey = collection.filterTargetKey || 'id';
           allResults.push({
             collectionName,
@@ -150,7 +157,9 @@ export default class PluginGlobalSearchServer extends Plugin {
           values: { userId, keyword: trimmed, resultCount: allResults.length },
         });
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     const start = (page - 1) * pageSize;
     ctx.body = {

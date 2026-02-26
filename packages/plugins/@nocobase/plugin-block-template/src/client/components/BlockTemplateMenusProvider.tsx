@@ -8,7 +8,6 @@
  */
 
 import {
-  useRequest,
   useAPIClient,
   usePlugin,
   registerInitializerMenusGenerator,
@@ -17,10 +16,9 @@ import {
   SchemaInitializerItemType,
   useCurrentUserContext,
 } from '@nocobase/client';
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import PluginBlockTemplateClient from '..';
 import PluginMobileClient from '@nocobase/plugin-mobile/client';
-import { useT } from '../locale';
 import { findBlockRootSchema } from '../utils/schema';
 import { convertTemplateToBlock, correctIdReferences } from '../initializers/TemplateBlockInitializer';
 import { useMemoizedFn } from 'ahooks';
@@ -30,6 +28,15 @@ interface BlockTemplateContextProps {
   loading: boolean;
   templates: any[];
   handleTemplateClick: (item: any, options?: any, insert?: any) => Promise<void>;
+}
+
+interface BlockTemplateItem {
+  key: string;
+  title: string;
+  componentType?: string;
+  menuName?: string;
+  collection?: string;
+  dataSource?: string;
 }
 
 const BlockTemplateMenusContext = createContext<BlockTemplateContextProps>({
@@ -47,54 +54,64 @@ export const BlockTemplateMenusProvider = ({ children }) => {
   const plugin = usePlugin(PluginBlockTemplateClient);
   const mobilePlugin = usePlugin(PluginMobileClient);
   const blockTemplatesResource = useResource('blockTemplates');
-  const t = useT();
   const isMobile = window.location.pathname.startsWith(mobilePlugin.mobileBasename);
   const location = useLocation();
   const previousPathRef = React.useRef(location.pathname);
+  const mountedRef = useRef(false);
   const user = useCurrentUserContext();
+  const [loading, setLoading] = useState(false);
+  const [templates, setTemplates] = useState<BlockTemplateItem[]>([]);
 
-  const { data, loading, refresh } = useRequest<{
-    data: {
-      key: string;
-      title: string;
-      componentType?: string;
-      menuName?: string;
-      collection?: string;
-      dataSource?: string;
-    }[];
-  }>(
-    {
-      url: 'blockTemplates:list',
-      method: 'get',
-      params: {
-        filter: {
-          configured: { $isTruly: true },
-          type: isMobile ? 'Mobile' : { $ne: 'Mobile' },
+  const refreshTemplates = useMemoizedFn(async () => {
+    if (!mountedRef.current) return;
+    setLoading(true);
+    try {
+      const res = await api.request({
+        url: 'blockTemplates:list',
+        method: 'get',
+        params: {
+          filter: {
+            configured: { $isTruly: true },
+            type: isMobile ? 'Mobile' : { $ne: 'Mobile' },
+          },
+          paginate: false,
         },
-        paginate: false,
-      },
-    },
-    {
-      cacheKey: 'blockTemplates',
-      manual: true,
-    },
-  );
+      });
+      if (!mountedRef.current) return;
+      setTemplates((res?.data?.data || []) as BlockTemplateItem[]);
+    } catch (error) {
+      if (!mountedRef.current) return;
+      setTemplates([]);
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+    }
+  });
+
+  useEffect(() => {
+    mountedRef.current = true;
+    void refreshTemplates();
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [refreshTemplates]);
 
   useEffect(() => {
     const isLeavingTemplatesPage =
       previousPathRef.current.includes('/settings/block-templates/inherited') &&
       !location.pathname.includes('/settings/block-templates/inherited');
     if (isLeavingTemplatesPage) {
-      refresh();
+      void refreshTemplates();
     }
     previousPathRef.current = location.pathname;
-  }, [location.pathname, refresh]);
+  }, [location.pathname, refreshTemplates]);
 
   useEffect(() => {
-    if (user?.data) {
-      refresh();
+    if (user?.data?.data) {
+      void refreshTemplates();
     }
-  }, [user, refresh]);
+  }, [user?.data?.data, refreshTemplates]);
 
   const handleTemplateClick = useMemoizedFn(async ({ item }, options?: any, insert?: any) => {
     const { uid } = item;
@@ -134,10 +151,10 @@ export const BlockTemplateMenusProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    data?.data?.forEach((item) => {
+    templates?.forEach((item) => {
       plugin.templateInfos.set(item.key, item);
     });
-  }, [data?.data, plugin.templateInfos]);
+  }, [templates, plugin.templateInfos]);
 
   useEffect(() => {
     const generator = ({ collection, association, item, index, field, componentName, dataSource, keyPrefix, name }) => {
@@ -159,7 +176,7 @@ export const BlockTemplateMenusProvider = ({ children }) => {
         collectionName = field?.target;
       }
       const isDetails = name === 'details' || componentName === 'ReadPrettyFormItem';
-      const children: SchemaInitializerItemType[] = data?.data
+      const children: SchemaInitializerItemType[] = templates
         ?.filter(
           (d) =>
             (d.componentType === componentName ||
@@ -200,13 +217,16 @@ export const BlockTemplateMenusProvider = ({ children }) => {
       return children;
     };
     registerInitializerMenusGenerator('block_template', generator);
-  }, [data?.data, plugin.isInBlockTemplateConfigPage, handleTemplateClick, t, plugin]);
+    return () => {
+      registerInitializerMenusGenerator('block_template', () => null);
+    };
+  }, [templates, plugin.isInBlockTemplateConfigPage, handleTemplateClick, plugin]);
 
   return (
     <BlockTemplateMenusContext.Provider
       value={{
         loading,
-        templates: data?.data || [],
+        templates: templates || [],
         handleTemplateClick,
       }}
     >

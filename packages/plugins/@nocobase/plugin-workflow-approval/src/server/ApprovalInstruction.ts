@@ -70,8 +70,8 @@ export default class ApprovalInstruction extends Instruction {
     } = config;
 
     // Resolve dynamic assignees
-    let assignees = [
-      ...new Set(
+    let assignees: (string | number)[] = [
+      ...new Set<string | number>(
         processor
           .getParsedValue(config.assignees, node.id)
           .flat()

@@ -246,7 +246,7 @@ export const useCreateActionProps = () => {
   const actionSchema = useFieldSchema();
   const actionField = useField();
   const compile = useCompile();
-  const { modal } = App.useApp();
+  const { modal, message } = App.useApp();
   const { t } = useTranslation();
   const { updateAssociationValues } = useFormBlockContext();
   const collectValues = useCollectValuesToSubmit();

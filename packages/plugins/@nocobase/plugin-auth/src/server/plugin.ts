@@ -15,6 +15,7 @@ import { tokenPolicyCollectionName, tokenPolicyRecordKey } from '../constants';
 import { namespace, presetAuthType, presetAuthenticator } from '../preset';
 import authActions from './actions/auth';
 import authenticatorsActions from './actions/authenticators';
+import { setupTOTP, verifyTOTPSetup, disableTOTP, verifyTOTPLogin, getTOTPStatus } from './actions/totp';
 import { BasicAuth } from './basic-auth';
 import { AuthModel } from './model/authenticator';
 import { Storer } from './storer';
@@ -116,9 +117,20 @@ export class PluginAuthServer extends Plugin {
     Object.entries(authenticatorsActions).forEach(([action, handler]) =>
       this.app.resourceManager.registerActionHandler(`authenticators:${action}`, handler),
     );
+    // Register TOTP 2FA actions
+    const authResource = this.app.resourceManager.getResource('auth');
+    if (authResource) {
+      authResource.addAction('setupTOTP', setupTOTP);
+      authResource.addAction('verifyTOTPSetup', verifyTOTPSetup);
+      authResource.addAction('disableTOTP', disableTOTP);
+      authResource.addAction('verifyTOTP', verifyTOTPLogin);
+      authResource.addAction('getTOTPStatus', getTOTPStatus);
+    }
+
     // Set up ACL
     ['signIn', 'signUp'].forEach((action) => this.app.acl.allow('auth', action));
-    ['check', 'signOut', 'changePassword'].forEach((action) => this.app.acl.allow('auth', action, 'loggedIn'));
+    ['check', 'signOut', 'changePassword', 'setupTOTP', 'verifyTOTPSetup', 'disableTOTP', 'getTOTPStatus'].forEach((action) => this.app.acl.allow('auth', action, 'loggedIn'));
+    this.app.acl.allow('auth', 'verifyTOTP', 'public');
     ['lostPassword', 'resetPassword', 'checkResetToken'].forEach((action) =>
       this.app.acl.allow('auth', action, 'public'),
     );

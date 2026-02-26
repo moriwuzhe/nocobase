@@ -10,6 +10,7 @@
 import { defineCollection } from '@nocobase/database';
 
 export default defineCollection({
+  logging: true,
   name: 'portals',
   dumpRules: { group: 'required' },
   migrationRules: ['schema-only'],

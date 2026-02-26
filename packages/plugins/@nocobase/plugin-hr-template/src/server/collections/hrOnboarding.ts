@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'hrOnboarding', title: 'Onboarding Checklist',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'hrOnboarding', title: 'Onboarding Checklist',
   fields: [
     { type: 'belongsTo', name: 'employee', target: 'hrEmployees', foreignKey: 'employeeId', interface: 'm2o', uiSchema: { type: 'object', title: 'Employee', 'x-component': 'AssociationField', 'x-component-props': { fieldNames: { label: 'name', value: 'id' } } } },
     { type: 'string', name: 'task', interface: 'input', uiSchema: { type: 'string', title: 'Task', 'x-component': 'Input' } },

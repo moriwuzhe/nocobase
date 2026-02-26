@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
 export default defineCollection({
+  sortable: true,
+  logging: true,
   name: 'propRepairRequests', title: 'Repair Requests',
   fields: [
     { type: 'string', name: 'requestNo', unique: true, interface: 'input', uiSchema: { type: 'string', title: 'Request #', 'x-component': 'Input' } },

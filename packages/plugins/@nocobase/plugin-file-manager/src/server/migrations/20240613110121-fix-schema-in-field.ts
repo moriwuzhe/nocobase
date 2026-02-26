@@ -54,7 +54,14 @@ export default class extends Migration {
 
       let schemaCount = 0;
       for (const item of items) {
-        const [collectionName, name] = item.schema['x-collection-field'].split('.');
+        const collectionField = item?.schema?.['x-collection-field'];
+        if (typeof collectionField !== 'string' || !collectionField.includes('.')) {
+          continue;
+        }
+        const [collectionName, name] = collectionField.split('.');
+        if (!collectionName || !name) {
+          continue;
+        }
         const field = await FieldRepo.findOne({
           filter: {
             name,
@@ -76,7 +83,7 @@ export default class extends Migration {
         item.changed('schema');
         await item.save({ transaction });
       }
-      console.log('schema updated:', fieldCount);
+      console.log('schema updated:', schemaCount);
     });
   }
 }

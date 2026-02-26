@@ -193,7 +193,9 @@ export const usePopupUtils = (
       /** popup uid */
       puid?: string;
     }) => {
-      const filterByTK = cm.getFilterByTK(association || collection, recordData);
+      const collectionOrAssociation = association || _collection || collection?.name;
+      const filterByTK =
+        collectionOrAssociation && recordData ? cm.getFilterByTK(collectionOrAssociation, recordData) : undefined;
       return getPopupPathFromParams({
         popupuid: popupUid,
         puid,

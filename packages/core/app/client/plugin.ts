@@ -9,7 +9,15 @@ export default (api: IApi) => {
       path: '../plugin-routerBase/runtime.ts',
       content: `
 export function modifyContextOpts(memo) {
-  return  { ...memo, basename: window.routerBase };
+  return {
+    ...memo,
+    basename: window.routerBase,
+    future: {
+      ...(memo?.future || {}),
+      v7_startTransition: true,
+      v7_relativeSplatPath: true,
+    },
+  };
 };
 `,
     });

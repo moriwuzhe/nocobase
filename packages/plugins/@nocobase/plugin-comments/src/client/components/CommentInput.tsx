@@ -9,7 +9,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { Input, Button, Space, Popover, List, Avatar, Typography } from 'antd';
-import { SendOutlined, AtOutlined, PaperClipOutlined } from '@ant-design/icons';
+import { SendOutlined, AimOutlined, PaperClipOutlined } from '@ant-design/icons';
 import { useAPIClient } from '@nocobase/client';
 
 const { TextArea } = Input;
@@ -105,10 +105,7 @@ export const CommentInput: React.FC<CommentInputProps> = ({
         size="small"
         dataSource={mentionResults}
         renderItem={(user: any) => (
-          <List.Item
-            style={{ cursor: 'pointer', padding: '4px 8px' }}
-            onClick={() => insertMention(user)}
-          >
+          <List.Item style={{ cursor: 'pointer', padding: '4px 8px' }} onClick={() => insertMention(user)}>
             <Space size={8}>
               <Avatar size={20}>{user.nickname?.[0]}</Avatar>
               <Text>{user.nickname}</Text>
@@ -139,7 +136,7 @@ export const CommentInput: React.FC<CommentInputProps> = ({
             open={showMentionPopover}
             onOpenChange={setShowMentionPopover}
           >
-            <Button size="small" type="text" icon={<AtOutlined />} title="Mention someone" />
+            <Button size="small" type="text" icon={<AimOutlined />} title="Mention someone" />
           </Popover>
           <Button size="small" type="text" icon={<PaperClipOutlined />} title="Attach file" />
           <Text type="secondary" style={{ fontSize: 11 }}>

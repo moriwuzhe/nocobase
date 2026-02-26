@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'pmRisks', title: 'Risks & Issues',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'pmRisks', title: 'Risks & Issues',
   fields: [
     { type: 'string', name: 'title', interface: 'input', uiSchema: { type: 'string', title: 'Title', 'x-component': 'Input' } },
     { type: 'belongsTo', name: 'project', target: 'pmProjects', foreignKey: 'projectId' },

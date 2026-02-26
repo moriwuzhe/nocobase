@@ -8,13 +8,16 @@
  */
 
 import { InstallOptions, Plugin } from '@nocobase/server';
+import { registerBatchFormulaActions } from './batch-formula';
 
 export class PluginActionBulkUpdateServer extends Plugin {
   afterAdd() {}
 
   beforeLoad() {}
 
-  async load() {}
+  async load() {
+    registerBatchFormulaActions(this.app);
+  }
 
   async install(options?: InstallOptions) {}
 

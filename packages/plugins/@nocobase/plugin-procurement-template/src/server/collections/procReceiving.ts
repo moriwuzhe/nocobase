@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'procReceiving', title: 'Receiving Records', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'procReceiving', title: 'Receiving Records', fields: [
   { type: 'string', name: 'receiveNo', unique: true, interface: 'input', uiSchema: { type: 'string', title: 'Receive No', 'x-component': 'Input' } },
   { type: 'belongsTo', name: 'purchaseOrder', target: 'procPurchaseOrders', foreignKey: 'purchaseOrderId' },
   { type: 'date', name: 'receiveDate', interface: 'datetime', uiSchema: { type: 'string', title: 'Date', 'x-component': 'DatePicker' } },

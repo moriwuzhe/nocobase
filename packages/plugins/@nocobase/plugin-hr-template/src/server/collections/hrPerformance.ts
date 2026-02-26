@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'hrPerformance', title: 'Performance Reviews',
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'hrPerformance', title: 'Performance Reviews',
   fields: [
     { type: 'belongsTo', name: 'employee', target: 'hrEmployees', foreignKey: 'employeeId', interface: 'm2o', uiSchema: { type: 'object', title: 'Employee', 'x-component': 'AssociationField', 'x-component-props': { fieldNames: { label: 'name', value: 'id' } } } },
     { type: 'belongsTo', name: 'reviewer', target: 'users', foreignKey: 'reviewerId', interface: 'm2o', uiSchema: { type: 'object', title: 'Reviewer', 'x-component': 'AssociationField', 'x-component-props': { fieldNames: { label: 'nickname', value: 'id' } } } },

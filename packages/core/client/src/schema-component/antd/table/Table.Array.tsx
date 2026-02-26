@@ -23,7 +23,6 @@ import { Table, TableColumnProps } from 'antd';
 import { default as classNames, default as cls } from 'classnames';
 import React, { useContext, useState } from 'react';
 import ReactDragListView from 'react-drag-listview';
-import { DndContext } from '../..';
 import {
   RecordIndexProvider,
   RecordProvider,
@@ -94,11 +93,7 @@ const useTableColumns = () => {
 export const components = {
   header: {
     wrapper: (props) => {
-      return (
-        <DndContext>
-          <thead {...props} />
-        </DndContext>
-      );
+      return <thead {...props} />;
     },
     cell: (props) => {
       return (
@@ -118,11 +113,7 @@ export const components = {
   },
   body: {
     wrapper: (props) => {
-      return (
-        <DndContext>
-          <tbody {...props} />
-        </DndContext>
-      );
+      return <tbody {...props} />;
     },
     row: (props) => {
       return <tr {...props} />;

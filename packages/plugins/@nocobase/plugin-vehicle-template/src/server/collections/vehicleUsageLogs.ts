@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'vehicleUsageLogs', title: 'Usage Logs', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'vehicleUsageLogs', title: 'Usage Logs', fields: [
   { type: 'belongsTo', name: 'vehicle', target: 'vehicles', foreignKey: 'vehicleId' },
   { type: 'belongsTo', name: 'driver', target: 'users', foreignKey: 'driverId' },
   { type: 'string', name: 'purpose', interface: 'input', uiSchema: { type: 'string', title: 'Purpose', 'x-component': 'Input' } },

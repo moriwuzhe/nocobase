@@ -1,5 +1,7 @@
 import { defineCollection } from '@nocobase/database';
-export default defineCollection({ name: 'expenseItems', title: 'Expense Line Items', fields: [
+export default defineCollection({
+  sortable: true,
+  logging: true, name: 'expenseItems', title: 'Expense Line Items', fields: [
   { type: 'belongsTo', name: 'claim', target: 'expenseClaims', foreignKey: 'claimId' },
   { type: 'string', name: 'category', interface: 'input', uiSchema: { type: 'string', title: 'Category', 'x-component': 'Input' } },
   { type: 'date', name: 'date', interface: 'datetime', uiSchema: { type: 'string', title: 'Date', 'x-component': 'DatePicker' } },
