@@ -1056,7 +1056,7 @@ function buildPageSchema(
 
   const tableTabName = uid();
   const tableTabUid = uid();
-  tabs.push({ schemaUid: tableTabUid, tabSchemaName: tableTabName, title: '列表' });
+  tabs.push({ schemaUid: tableTabUid, tabSchemaName: tableTabName, title: '{{t("List")}}' });
   pageProperties[tableTabName] = {
     type: 'void',
     'x-component': 'Grid',
@@ -1075,7 +1075,7 @@ function buildPageSchema(
   if (viewConfig?.kanban) {
     const kanbanTabName = uid();
     const kanbanTabUid = uid();
-    tabs.push({ schemaUid: kanbanTabUid, tabSchemaName: kanbanTabName, title: '看板' });
+    tabs.push({ schemaUid: kanbanTabUid, tabSchemaName: kanbanTabName, title: '{{t("Kanban")}}' });
     const kanbanCardFields = collection.fields
       .filter((f) => f.showInTable !== false && f.name !== viewConfig?.kanban?.groupField)
       .slice(0, 3)
@@ -1094,7 +1094,7 @@ function buildPageSchema(
   if (viewConfig?.calendar) {
     const calendarTabName = uid();
     const calendarTabUid = uid();
-    tabs.push({ schemaUid: calendarTabUid, tabSchemaName: calendarTabName, title: '日历' });
+    tabs.push({ schemaUid: calendarTabUid, tabSchemaName: calendarTabName, title: '{{t("Calendar")}}' });
     const calendarBlock = buildCalendarBlock(
       collectionName,
       viewConfig.calendar.titleField,
@@ -1114,7 +1114,7 @@ function buildPageSchema(
   if (viewConfig?.gantt) {
     const ganttTabName = uid();
     const ganttTabUid = uid();
-    tabs.push({ schemaUid: ganttTabUid, tabSchemaName: ganttTabName, title: '甘特图' });
+    tabs.push({ schemaUid: ganttTabUid, tabSchemaName: ganttTabName, title: '{{t("Gantt")}}' });
     const ganttBlock = buildGanttBlock(
       collectionName,
       viewConfig.gantt.titleField,
@@ -1191,6 +1191,8 @@ interface TemplateInstallOptions {
   onHealthReport?: (report: TemplateInstallHealthReport) => void;
   messageKey?: string;
   skipAppReadyCheck?: boolean;
+  /** Translation function for install UI messages */
+  t?: (key: string, options?: Record<string, any>) => string;
 }
 
 function getAxiosErrorMessage(err: any): string {
@@ -1328,44 +1330,34 @@ export async function installTemplate(
   const sampleBatches = templateSampleData[templateKey] || [];
   const sampleCount = sampleBatches.reduce((sum, b) => sum + b.records.length, 0);
 
+  const t = options?.t;
+  const msg = (key: string, opts?: Record<string, any>) => (t ? t(key, opts) : key);
+  const displayTitle = t && TEMPLATE_I18N_KEYS[tpl.key] ? t(TEMPLATE_I18N_KEYS[tpl.key].title) : tpl.title;
+  const displayDesc = t && TEMPLATE_I18N_KEYS[tpl.key] ? t(TEMPLATE_I18N_KEYS[tpl.key].description) : tpl.description;
+
   return new Promise((resolve) => {
     const confirmConfig: any = {
-      title: `安装模板：${tpl.title}`,
+      title: msg('Install template: {{title}}', { title: displayTitle }),
       width: 560,
       content: (
         <div>
-          <p>{tpl.description}</p>
+          <p>{displayDesc}</p>
           <p>
-            将创建 <strong>{tpl.collections.length}</strong> 个数据表、
-            <strong>{tpl.relations.length}</strong> 个关联关系、
-            {kanbanCount > 0 && (
-              <>
-                <strong>{kanbanCount}</strong> 个看板视图、
-              </>
-            )}
-            {calendarCount > 0 && (
-              <>
-                <strong>{calendarCount}</strong> 个日历视图、
-              </>
-            )}
-            {ganttCount > 0 && (
-              <>
-                <strong>{ganttCount}</strong> 个甘特图视图、
-              </>
-            )}
-            <strong>{tpl.workflows.length}</strong> 个工作流。
+            {msg('Template install confirm collections', {
+              collections: tpl.collections.length,
+              relations: tpl.relations.length,
+            })}
+            {kanbanCount > 0 && msg('Template install confirm kanban', { count: kanbanCount })}
+            {calendarCount > 0 && msg('Template install confirm calendar', { count: calendarCount })}
+            {ganttCount > 0 && msg('Template install confirm gantt', { count: ganttCount })}
+            {msg('Template install confirm workflows', { workflows: tpl.workflows.length })}
           </p>
-          <p>
-            页面功能含 <strong>批量编辑</strong>、<strong>打印</strong>、<strong>复制</strong>、
-            <strong>导入导出</strong>。
-          </p>
-          <p>
-            将插入 <strong>{sampleCount}</strong> 条示例数据。
-          </p>
+          <p dangerouslySetInnerHTML={{ __html: msg('Template install features') }} />
+          <p dangerouslySetInnerHTML={{ __html: msg('Template install sample data', { count: sampleCount }) }} />
         </div>
       ),
-      okText: '开始安装',
-      cancelText: '取消',
+      okText: msg('Start install'),
+      cancelText: msg('Cancel'),
       onOk: async () => {
         let currentStep = 'prepare';
         const notifyError = (detail: TemplateInstallErrorDetail) => {
@@ -1389,11 +1381,11 @@ export async function installTemplate(
           if (!options?.skipAppReadyCheck) {
             // Wait for sub-app to be ready with retry
             currentStep = 'waitForAppReady';
-            ui.message.loading({ content: '等待应用启动...', key: messageKey, duration: 0 });
+            ui.message.loading({ content: msg('Waiting for app startup...'), key: messageKey, duration: 0 });
             const appReady = await waitForAppReady(api, headers, { maxAttempts: 15, initialDelayMs: 1500 });
             if (!appReady) {
               notifyError({ step: currentStep, message: 'app_start_timeout' });
-              ui.message.error({ content: '应用启动超时，请稍后重试', key: messageKey });
+              ui.message.error({ content: msg('App startup timeout, please try again later'), key: messageKey });
               resolve(false);
               return;
             }
@@ -1477,7 +1469,7 @@ export async function installTemplate(
             }
           };
 
-          ui.message.loading({ content: '正在创建数据表...', key: messageKey, duration: 0 });
+          ui.message.loading({ content: msg('Creating data tables...'), key: messageKey, duration: 0 });
 
           for (const col of tpl.collections) {
             currentStep = `createCollection:${col.name}`;
@@ -1575,7 +1567,7 @@ export async function installTemplate(
             await ensureCollectionFields(col.name, [...businessFields, ...systemRepairFields]);
           }
 
-          ui.message.loading({ content: '正在创建关联关系...', key: messageKey, duration: 0 });
+          ui.message.loading({ content: msg('Creating relations...'), key: messageKey, duration: 0 });
 
           for (const rel of tpl.relations) {
             try {
@@ -1613,7 +1605,7 @@ export async function installTemplate(
             }
           }
 
-          ui.message.loading({ content: '正在配置页面...', key: messageKey, duration: 0 });
+          ui.message.loading({ content: msg('Configuring pages...'), key: messageKey, duration: 0 });
 
           const collectionMap = new Map<string, CollectionDef>();
           for (const col of tpl.collections) {
@@ -1906,7 +1898,7 @@ export async function installTemplate(
             // refresh may be unavailable in some deployments
           }
 
-          ui.message.loading({ content: '正在插入示例数据...', key: messageKey, duration: 0 });
+          ui.message.loading({ content: msg('Inserting sample data...'), key: messageKey, duration: 0 });
 
           const idMap: Record<string, Record<string, number>> = {};
 
@@ -1957,7 +1949,7 @@ export async function installTemplate(
 
           let missingWorkflows: string[] = [];
           if (tpl.workflows.length > 0) {
-            ui.message.loading({ content: '正在创建工作流...', key: messageKey, duration: 0 });
+            ui.message.loading({ content: msg('Creating workflows...'), key: messageKey, duration: 0 });
 
             const toNumericId = (value: any): number | null => {
               const num = Number(value);
@@ -2162,12 +2154,18 @@ export async function installTemplate(
             // refresh may be unavailable in some deployments
           }
 
-          ui.message.success({ content: `模板 "${tpl.title}" 安装完成！`, key: messageKey });
+          ui.message.success({
+            content: msg('Template "{{title}}" installed successfully', { title: displayTitle }),
+            key: messageKey,
+          });
           resolve(true);
         } catch (err: any) {
           notifyError({ step: currentStep, message: getAxiosErrorMessage(err) });
           console.error('Template installation failed:', err);
-          ui.message.error({ content: `安装失败: ${err?.message || '未知错误'}`, key: messageKey });
+          ui.message.error({
+            content: msg('Installation failed: {{message}}', { message: err?.message || 'Unknown error' }),
+            key: messageKey,
+          });
           resolve(false);
         }
       },
@@ -2205,7 +2203,7 @@ export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => v
     async (templateKey: string) => {
       setInstalling(true);
       try {
-        const ok = await installTemplate(api, appName, templateKey, { modal, message });
+        const ok = await installTemplate(api, appName, templateKey, { modal, message }, { t });
         if (ok) {
           onInstalled?.();
         }
@@ -2213,7 +2211,7 @@ export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => v
         setInstalling(false);
       }
     },
-    [api, appName, message, modal, onInstalled],
+    [api, appName, message, modal, onInstalled, t],
   );
 
   return (

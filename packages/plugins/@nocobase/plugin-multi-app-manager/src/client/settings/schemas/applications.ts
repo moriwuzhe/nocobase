@@ -632,6 +632,7 @@ async function installTemplateWithRetry(
   installOptions?: {
     messageKey?: string;
     skipAppReadyCheck?: boolean;
+    t?: (key: string, options?: Record<string, any>) => string;
   },
 ): Promise<TemplateInstallResult> {
   let lastError: TemplateInstallErrorDetail | undefined;
@@ -641,6 +642,7 @@ async function installTemplateWithRetry(
       skipConfirm: true,
       messageKey: installOptions?.messageKey,
       skipAppReadyCheck: installOptions?.skipAppReadyCheck,
+      t: installOptions?.t,
       onError: (detail) => {
         lastError = detail;
       },
@@ -1064,7 +1066,7 @@ export const useRetrySelectedTemplateInitsAction = () => {
             templateKey,
             { modal, message },
             TEMPLATE_INSTALL_MAX_ATTEMPTS,
-            { messageKey: `tpl-${appName}` },
+            { messageKey: `tpl-${appName}`, t },
           );
           if (result.installed) {
             await updateApplicationTemplateOptions(api, appName, {
@@ -1964,7 +1966,7 @@ export function useManualInstallTemplateAction() {
           templateInstallHealthUpdatedAt: '',
         });
 
-        const result = await installTemplateWithRetry(api, record.name, templateKey, { modal, message }, 1);
+        const result = await installTemplateWithRetry(api, record.name, templateKey, { modal, message }, 1, { t });
         if (result.installed) {
           await updateApplicationTemplateOptions(api, record.name, {
             pendingTemplateKey: '',
@@ -2065,7 +2067,7 @@ export function useRetryTemplateInstallAction() {
         templateInstallHealthUpdatedAt: '',
       });
 
-      const result = await installTemplateWithRetry(api, record.name, templateKey, { modal, message });
+      const result = await installTemplateWithRetry(api, record.name, templateKey, { modal, message }, undefined, { t });
       if (result.installed) {
         await updateApplicationTemplateOptions(api, record.name, {
           pendingTemplateKey: '',
@@ -2451,7 +2453,7 @@ export const useCreateActionWithTemplate = () => {
             templateKey,
             { modal, message },
             TEMPLATE_INSTALL_MAX_ATTEMPTS,
-            { skipAppReadyCheck: true },
+            { skipAppReadyCheck: true, t },
           );
           if (result.installed) {
             await updateApplicationTemplateOptions(api, appName, {
