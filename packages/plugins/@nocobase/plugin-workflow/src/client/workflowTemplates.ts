@@ -247,4 +247,23 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       { type: 'echo', config: {} },
     ],
   },
+  {
+    key: 'collection-create-create-echo',
+    title: `{{t("Create trigger + create record + echo", { ns: "${NAMESPACE}" })}}`,
+    description: `{{t("When record created, create another record in target collection", { ns: "${NAMESPACE}" })}}`,
+    type: 'collection',
+    sync: false,
+    config: {
+      collection: null,
+      mode: 1,
+      condition: null,
+    },
+    nodes: [
+      {
+        type: 'create',
+        config: { collection: null, params: {} },
+      },
+      { type: 'echo', config: {} },
+    ],
+  },
 ];

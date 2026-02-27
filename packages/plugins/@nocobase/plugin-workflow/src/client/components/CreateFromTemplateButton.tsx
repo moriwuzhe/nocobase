@@ -29,10 +29,13 @@ export function CreateFromTemplateButton() {
   const [selectedTemplate, setSelectedTemplate] = useState<(typeof WORKFLOW_TEMPLATES)[0] | null>(null);
   const [form] = Form.useForm();
 
+  const COLLECTION_NODE_TYPES = ['create', 'update', 'query', 'destroy'];
+
   const createWorkflow = async (template: (typeof WORKFLOW_TEMPLATES)[0], configOverride?: Record<string, any>) => {
     setLoading(template.key);
     try {
       const config = { ...template.config, ...configOverride };
+      const collectionFromOverride = configOverride?.collection;
       const { data } = await api.request({
         url: 'workflows:create',
         method: 'post',
@@ -50,9 +53,17 @@ export function CreateFromTemplateButton() {
         let lastNodeType: string | null = null;
         for (const nodeDef of template.nodes) {
           try {
+            let nodeConfig = nodeDef.config ?? {};
+            if (
+              collectionFromOverride &&
+              COLLECTION_NODE_TYPES.includes(nodeDef.type) &&
+              (nodeConfig.collection == null || nodeConfig.collection === '')
+            ) {
+              nodeConfig = { ...nodeConfig, collection: collectionFromOverride };
+            }
             const values: Record<string, any> = {
               type: nodeDef.type,
-              config: nodeDef.config ?? {},
+              config: nodeConfig,
               upstreamId,
             };
             if (upstreamId != null && lastNodeType === 'condition') {
@@ -97,11 +108,34 @@ export function CreateFromTemplateButton() {
   };
 
 
-  const menuItems = WORKFLOW_TEMPLATES.map((template) => ({
+  const collectionTemplates = WORKFLOW_TEMPLATES.filter((t) => t.type === 'collection');
+  const scheduleTemplates = WORKFLOW_TEMPLATES.filter((t) => t.type === 'schedule');
+  const otherTemplates = WORKFLOW_TEMPLATES.filter((t) => t.type !== 'collection' && t.type !== 'schedule');
+
+  const toMenuItem = (template: (typeof WORKFLOW_TEMPLATES)[0]) => ({
     key: template.key,
     label: compile(template.title),
     onClick: () => handleSelect(template),
-  }));
+  });
+
+  const menuItems: { key: string; label: string; children?: { key: string; label: any; onClick: () => void }[] }[] = [];
+  if (collectionTemplates.length > 0) {
+    menuItems.push({
+      key: 'collection',
+      label: t('Collection trigger'),
+      children: collectionTemplates.map(toMenuItem),
+    });
+  }
+  if (scheduleTemplates.length > 0) {
+    menuItems.push({
+      key: 'schedule',
+      label: t('Schedule trigger'),
+      children: scheduleTemplates.map(toMenuItem),
+    });
+  }
+  if (otherTemplates.length > 0) {
+    menuItems.push(...otherTemplates.map(toMenuItem));
+  }
 
   return (
     <>

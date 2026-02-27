@@ -240,6 +240,8 @@
   "Yes": "是",
   "concat": "连接",
   "Create from template": "从模板创建",
+  "Collection trigger": "数据表触发",
+  "Schedule trigger": "定时触发",
   "Created successfully": "创建成功",
   "Data change notification": "数据变更通知",
   "Triggered when data is created/updated/deleted, can send notifications": "在数据新增/更新/删除时触发，可发送通知",
@@ -279,5 +281,7 @@
   "Daily task + create record + echo": "每日任务 + 创建记录 + 回显",
   "Schedule with create node, for batch data creation": "定时任务 + 创建节点，适合批量创建数据",
   "Create trigger + calculation + echo": "新增触发 + 计算 + 回显",
-  "Create trigger with calculation for data transform before echo": "新增触发 + 计算节点，用于数据转换后回显"
+  "Create trigger with calculation for data transform before echo": "新增触发 + 计算节点，用于数据转换后回显",
+  "Create trigger + create record + echo": "新增触发 + 创建记录 + 回显",
+  "When record created, create another record in target collection": "当记录新增时，在目标数据表创建关联记录"
 }

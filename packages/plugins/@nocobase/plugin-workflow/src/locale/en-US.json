@@ -235,6 +235,8 @@
   "Yes": "Yes",
   "concat": "concat",
   "Create from template": "Create from template",
+  "Collection trigger": "Collection trigger",
+  "Schedule trigger": "Schedule trigger",
   "Created successfully": "Created successfully",
   "Data change notification": "Data change notification",
   "Triggered when data is created/updated/deleted, can send notifications": "Triggered when data is created/updated/deleted, can send notifications",
@@ -274,5 +276,7 @@
   "Daily task + create record + echo": "Daily task + create record + echo",
   "Schedule with create node, for batch data creation": "Schedule with create node, for batch data creation",
   "Create trigger + calculation + echo": "Create trigger + calculation + echo",
-  "Create trigger with calculation for data transform before echo": "Create trigger with calculation for data transform before echo"
+  "Create trigger with calculation for data transform before echo": "Create trigger with calculation for data transform before echo",
+  "Create trigger + create record + echo": "Create trigger + create record + echo",
+  "When record created, create another record in target collection": "When record created, create another record in target collection"
 }

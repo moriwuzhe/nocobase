@@ -1498,6 +1498,32 @@ function getAxiosErrorMessage(err: any): string {
   return String(serverMessage || err?.message || 'Unknown error');
 }
 
+const STEP_LABEL_KEYS: Record<string, string> = {
+  waitForAppReady: 'Template install step: Waiting for app',
+  authSignIn: 'Template install step: Authenticating',
+  checkVersion: 'Template install step: Checking version',
+  listCollectionFields: 'Template install step: Listing fields',
+  createCollection: 'Template install step: Creating data table',
+  repairCollection: 'Template install step: Repairing data table',
+  repairCollectionField: 'Template install step: Repairing field',
+  createRelation: 'Template install step: Creating relation',
+  createMenuGroup: 'Template install step: Creating menu',
+  createPageRoute: 'Template install step: Creating page',
+  createWorkflowMenuLink: 'Template install step: Creating workflow link',
+  validatePageRoute: 'Template install step: Validating page',
+  refreshApp: 'Template install step: Refreshing app',
+  insertSample: 'Template install step: Inserting sample data',
+  createWorkflow: 'Template install step: Creating workflow',
+  createWorkflowNode: 'Template install step: Creating workflow node',
+  validateWorkflows: 'Template install step: Validating workflows',
+  finalRefreshApp: 'Template install step: Final refresh',
+};
+
+function getStepLabelKey(step: string): string {
+  const prefix = step.split(':')[0];
+  return STEP_LABEL_KEYS[prefix] || step;
+}
+
 function isAlreadyExistsError(err: any): boolean {
   const status = err?.response?.status;
   const text = getAxiosErrorMessage(err).toLowerCase();
@@ -2601,11 +2627,17 @@ export async function installTemplate(
           });
           resolve(true);
         } catch (err: any) {
-          notifyError({ step: currentStep, message: getAxiosErrorMessage(err) });
+          const errorMessage = getAxiosErrorMessage(err);
+          notifyError({ step: currentStep, message: errorMessage });
           console.error('Template installation failed:', err);
+          const stepLabel = msg(getStepLabelKey(currentStep));
           ui.message.error({
-            content: msg('Installation failed: {{message}}', { message: err?.message || 'Unknown error' }),
+            content: msg('Installation failed at {{step}}: {{message}}', {
+              step: stepLabel,
+              message: errorMessage,
+            }),
             key: messageKey,
+            duration: 8,
           });
           resolve(false);
         }
