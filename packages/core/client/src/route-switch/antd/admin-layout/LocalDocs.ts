@@ -28,6 +28,68 @@ export const LOCAL_DOCS = {
 - 或新建后添加触发器和节点
 `,
   },
+  'schema-examples': {
+    title: 'Schema 示例',
+    titleEn: 'Schema Examples',
+    content: `
+## 简单表单区块
+
+\`\`\`json
+{
+  "type": "void",
+  "x-decorator": "FormBlockProvider",
+  "x-decorator-props": {
+    "collection": "users",
+    "action": "get",
+    "dataSource": "main"
+  },
+  "x-component": "CardItem",
+  "properties": {
+    "form": {
+      "type": "void",
+      "x-component": "FormV2",
+      "properties": {
+        "grid": {
+          "type": "void",
+          "x-component": "Grid",
+          "properties": {
+            "name": {
+              "type": "string",
+              "x-component": "CollectionField",
+              "x-decorator": "FormItem",
+              "x-collection-field": "users.name"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+\`\`\`
+
+## 表格区块
+
+\`\`\`json
+{
+  "type": "void",
+  "x-decorator": "TableBlockProvider",
+  "x-decorator-props": {
+    "collection": "users",
+    "action": "list",
+    "dataSource": "main"
+  },
+  "x-component": "CardItem",
+  "properties": {
+    "table": {
+      "type": "void",
+      "x-component": "TableV2",
+      "x-initializer": "table:configureColumns"
+    }
+  }
+}
+\`\`\`
+`,
+  },
   'ui-schema': {
     title: 'UI Schema 概述',
     titleEn: 'UI Schema Overview',

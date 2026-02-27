@@ -21,12 +21,15 @@ export function LocalDocsPage() {
   const [search, setSearch] = useState('');
   const isZh = i18n.language?.startsWith('zh');
 
-  const handleCopy = useCallback((text: string) => {
-    navigator.clipboard.writeText(text).then(
-      () => message.success(isZh ? '已复制' : 'Copied'),
-      () => message.error(isZh ? '复制失败' : 'Copy failed'),
-    );
-  }, [isZh]);
+  const handleCopy = useCallback(
+    (text: string) => {
+      navigator.clipboard.writeText(text).then(
+        () => message.success(t('Copied')),
+        () => message.error(t('Copy failed')),
+      );
+    },
+    [t],
+  );
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -51,7 +54,7 @@ export function LocalDocsPage() {
               icon={<CopyOutlined />}
               onClick={() => handleCopy(content)}
             >
-              {isZh ? '复制' : 'Copy'}
+              {t('Copy')}
             </Button>
           </div>
           <pre
