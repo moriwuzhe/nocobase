@@ -265,5 +265,9 @@
   "Create trigger with echo node": "新增触发 + 回显节点",
   "Create record trigger + echo node for testing and extending": "新增记录触发 + 回显节点，便于测试和扩展",
   "Daily task with echo node": "每日任务 + 回显节点",
-  "Daily schedule + echo node for extending with create/update/condition": "每日定时 + 回显节点，可扩展创建/更新/条件等节点"
+  "Daily schedule + echo node for extending with create/update/condition": "每日定时 + 回显节点，可扩展创建/更新/条件等节点",
+  "Create trigger + condition + echo": "新增触发 + 条件 + 回显",
+  "Create trigger with condition branch and echo, for complex logic": "新增触发 + 条件分支 + 回显，适合复杂逻辑",
+  "Daily task + condition + echo": "每日任务 + 条件 + 回显",
+  "Schedule with condition branch for branching logic": "定时任务 + 条件分支，适合分支逻辑"
 }

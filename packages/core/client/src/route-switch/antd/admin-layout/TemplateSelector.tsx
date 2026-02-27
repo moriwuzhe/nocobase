@@ -443,6 +443,7 @@ function buildCalendarBlock(collectionName: string, titleField: string, startDat
               action: 'list',
               fieldNames,
               params: { paginate: false },
+              enableQuickCreateEvent: true,
             },
             'x-toolbar': 'BlockSchemaToolbar',
             'x-settings': 'blockSettings:calendar',
@@ -453,6 +454,38 @@ function buildCalendarBlock(collectionName: string, titleField: string, startDat
                 'x-component': 'CalendarV2',
                 'x-use-component-props': 'useCalendarBlockProps',
                 properties: {
+                  addNewer: {
+                    type: 'void',
+                    'x-component': 'AssociationField.AddNewer',
+                    'x-action': 'create',
+                    title: '{{ t("Add record") }}',
+                    'x-component-props': { className: 'nb-action-popup' },
+                    properties: {
+                      form: {
+                        type: 'void',
+                        'x-component': 'Grid',
+                        properties: {
+                          [uid()]: {
+                            type: 'void',
+                            'x-component': 'Grid.Row',
+                            properties: {
+                              [uid()]: {
+                                type: 'void',
+                                'x-component': 'Grid.Col',
+                                properties: {
+                                  [uid()]: buildCreateFormBlock(
+                                    collectionName,
+                                    [titleField, startDateField, ...(endDateField ? [endDateField] : [])],
+                                    new Set([titleField, startDateField]),
+                                  ),
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
                   toolBar: {
                     type: 'void',
                     'x-component': 'CalendarV2.ActionBar',

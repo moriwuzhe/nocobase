@@ -139,4 +139,35 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     },
     nodes: [{ type: 'echo', config: {} }],
   },
+  {
+    key: 'collection-create-condition-echo',
+    title: `{{t("Create trigger + condition + echo", { ns: "${NAMESPACE}" })}}`,
+    description: `{{t("Create trigger with condition branch and echo, for complex logic", { ns: "${NAMESPACE}" })}}`,
+    type: 'collection',
+    sync: false,
+    config: {
+      collection: null,
+      mode: 1,
+      condition: null,
+    },
+    nodes: [
+      { type: 'condition', config: { engine: 'math.js', expression: '1 == 1' } },
+      { type: 'echo', config: {} },
+    ],
+  },
+  {
+    key: 'schedule-condition-echo',
+    title: `{{t("Daily task + condition + echo", { ns: "${NAMESPACE}" })}}`,
+    description: `{{t("Schedule with condition branch for branching logic", { ns: "${NAMESPACE}" })}}`,
+    type: 'schedule',
+    sync: false,
+    config: {
+      mode: 0,
+      cron: '0 9 * * *',
+    },
+    nodes: [
+      { type: 'condition', config: { engine: 'math.js', expression: '1 == 1' } },
+      { type: 'echo', config: {} },
+    ],
+  },
 ];

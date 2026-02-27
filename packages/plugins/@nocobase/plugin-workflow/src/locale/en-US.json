@@ -260,5 +260,9 @@
   "Create trigger with echo node": "Create trigger with echo node",
   "Create record trigger + echo node for testing and extending": "Create record trigger + echo node for testing and extending",
   "Daily task with echo node": "Daily task with echo node",
-  "Daily schedule + echo node for extending with create/update/condition": "Daily schedule + echo node for extending with create/update/condition"
+  "Daily schedule + echo node for extending with create/update/condition": "Daily schedule + echo node for extending with create/update/condition",
+  "Create trigger + condition + echo": "Create trigger + condition + echo",
+  "Create trigger with condition branch and echo, for complex logic": "Create trigger with condition branch and echo, for complex logic",
+  "Daily task + condition + echo": "Daily task + condition + echo",
+  "Schedule with condition branch for branching logic": "Schedule with condition branch for branching logic"
 }
