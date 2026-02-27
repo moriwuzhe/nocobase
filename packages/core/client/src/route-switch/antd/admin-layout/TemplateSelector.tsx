@@ -1458,6 +1458,9 @@ export async function installTemplate(
         };
         try {
           const headers = { 'X-App': appName };
+          let missingWorkflows: string[] = [];
+          let sampleFailed: { collection: string; count: number }[] = [];
+          let unresolvedRefs: { collection: string; ref: string }[] = [];
 
           if (!options?.skipAppReadyCheck) {
             // Wait for sub-app to be ready with retry
@@ -2013,8 +2016,6 @@ export async function installTemplate(
 
           const totalSampleCount = sampleBatches.reduce((sum, b) => sum + b.records.length, 0);
           let sampleInserted = 0;
-          const sampleFailed: { collection: string; count: number }[] = [];
-          const unresolvedRefs: { collection: string; ref: string }[] = [];
           const idMap: Record<string, Record<string, number>> = {};
 
           for (const batch of sampleBatches) {
@@ -2090,7 +2091,6 @@ export async function installTemplate(
             }
           }
 
-          let missingWorkflows: string[] = [];
           if (tpl.workflows.length > 0) {
             ui.message.loading({ content: msg('Creating workflows...'), key: messageKey, duration: 0 });
 
