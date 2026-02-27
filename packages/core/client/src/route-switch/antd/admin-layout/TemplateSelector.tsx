@@ -2032,7 +2032,7 @@ export async function installTemplate(
                   },
                   { maxAttempts: 8, initialDelayMs: 700 },
                 );
-                const createdId = res?.data?.data?.id;
+                const createdId = res?.data?.data?.id ?? res?.data?.id;
                 if (createdId) {
                   for (const [k, v] of Object.entries(record)) {
                     if (typeof v === 'string' || typeof v === 'number') {
@@ -2067,8 +2067,8 @@ export async function installTemplate(
 
             const mainAppHeaders: Record<string, string> = { ...authHeaders };
             if (mainAppHeaders['X-App']) delete mainAppHeaders['X-App'];
-            const workflowHeadersToTry: Record<string, string>[] = [authHeaders];
-            if (authHeaders['X-App']) workflowHeadersToTry.push(mainAppHeaders);
+            const workflowHeadersToTry: Record<string, string>[] =
+              authHeaders['X-App'] ? [mainAppHeaders, authHeaders] : [authHeaders];
 
             const createWorkflowWithCompat = async (wf: (typeof tpl.workflows)[number]): Promise<number | null> => {
               const workflowValues = {
@@ -2079,8 +2079,8 @@ export async function installTemplate(
                 config: wf.triggerConfig,
               };
               const attemptPayloads = [
+                { label: 'direct', data: workflowValues },
                 { label: 'values', data: { values: workflowValues } },
-                { label: 'legacy', data: workflowValues },
               ];
               let lastError: any;
 
@@ -2126,8 +2126,8 @@ export async function installTemplate(
                 config: node.config,
               };
               const attemptPayloads = [
+                { label: 'direct', data: nodeValues },
                 { label: 'values', data: { values: nodeValues } },
-                { label: 'legacy', data: nodeValues },
               ];
               let lastError: any;
 
