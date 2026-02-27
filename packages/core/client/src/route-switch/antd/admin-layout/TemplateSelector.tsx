@@ -229,6 +229,39 @@ function buildKanbanCardField(collectionName: string, fieldName: string) {
   };
 }
 
+function buildKanbanViewFormBlock(collectionName: string, fieldNames: string[]) {
+  const formGridProperties: Record<string, any> = {};
+  const names = fieldNames.length > 0 ? fieldNames : ['id'];
+  for (const fn of names) {
+    formGridProperties[uid()] = buildFormField(collectionName, fn, false);
+  }
+  return {
+    type: 'void',
+    'x-acl-action': `${collectionName}:get`,
+    'x-decorator': 'FormBlockProvider',
+    'x-use-decorator-props': 'useEditFormBlockDecoratorProps',
+    'x-decorator-props': { action: 'get', dataSource: 'main', collection: collectionName, readPretty: true },
+    'x-toolbar': 'BlockSchemaToolbar',
+    'x-settings': 'blockSettings:editForm',
+    'x-component': 'CardItem',
+    properties: {
+      [uid()]: {
+        type: 'void',
+        'x-component': 'FormV2',
+        'x-pattern': 'readPretty',
+        'x-use-component-props': 'useEditFormBlockProps',
+        properties: {
+          grid: {
+            type: 'void',
+            'x-component': 'Grid',
+            properties: formGridProperties,
+          },
+        },
+      },
+    },
+  };
+}
+
 function buildKanbanBlock(collectionName: string, groupField: string, cardFields?: string[]) {
   const cardGridProps: Record<string, any> = {};
   if (cardFields && cardFields.length > 0) {
@@ -299,29 +332,23 @@ function buildKanbanBlock(collectionName: string, groupField: string, cardFields
                       drawer: {
                         type: 'void',
                         title: '{{ t("View record") }}',
-                        'x-component': 'Action.Container',
+                        'x-component': 'Action.Drawer',
                         'x-component-props': { className: 'nb-action-popup' },
                         properties: {
-                          tabs: {
+                          grid: {
                             type: 'void',
-                            'x-component': 'Tabs',
-                            'x-component-props': {},
-                            'x-initializer': 'popup:addTab',
-                            'x-initializer-props': { gridInitializer: 'popup:common:addBlock' },
+                            'x-component': 'Grid',
                             properties: {
-                              tab1: {
+                              [uid()]: {
                                 type: 'void',
-                                title: '{{ t("Details") }}',
-                                'x-component': 'Tabs.TabPane',
-                                'x-designer': 'Tabs.Designer',
-                                'x-component-props': {},
+                                'x-component': 'Grid.Row',
                                 properties: {
-                                  grid: {
+                                  [uid()]: {
                                     type: 'void',
-                                    'x-component': 'Grid',
-                                    'x-initializer-props': { actionInitializers: 'details:configureActions' },
-                                    'x-initializer': 'popup:common:addBlock',
-                                    properties: {},
+                                    'x-component': 'Grid.Col',
+                                    properties: {
+                                      [uid()]: buildKanbanViewFormBlock(collectionName, cardFields || []),
+                                    },
                                   },
                                 },
                               },
@@ -417,29 +444,28 @@ function buildCalendarBlock(collectionName: string, titleField: string, startDat
                     properties: {
                       drawer: {
                         type: 'void',
-                        'x-component': 'Action.Container',
+                        'x-component': 'Action.Drawer',
                         'x-component-props': { className: 'nb-action-popup' },
                         title: '{{ t("View record") }}',
                         properties: {
-                          tabs: {
+                          grid: {
                             type: 'void',
-                            'x-component': 'Tabs',
-                            'x-component-props': {},
-                            'x-initializer': 'popup:addTab',
-                            'x-initializer-props': { gridInitializer: 'popup:common:addBlock' },
+                            'x-component': 'Grid',
                             properties: {
-                              tab1: {
+                              [uid()]: {
                                 type: 'void',
-                                title: '{{ t("Details") }}',
-                                'x-component': 'Tabs.TabPane',
-                                'x-designer': 'Tabs.Designer',
-                                'x-component-props': {},
+                                'x-component': 'Grid.Row',
                                 properties: {
-                                  grid: {
+                                  [uid()]: {
                                     type: 'void',
-                                    'x-component': 'Grid',
-                                    'x-initializer-props': { actionInitializers: 'details:configureActions' },
-                                    'x-initializer': 'popup:common:addBlock',
+                                    'x-component': 'Grid.Col',
+                                    properties: {
+                                      [uid()]: buildKanbanViewFormBlock(collectionName, [
+                                        titleField,
+                                        startDateField,
+                                        ...(endDateField ? [endDateField] : []),
+                                      ]),
+                                    },
                                   },
                                 },
                               },
@@ -526,25 +552,25 @@ function buildGanttBlock(
                         'x-component-props': { className: 'nb-action-popup' },
                         title: '{{ t("View record") }}',
                         properties: {
-                          tabs: {
+                          grid: {
                             type: 'void',
-                            'x-component': 'Tabs',
-                            'x-component-props': {},
-                            'x-initializer': 'popup:addTab',
-                            'x-initializer-props': { gridInitializer: 'popup:common:addBlock' },
+                            'x-component': 'Grid',
                             properties: {
-                              tab1: {
+                              [uid()]: {
                                 type: 'void',
-                                title: '{{ t("Details") }}',
-                                'x-component': 'Tabs.TabPane',
-                                'x-designer': 'Tabs.Designer',
-                                'x-component-props': {},
+                                'x-component': 'Grid.Row',
                                 properties: {
-                                  grid: {
+                                  [uid()]: {
                                     type: 'void',
-                                    'x-component': 'Grid',
-                                    'x-initializer-props': { actionInitializers: 'details:configureActions' },
-                                    'x-initializer': 'popup:common:addBlock',
+                                    'x-component': 'Grid.Col',
+                                    properties: {
+                                      [uid()]: buildKanbanViewFormBlock(collectionName, [
+                                        titleField,
+                                        startField,
+                                        endField,
+                                        ...(progressField ? [progressField] : []),
+                                      ]),
+                                    },
                                   },
                                 },
                               },
@@ -811,35 +837,21 @@ function buildDuplicateAction(collectionName: string, formFieldNames: string[], 
       drawer: {
         type: 'void',
         title: '{{ t("Duplicate") }}',
-        'x-component': 'Action.Container',
+        'x-component': 'Action.Drawer',
         'x-component-props': { className: 'nb-action-popup' },
         properties: {
-          tabs: {
+          grid: {
             type: 'void',
-            'x-component': 'Tabs',
+            'x-component': 'Grid',
             properties: {
-              tab1: {
+              [uid()]: {
                 type: 'void',
-                title: '{{t("Duplicate")}}',
-                'x-component': 'Tabs.TabPane',
-                'x-designer': 'Tabs.Designer',
+                'x-component': 'Grid.Row',
                 properties: {
-                  grid: {
+                  [uid()]: {
                     type: 'void',
-                    'x-component': 'Grid',
-                    properties: {
-                      [uid()]: {
-                        type: 'void',
-                        'x-component': 'Grid.Row',
-                        properties: {
-                          [uid()]: {
-                            type: 'void',
-                            'x-component': 'Grid.Col',
-                            properties: { [uid()]: duplicateFormBlock },
-                          },
-                        },
-                      },
-                    },
+                    'x-component': 'Grid.Col',
+                    properties: { [uid()]: duplicateFormBlock },
                   },
                 },
               },
@@ -885,7 +897,7 @@ function buildActionsColumn(
   return {
     type: 'void',
     title: '{{ t("Actions") }}',
-    'x-decorator': 'TableV2.Column.Decorator',
+    'x-decorator': 'TableV2.Column.ActionBar',
     'x-component': 'TableV2.Column',
     'x-toolbar': 'TableColumnSchemaToolbar',
     'x-settings': 'fieldSettings:TableColumn',
@@ -969,34 +981,21 @@ function buildActionBar(
           drawer: {
             type: 'void',
             title: '{{ t("Add record") }}',
-            'x-component': 'Action.Container',
+            'x-component': 'Action.Drawer',
             'x-component-props': { className: 'nb-action-popup' },
             properties: {
-              tabs: {
+              grid: {
                 type: 'void',
-                'x-component': 'Tabs',
+                'x-component': 'Grid',
                 properties: {
-                  tab1: {
+                  [uid()]: {
                     type: 'void',
-                    title: '{{ t("Add new") }}',
-                    'x-component': 'Tabs.TabPane',
+                    'x-component': 'Grid.Row',
                     properties: {
-                      grid: {
+                      [uid()]: {
                         type: 'void',
-                        'x-component': 'Grid',
-                        properties: {
-                          [uid()]: {
-                            type: 'void',
-                            'x-component': 'Grid.Row',
-                            properties: {
-                              [uid()]: {
-                                type: 'void',
-                                'x-component': 'Grid.Col',
-                                properties: { [uid()]: createBlock },
-                              },
-                            },
-                          },
-                        },
+                        'x-component': 'Grid.Col',
+                        properties: { [uid()]: createBlock },
                       },
                     },
                   },
