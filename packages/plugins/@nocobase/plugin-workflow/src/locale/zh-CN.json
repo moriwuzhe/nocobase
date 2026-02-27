@@ -261,5 +261,9 @@
   "Failed to create": "创建失败",
   "Select collection": "选择数据表",
   "Collection": "数据表",
-  "Please select a collection": "请选择数据表"
+  "Please select a collection": "请选择数据表",
+  "Create trigger with echo node": "新增触发 + 回显节点",
+  "Create record trigger + echo node for testing and extending": "新增记录触发 + 回显节点，便于测试和扩展",
+  "Daily task with echo node": "每日任务 + 回显节点",
+  "Daily schedule + echo node for extending with create/update/condition": "每日定时 + 回显节点，可扩展创建/更新/条件等节点"
 }

@@ -43,7 +43,7 @@ import Header from './components/Header';
 import { CalendarToolbarContext } from './context';
 import GlobalStyle from './global.style';
 import { useCalenderHeight } from './hook';
-import { addNew } from './schema';
+import { addNew, buildAddNewSchema } from './schema';
 import useStyle from './style';
 import type { ToolbarProps } from './types';
 import { formatDate } from './utils';
@@ -488,7 +488,17 @@ export const Calendar: any = withDynamicSchemaProps(
               onSelectSlot={(slotInfo) => {
                 setCurrentSelectDate(slotInfo);
                 if (canCreate && enableQuickCreateEvent) {
-                  insertAddNewer(addNew);
+                  const titleField =
+                    (Array.isArray(fieldNames?.title) ? fieldNames.title[0] : fieldNames?.title) || 'title';
+                  const startField =
+                    (Array.isArray(fieldNames?.start) ? fieldNames.start[0] : fieldNames?.start) || 'start';
+                  const endField = fieldNames?.end
+                    ? Array.isArray(fieldNames.end)
+                      ? fieldNames.end[0]
+                      : fieldNames.end
+                    : undefined;
+                  const addNewSchema = buildAddNewSchema(collection.name, titleField, startField, endField);
+                  insertAddNewer(addNewSchema);
                   setVisibleAddNewer(true);
                 }
               }}

@@ -44,8 +44,22 @@ export function CreateFromTemplateButton() {
           current: true,
         },
       });
+      const workflowId = data?.data?.id;
+      if (workflowId && template.nodes?.length) {
+        let upstreamId: number | null = null;
+        for (const nodeDef of template.nodes) {
+          const nodeRes = await api.resource('workflows.nodes', workflowId).create({
+            values: {
+              type: nodeDef.type,
+              config: nodeDef.config ?? {},
+              upstreamId,
+            },
+          });
+          upstreamId = nodeRes?.data?.data?.id ?? null;
+        }
+      }
       message.success(t('Created successfully'));
-      navigate(getWorkflowDetailPath(data?.data?.id));
+      navigate(getWorkflowDetailPath(workflowId));
     } catch (err: any) {
       message.error(err?.message || t('Failed to create'));
     } finally {

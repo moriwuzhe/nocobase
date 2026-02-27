@@ -256,5 +256,9 @@
   "Failed to create": "Failed to create",
   "Select collection": "Select collection",
   "Collection": "Collection",
-  "Please select a collection": "Please select a collection"
+  "Please select a collection": "Please select a collection",
+  "Create trigger with echo node": "Create trigger with echo node",
+  "Create record trigger + echo node for testing and extending": "Create record trigger + echo node for testing and extending",
+  "Daily task with echo node": "Daily task with echo node",
+  "Daily schedule + echo node for extending with create/update/condition": "Daily schedule + echo node for extending with create/update/condition"
 }

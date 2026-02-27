@@ -5,6 +5,11 @@
 
 import { NAMESPACE } from './locale';
 
+export interface WorkflowNodeDef {
+  type: string;
+  config?: Record<string, any>;
+}
+
 export interface WorkflowTemplate {
   key: string;
   title: string;
@@ -12,6 +17,8 @@ export interface WorkflowTemplate {
   type: string;
   sync?: boolean;
   config: Record<string, any>;
+  /** Optional: nodes to create after workflow (trigger + these nodes) */
+  nodes?: WorkflowNodeDef[];
 }
 
 export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
@@ -64,6 +71,19 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     },
   },
   {
+    key: 'collection-create-with-echo',
+    title: `{{t("Create trigger with echo node", { ns: "${NAMESPACE}" })}}`,
+    description: `{{t("Create record trigger + echo node for testing and extending", { ns: "${NAMESPACE}" })}}`,
+    type: 'collection',
+    sync: false,
+    config: {
+      collection: null,
+      mode: 1,
+      condition: null,
+    },
+    nodes: [{ type: 'echo', config: {} }],
+  },
+  {
     key: 'schedule-daily',
     title: `{{t("Daily scheduled task", { ns: "${NAMESPACE}" })}}`,
     description: `{{t("Runs at a fixed time every day", { ns: "${NAMESPACE}" })}}`,
@@ -106,5 +126,17 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       mode: 0,
       cron: '0 9 1 * *',
     },
+  },
+  {
+    key: 'schedule-daily-with-echo',
+    title: `{{t("Daily task with echo node", { ns: "${NAMESPACE}" })}}`,
+    description: `{{t("Daily schedule + echo node for extending with create/update/condition", { ns: "${NAMESPACE}" })}}`,
+    type: 'schedule',
+    sync: false,
+    config: {
+      mode: 0,
+      cron: '0 9 * * *',
+    },
+    nodes: [{ type: 'echo', config: {} }],
   },
 ];
