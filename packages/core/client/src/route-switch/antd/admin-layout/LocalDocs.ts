@@ -188,6 +188,39 @@ UI Schema 是 NocoBase 的声明式界面配置方式，使用 JSON 描述界面
 1. 选择模板 -> 集合类型需选数据表
 2. 创建工作流 -> 跳转编辑页
 3. 添加节点 -> condition/update/create 等
+
+### Cron 表达式
+格式: 分 时 日 月 周
+- 0 9 * * * 每天9:00
+- 0 * * * * 每小时整点
+- 0 9 * * 1 每周一9:00
+- 0 9 1 * * 每月1号9:00
+- */15 * * * * 每15分钟
+`,
+  },
+  'collection-fields': {
+    title: '集合字段类型',
+    titleEn: 'Collection Field Types',
+    content: `
+## 常用字段
+
+- input: 单行文本
+- textarea: 多行文本
+- richText: 富文本
+- select: 下拉选择 (enum)
+- number: 数字
+- percent: 百分比
+- date: 日期
+- datetime: 日期时间
+- money: 金额
+- email: 邮箱
+- phone: 电话
+- url: 链接
+
+### 关联
+- belongsTo: 多对一
+- hasMany: 一对多
+- belongsToMany: 多对多
 `,
   },
 };
