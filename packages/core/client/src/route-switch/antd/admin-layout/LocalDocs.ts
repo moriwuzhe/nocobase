@@ -207,6 +207,12 @@ UI Schema 是 NocoBase 的声明式界面配置方式，使用 JSON 描述界面
 ### 表达式
 - {{ $nRecord.fieldName }}: 引用字段值
 - {{ $nUser.nickname }}: 引用用户昵称
+
+### 工作流变量
+- $context: 触发器上下文，如 $context.data 为触发记录
+- $jobsMapByNodeKey: 按节点 key 索引的已执行节点结果
+- $system.now: 当前系统时间
+- 示例: {{$context.data.title}} 引用触发记录的 title 字段
 `,
   },
   'api': {

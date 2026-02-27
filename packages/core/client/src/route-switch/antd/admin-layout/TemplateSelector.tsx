@@ -1631,18 +1631,24 @@ export async function installTemplate(
       content: (
         <div>
           <p>{displayDesc}</p>
-          <p>
-            {msg('Template install confirm collections', {
-              collections: tpl.collections.length,
-              relations: tpl.relations.length,
-            })}
-            {kanbanCount > 0 && msg('Template install confirm kanban', { count: kanbanCount })}
-            {calendarCount > 0 && msg('Template install confirm calendar', { count: calendarCount })}
-            {ganttCount > 0 && msg('Template install confirm gantt', { count: ganttCount })}
-            {msg('Template install confirm workflows', { workflows: tpl.workflows.length })}
-          </p>
-          <p dangerouslySetInnerHTML={{ __html: msg('Template install features') }} />
-          <p dangerouslySetInnerHTML={{ __html: msg('Template install sample data', { count: sampleCount }) }} />
+          {templateKey === 'blank' ? (
+            <p dangerouslySetInnerHTML={{ __html: msg('Template install confirm blank') }} />
+          ) : (
+            <>
+              <p>
+                {msg('Template install confirm collections', {
+                  collections: tpl.collections.length,
+                  relations: tpl.relations.length,
+                })}
+                {kanbanCount > 0 && msg('Template install confirm kanban', { count: kanbanCount })}
+                {calendarCount > 0 && msg('Template install confirm calendar', { count: calendarCount })}
+                {ganttCount > 0 && msg('Template install confirm gantt', { count: ganttCount })}
+                {msg('Template install confirm workflows', { workflows: tpl.workflows.length })}
+              </p>
+              <p dangerouslySetInnerHTML={{ __html: msg('Template install features') }} />
+              <p dangerouslySetInnerHTML={{ __html: msg('Template install sample data', { count: sampleCount }) }} />
+            </>
+          )}
         </div>
       ),
       okText: msg('Start install'),
