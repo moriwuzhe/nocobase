@@ -7,9 +7,9 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
-import React, { useMemo, useState } from 'react';
-import { Card, Collapse, Input, Typography } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Card, Collapse, Input, Typography, Button, message } from 'antd';
+import { SearchOutlined, CopyOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { LOCAL_DOCS } from './LocalDocs';
 
@@ -17,9 +17,16 @@ const { Title, Paragraph } = Typography;
 
 export function LocalDocsPage() {
   const { t, i18n } = useTranslation();
-  const [activeKey, setActiveKey] = useState<string[]>(['ui-schema']);
+  const [activeKey, setActiveKey] = useState<string[]>(['getting-started']);
   const [search, setSearch] = useState('');
   const isZh = i18n.language?.startsWith('zh');
+
+  const handleCopy = useCallback((text: string) => {
+    navigator.clipboard.writeText(text).then(
+      () => message.success(isZh ? '已复制' : 'Copied'),
+      () => message.error(isZh ? '复制失败' : 'Copy failed'),
+    );
+  }, [isZh]);
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -30,25 +37,40 @@ export function LocalDocsPage() {
     );
   }, [search, isZh]);
 
-  const items = filteredItems.map(([key, doc]) => ({
-    key,
-    label: isZh ? doc.title : doc.titleEn,
-    children: (
-      <pre
-        style={{
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-          fontFamily: 'inherit',
-          margin: 0,
-          padding: 16,
-          background: 'var(--nb-box-bg)',
-          borderRadius: 4,
-        }}
-      >
-        {doc.content.trim()}
-      </pre>
-    ),
-  }));
+  const items = filteredItems.map(([key, doc]) => {
+    const content = doc.content.trim();
+    return {
+      key,
+      label: isZh ? doc.title : doc.titleEn,
+      children: (
+        <div>
+          <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              type="text"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={() => handleCopy(content)}
+            >
+              {isZh ? '复制' : 'Copy'}
+            </Button>
+          </div>
+          <pre
+            style={{
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              fontFamily: 'inherit',
+              margin: 0,
+              padding: 16,
+              background: 'var(--nb-box-bg)',
+              borderRadius: 4,
+            }}
+          >
+            {content}
+          </pre>
+        </div>
+      ),
+    };
+  });
 
   return (
     <div style={{ padding: 24, maxWidth: 900 }}>

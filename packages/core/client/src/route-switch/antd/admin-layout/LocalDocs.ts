@@ -4,6 +4,30 @@
  */
 
 export const LOCAL_DOCS = {
+  'getting-started': {
+    title: '快速开始',
+    titleEn: 'Getting Started',
+    content: `
+## NocoBase 快速参考
+
+### 创建应用
+1. 多应用管理 -> 添加应用
+2. 选择模板（项目管理/CRM/人事/内容）或空白
+3. 安装后自动创建数据表、页面、工作流
+
+### 数据表
+- 在「数据表」中管理集合和字段
+- 支持 input/select/date/richText 等类型
+
+### 页面
+- 表格/表单/看板/日历/甘特图
+- 拖拽配置列、操作、筛选
+
+### 工作流
+- 从模板创建：数据变更/定时任务
+- 或新建后添加触发器和节点
+`,
+  },
   'ui-schema': {
     title: 'UI Schema 概述',
     titleEn: 'UI Schema Overview',

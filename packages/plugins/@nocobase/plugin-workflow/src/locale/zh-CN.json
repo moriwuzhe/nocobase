@@ -255,6 +255,8 @@
   "Runs every hour": "每小时执行一次",
   "Weekly scheduled task": "每周定时任务",
   "Runs every Monday at 9:00": "每周一 9:00 执行",
+  "Monthly scheduled task": "每月定时任务",
+  "Runs on the 1st of every month at 9:00": "每月 1 号 9:00 执行",
   "Use template": "使用模板",
   "Failed to create": "创建失败",
   "Select collection": "选择数据表",

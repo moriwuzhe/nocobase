@@ -250,6 +250,8 @@
   "Runs every hour": "Runs every hour",
   "Weekly scheduled task": "Weekly scheduled task",
   "Runs every Monday at 9:00": "Runs every Monday at 9:00",
+  "Monthly scheduled task": "Monthly scheduled task",
+  "Runs on the 1st of every month at 9:00": "Runs on the 1st of every month at 9:00",
   "Use template": "Use template",
   "Failed to create": "Failed to create",
   "Select collection": "Select collection",
