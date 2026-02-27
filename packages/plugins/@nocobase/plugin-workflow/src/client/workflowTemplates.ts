@@ -117,6 +117,17 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     },
   },
   {
+    key: 'schedule-every-5min',
+    title: `{{t("Every 5 minutes", { ns: "${NAMESPACE}" })}}`,
+    description: `{{t("Runs every 5 minutes for frequent checks", { ns: "${NAMESPACE}" })}}`,
+    type: 'schedule',
+    sync: false,
+    config: {
+      mode: 0,
+      cron: '*/5 * * * *',
+    },
+  },
+  {
     key: 'schedule-weekly',
     title: `{{t("Weekly scheduled task", { ns: "${NAMESPACE}" })}}`,
     description: `{{t("Runs every Monday at 9:00", { ns: "${NAMESPACE}" })}}`,

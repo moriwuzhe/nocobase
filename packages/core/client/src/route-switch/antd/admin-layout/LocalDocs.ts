@@ -4,6 +4,26 @@
  */
 
 export const LOCAL_DOCS = {
+  'quick-reference': {
+    title: '快捷参考',
+    titleEn: 'Quick Reference',
+    content: `
+## 常用操作速查
+
+| 操作 | 路径/方式 |
+|------|----------|
+| 创建应用 | 多应用管理 → 添加应用 → 选模板 |
+| 数据表 | 设置 → 数据表 |
+| 工作流 | 设置 → 工作流 → 从模板创建 |
+| 本地文档 | 顶部导航「文档」 |
+| 页面配置 | 页面内设计模式 |
+
+## 常用 x-component
+- FormBlockProvider, TableBlockProvider, DetailsBlockProvider
+- KanbanBlockProvider, CalendarBlockProvider, GanttBlockProvider
+- Action.Drawer, Action.Modal, CollectionField
+`,
+  },
   'getting-started': {
     title: '快速开始',
     titleEn: 'Getting Started',

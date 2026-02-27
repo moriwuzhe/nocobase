@@ -255,6 +255,8 @@
   "Runs every hour": "每小时执行一次",
   "Every 15 minutes": "每15分钟",
   "Runs every 15 minutes": "每15分钟执行一次",
+  "Every 5 minutes": "每5分钟",
+  "Runs every 5 minutes for frequent checks": "每5分钟执行，适合高频检查",
   "Weekly scheduled task": "每周定时任务",
   "Runs every Monday at 9:00": "每周一 9:00 执行",
   "Monthly scheduled task": "每月定时任务",

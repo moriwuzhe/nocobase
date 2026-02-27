@@ -17,7 +17,7 @@ const { Title, Paragraph } = Typography;
 
 export function LocalDocsPage() {
   const { t, i18n } = useTranslation();
-  const [activeKey, setActiveKey] = useState<string[]>(['getting-started']);
+  const [activeKey, setActiveKey] = useState<string[]>(['quick-reference']);
   const [search, setSearch] = useState('');
   const isZh = i18n.language?.startsWith('zh');
 
@@ -78,14 +78,12 @@ export function LocalDocsPage() {
   return (
     <div style={{ padding: 24, maxWidth: 900 }}>
       <Card>
-        <Title level={3}>{isZh ? '本地文档' : 'Local Documentation'}</Title>
+        <Title level={3}>{t('Local Documentation')}</Title>
         <Paragraph type="secondary">
-          {isZh
-            ? '以下文档已内置，无需联网即可查看。便于 AI 学习和参考。'
-            : 'Built-in documentation, view offline. For AI learning and reference.'}
+          {t('Built-in documentation, view offline. For AI learning and reference.')}
         </Paragraph>
         <Input
-          placeholder={isZh ? '搜索文档...' : 'Search documentation...'}
+          placeholder={t('Search documentation')}
           prefix={<SearchOutlined />}
           value={search}
           onChange={(e) => setSearch(e.target.value)}

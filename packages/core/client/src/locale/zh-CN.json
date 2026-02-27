@@ -1284,5 +1284,8 @@
   "≠": "≠",
   "≤": "≤",
   "≥": "≥",
-  "Documentation": "文档"
+  "Documentation": "文档",
+  "Local Documentation": "本地文档",
+  "Search documentation": "搜索文档...",
+  "Built-in documentation, view offline. For AI learning and reference.": "以下文档已内置，无需联网即可查看。便于 AI 学习和参考。"
 }
