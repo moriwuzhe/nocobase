@@ -347,7 +347,13 @@ function buildKanbanBlock(collectionName: string, groupField: string, cardFields
                                     type: 'void',
                                     'x-component': 'Grid.Col',
                                     properties: {
-                                      [uid()]: buildKanbanViewFormBlock(collectionName, cardFields || []),
+                                      [uid()]: {
+                                        type: 'void',
+                                        'x-component': 'PopupRecordProvider',
+                                        properties: {
+                                          [uid()]: buildKanbanViewFormBlock(collectionName, cardFields || []),
+                                        },
+                                      },
                                     },
                                   },
                                 },
@@ -435,6 +441,49 @@ function buildCalendarBlock(collectionName: string, titleField: string, startDat
                         'x-align': 'right',
                         'x-designer': 'Action.Designer',
                       },
+                      addNew: {
+                        type: 'void',
+                        title: "{{ t('Add new') }}",
+                        'x-action': 'create',
+                        'x-acl-action': 'create',
+                        'x-decorator': 'ACLActionProvider',
+                        'x-component': 'Action',
+                        'x-component-props': { type: 'primary', icon: 'PlusOutlined' },
+                        'x-align': 'right',
+                        properties: {
+                          drawer: {
+                            type: 'void',
+                            title: '{{ t("Add record") }}',
+                            'x-component': 'Action.Drawer',
+                            'x-component-props': { className: 'nb-action-popup' },
+                            properties: {
+                              grid: {
+                                type: 'void',
+                                'x-component': 'Grid',
+                                properties: {
+                                  [uid()]: {
+                                    type: 'void',
+                                    'x-component': 'Grid.Row',
+                                    properties: {
+                                      [uid()]: {
+                                        type: 'void',
+                                        'x-component': 'Grid.Col',
+                                        properties: {
+                                          [uid()]: buildCreateFormBlock(
+                                            collectionName,
+                                            [titleField, startDateField, ...(endDateField ? [endDateField] : [])],
+                                            new Set([titleField, startDateField]),
+                                          ),
+                                        },
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
                     },
                   },
                   event: {
@@ -460,11 +509,17 @@ function buildCalendarBlock(collectionName: string, titleField: string, startDat
                                     type: 'void',
                                     'x-component': 'Grid.Col',
                                     properties: {
-                                      [uid()]: buildKanbanViewFormBlock(collectionName, [
-                                        titleField,
-                                        startDateField,
-                                        ...(endDateField ? [endDateField] : []),
-                                      ]),
+                                      [uid()]: {
+                                        type: 'void',
+                                        'x-component': 'PopupRecordProvider',
+                                        properties: {
+                                          [uid()]: buildKanbanViewFormBlock(collectionName, [
+                                            titleField,
+                                            startDateField,
+                                            ...(endDateField ? [endDateField] : []),
+                                          ]),
+                                        },
+                                      },
                                     },
                                   },
                                 },
@@ -564,12 +619,18 @@ function buildGanttBlock(
                                     type: 'void',
                                     'x-component': 'Grid.Col',
                                     properties: {
-                                      [uid()]: buildKanbanViewFormBlock(collectionName, [
-                                        titleField,
-                                        startField,
-                                        endField,
-                                        ...(progressField ? [progressField] : []),
-                                      ]),
+                                      [uid()]: {
+                                        type: 'void',
+                                        'x-component': 'PopupRecordProvider',
+                                        properties: {
+                                          [uid()]: buildKanbanViewFormBlock(collectionName, [
+                                            titleField,
+                                            startField,
+                                            endField,
+                                            ...(progressField ? [progressField] : []),
+                                          ]),
+                                        },
+                                      },
                                     },
                                   },
                                 },

@@ -37,6 +37,7 @@ import { useTranslation } from 'react-i18next';
 import { TriggerOptionRender } from './components/TriggerOptionRender';
 import { CategoryTabs } from './WorkflowCategoryTabs';
 import { EnumerationField } from './components/EmunerationField';
+import { CreateFromTemplateButton } from './components/CreateFromTemplateButton';
 import { useWorkflowFilterActionProps } from './hooks/useWorkflowFilterActionProps';
 import { ExecutionStatusOptions } from './constants';
 
@@ -141,6 +142,7 @@ export function WorkflowPane() {
           Tooltip,
           CategoryTabs,
           EnumerationField,
+          CreateFromTemplateButton,
         }}
         scope={{
           useTriggersOptions,

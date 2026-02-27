@@ -58,6 +58,7 @@ import { useMenuTranslation } from '../../../schema-component/antd/menu/locale';
 import { VariableScope } from '../../../variables/VariableScope';
 import { KeepAlive, useKeepAlive } from './KeepAlive';
 import { NocoBaseDesktopRoute, NocoBaseDesktopRouteType } from './convertRoutesToSchema';
+import { LocalDocsPage } from './LocalDocsPage';
 import { MenuSchemaToolbar, ResetThemeTokenAndKeepAlgorithm } from './menuItemSettings';
 import { userCenterSettings } from './userCenterSettings';
 
@@ -66,6 +67,8 @@ export { installTemplate, TemplateSelector } from './TemplateSelector';
 export { builtInTemplates } from './templates';
 export { TEMPLATE_I18N_KEYS } from './templateConstants';
 export { KeepAlive, NocoBaseDesktopRouteType, useKeepAlive };
+export { LOCAL_DOCS } from './LocalDocs';
+export { LocalDocsPage } from './LocalDocsPage';
 
 export const NocoBaseRouteContext = createContext<NocoBaseDesktopRoute | null>(null);
 NocoBaseRouteContext.displayName = 'NocoBaseRouteContext';
@@ -548,12 +551,24 @@ const MobileActions: FC = (props) => {
   );
 };
 
+const HeaderActions = () => {
+  const { t } = useTranslation();
+  return (
+    <>
+      <Link to="/admin/local-docs" style={{ marginRight: 12, fontSize: 14 }}>
+        {t('Documentation')}
+      </Link>
+      <PinnedPluginList />
+    </>
+  );
+};
+
 const actionsRender: any = (props) => {
   if (props.isMobile) {
     return <MobileActions />;
   }
 
-  return <PinnedPluginList />;
+  return <HeaderActions />;
 };
 
 const MenuItemTitle: React.FC = (props) => {
@@ -901,7 +916,11 @@ export class AdminLayoutPlugin extends Plugin {
   }
   async load() {
     this.app.schemaSettingsManager.add(userCenterSettings);
-    this.app.addComponents({ AdminLayout, AdminDynamicPage });
+    this.app.addComponents({ AdminLayout, AdminDynamicPage, LocalDocsPage });
+    this.app.router.add('admin.local-docs', {
+      path: '/admin/local-docs',
+      Component: LocalDocsPage,
+    });
     this.app.use(MobileLayoutProvider);
   }
 }

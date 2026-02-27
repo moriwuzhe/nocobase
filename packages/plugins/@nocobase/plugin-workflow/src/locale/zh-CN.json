@@ -238,5 +238,19 @@
   "Workflow will be triggered directly once the button clicked, without data saving. Only supports to be bound with \"Custom action event\".": "按钮点击后直接触发工作流，但不会保存数据。仅支持绑定“自定义操作事件”。",
   "Workflow with unknown type will cause error. Please delete it or check plugin which provide this type.": "未知类型的工作流会导致错误，请删除或检查提供该类型的插件。",
   "Yes": "是",
-  "concat": "连接"
+  "concat": "连接",
+  "Create from template": "从模板创建",
+  "Created successfully": "创建成功",
+  "Data change notification": "数据变更通知",
+  "Triggered when data is created/updated/deleted, can send notifications": "在数据新增/更新/删除时触发，可发送通知",
+  "Create record trigger": "新增记录触发",
+  "Triggered when a new record is created in a collection": "在数据表新增记录时触发",
+  "Update record trigger": "更新记录触发",
+  "Triggered when a record is updated in a collection": "在数据表更新记录时触发",
+  "Daily scheduled task": "每日定时任务",
+  "Runs at a fixed time every day": "每天固定时间执行",
+  "Hourly scheduled task": "每小时定时任务",
+  "Runs every hour": "每小时执行一次",
+  "Use template": "使用模板",
+  "Failed to create": "创建失败"
 }

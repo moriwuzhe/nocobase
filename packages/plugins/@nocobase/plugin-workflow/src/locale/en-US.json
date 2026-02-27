@@ -233,5 +233,19 @@
   "Workflow will be triggered directly once the button clicked, without data saving. Only supports to be bound with \"Custom action event\".": "Workflow will be triggered directly once the button clicked, without data saving. Only supports to be bound with \"Custom action event\".",
   "Workflow with unknown type will cause error. Please delete it or check plugin which provide this type.": "Workflow with unknown type will cause error. Please delete it or check plugin which provide this type.",
   "Yes": "Yes",
-  "concat": "concat"
+  "concat": "concat",
+  "Create from template": "Create from template",
+  "Created successfully": "Created successfully",
+  "Data change notification": "Data change notification",
+  "Triggered when data is created/updated/deleted, can send notifications": "Triggered when data is created/updated/deleted, can send notifications",
+  "Create record trigger": "Create record trigger",
+  "Triggered when a new record is created in a collection": "Triggered when a new record is created in a collection",
+  "Update record trigger": "Update record trigger",
+  "Triggered when a record is updated in a collection": "Triggered when a record is updated in a collection",
+  "Daily scheduled task": "Daily scheduled task",
+  "Runs at a fixed time every day": "Runs at a fixed time every day",
+  "Hourly scheduled task": "Hourly scheduled task",
+  "Runs every hour": "Runs every hour",
+  "Use template": "Use template",
+  "Failed to create": "Failed to create"
 }
