@@ -945,6 +945,8 @@
   "Select record": "选择数据",
   "Select template": "选择模板",
   "Select template for new app": "为新应用选择一个模板，将自动创建数据表、页面、示例数据和工作流",
+  "Built-in template: Blank": "空白",
+  "Built-in template: Blank description": "空白应用，从零开始创建自己的数据表和页面",
   "Built-in template: Project Management": "项目管理",
   "Built-in template: Project Management description": "完整的项目管理系统，涵盖项目规划、任务管理、里程碑、风险、预算和团队协作",
   "Built-in template: CRM": "客户管理 CRM",

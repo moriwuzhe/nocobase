@@ -3,6 +3,10 @@
  * Used by TemplateSelector (core) and AppManager (multi-app-manager).
  */
 export const TEMPLATE_I18N_KEYS: Record<string, { title: string; description: string }> = {
+  blank: {
+    title: 'Built-in template: Blank',
+    description: 'Built-in template: Blank description',
+  },
   'project-management': {
     title: 'Built-in template: Project Management',
     description: 'Built-in template: Project Management description',
@@ -14,6 +18,8 @@ export const TEMPLATE_I18N_KEYS: Record<string, { title: string; description: st
 
 /** Maps template highlight text (Chinese) to i18n key for translation */
 export const HIGHLIGHT_I18N_KEYS: Record<string, string> = {
+  Custom: 'Custom',
+  'From scratch': 'From scratch',
   项目规划: 'Project planning',
   任务管理: 'Task management',
   里程碑: 'Milestones',

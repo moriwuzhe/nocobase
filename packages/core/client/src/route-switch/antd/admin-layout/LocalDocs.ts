@@ -198,6 +198,38 @@ UI Schema 是 NocoBase 的声明式界面配置方式，使用 JSON 描述界面
 - */15 * * * * 每15分钟
 `,
   },
+  'troubleshooting': {
+    title: '常见问题',
+    titleEn: 'Troubleshooting',
+    content: `
+## 常见问题
+
+### 日历点击添加无反应
+- 确保使用内置模板创建的日历页面
+- 检查数据表是否有 create 权限
+- 日历区块设置中「快速创建」需开启
+
+### 详情/编辑白屏
+- 多为 Record 上下文在弹窗中丢失
+- 使用 PopupRecordProvider 包裹弹窗内表单
+- 检查 FormBlockProvider 的 collection 配置
+
+### 工作流创建失败
+- 集合类型触发器需先选择数据表
+- 检查 workflows:create 接口权限
+- 定时任务需填写合法 cron 表达式
+
+### 503/502 启动错误
+- 应用启动中，可等待几秒重试
+- CurrentAppInfoProvider 已内置重试逻辑
+- 检查子应用是否正常启动
+
+### 模板安装失败
+- 确认子应用已创建且可访问
+- 检查网络和 API 权限
+- 查看控制台具体错误信息
+`,
+  },
   'collection-fields': {
     title: '集合字段类型',
     titleEn: 'Collection Field Types',

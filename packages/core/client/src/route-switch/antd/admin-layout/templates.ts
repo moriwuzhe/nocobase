@@ -2106,4 +2106,18 @@ const cms: TemplateDef = {
   ],
 };
 
-export const builtInTemplates: TemplateDef[] = [projectManagement, crm, hr, cms];
+/** Blank template - empty app for custom setup */
+export const blank: TemplateDef = {
+  key: 'blank',
+  title: 'Blank',
+  description: 'Empty app, create your own data tables and pages from scratch',
+  icon: '📄',
+  color: '#8c8c8c',
+  highlights: ['Custom', 'From scratch'],
+  collections: [],
+  relations: [],
+  menu: [],
+  workflows: [],
+};
+
+export const builtInTemplates: TemplateDef[] = [blank, projectManagement, crm, hr, cms];

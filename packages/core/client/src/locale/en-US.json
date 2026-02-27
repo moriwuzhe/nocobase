@@ -945,6 +945,8 @@
   "Select record": "Select record",
   "Select template": "Select template",
   "Select template for new app": "Select a template for the new app. It will automatically create data tables, pages, sample data and workflows",
+  "Built-in template: Blank": "Blank",
+  "Built-in template: Blank description": "Empty app, create your own data tables and pages from scratch",
   "Built-in template: Project Management": "Project Management",
   "Built-in template: Project Management description": "Complete project management system covering project planning, task management, milestones, risks, budget and team collaboration",
   "Built-in template: CRM": "CRM",
