@@ -325,6 +325,7 @@ const projectManagement: TemplateDef = {
           { value: 'in_progress', label: '进行中', color: 'processing' },
           { value: 'in_review', label: '审核中', color: 'warning' },
           { value: 'done', label: '已完成', color: 'success' },
+          { value: 'overdue', label: '已逾期', color: 'error' },
           { value: 'cancelled', label: '已取消', color: 'error' },
         ]),
         select('priority', '优先级', [

@@ -7,8 +7,9 @@
  * For more information, please refer to: https://www.nocobase.com/agreement.
  */
 
-import React, { useState } from 'react';
-import { Card, Collapse, Typography } from 'antd';
+import React, { useMemo, useState } from 'react';
+import { Card, Collapse, Input, Typography } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { LOCAL_DOCS } from './LocalDocs';
 
@@ -17,9 +18,19 @@ const { Title, Paragraph } = Typography;
 export function LocalDocsPage() {
   const { t, i18n } = useTranslation();
   const [activeKey, setActiveKey] = useState<string[]>(['ui-schema']);
+  const [search, setSearch] = useState('');
   const isZh = i18n.language?.startsWith('zh');
 
-  const items = Object.entries(LOCAL_DOCS).map(([key, doc]) => ({
+  const filteredItems = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return Object.entries(LOCAL_DOCS);
+    return Object.entries(LOCAL_DOCS).filter(
+      ([_, doc]) =>
+        (isZh ? doc.title : doc.titleEn).toLowerCase().includes(q) || doc.content.toLowerCase().includes(q),
+    );
+  }, [search, isZh]);
+
+  const items = filteredItems.map(([key, doc]) => ({
     key,
     label: isZh ? doc.title : doc.titleEn,
     children: (
@@ -48,6 +59,14 @@ export function LocalDocsPage() {
             ? '以下文档已内置，无需联网即可查看。便于 AI 学习和参考。'
             : 'Built-in documentation, view offline. For AI learning and reference.'}
         </Paragraph>
+        <Input
+          placeholder={isZh ? '搜索文档...' : 'Search documentation...'}
+          prefix={<SearchOutlined />}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          allowClear
+          style={{ marginBottom: 16 }}
+        />
         <Collapse activeKey={activeKey} onChange={(k) => setActiveKey(Array.isArray(k) ? k : [k])} items={items} />
       </Card>
     </div>

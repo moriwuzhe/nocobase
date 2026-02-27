@@ -52,6 +52,18 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     },
   },
   {
+    key: 'collection-destroy',
+    title: `{{t("Delete record trigger", { ns: "${NAMESPACE}" })}}`,
+    description: `{{t("Triggered when a record is deleted from a collection", { ns: "${NAMESPACE}" })}}`,
+    type: 'collection',
+    sync: false,
+    config: {
+      collection: null,
+      mode: 4, // DESTROY
+      condition: null,
+    },
+  },
+  {
     key: 'schedule-daily',
     title: `{{t("Daily scheduled task", { ns: "${NAMESPACE}" })}}`,
     description: `{{t("Runs at a fixed time every day", { ns: "${NAMESPACE}" })}}`,

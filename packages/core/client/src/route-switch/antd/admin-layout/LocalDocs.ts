@@ -143,4 +143,27 @@ UI Schema 是 NocoBase 的声明式界面配置方式，使用 JSON 描述界面
 - /api/collections/{collectionName}:create
 `,
   },
+  'workflow-templates': {
+    title: '工作流模板',
+    titleEn: 'Workflow Templates',
+    content: `
+## 内置工作流模板
+
+### 集合触发 (collection)
+- mode 1: 新增 (CREATE)
+- mode 2: 更新 (UPDATE)
+- mode 4: 删除 (DESTROY)
+- mode 7: 新增|更新|删除 (1|2|4)
+
+### 定时触发 (schedule)
+- cron: 0 9 * * * 每日9点
+- cron: 0 * * * * 每小时
+- cron: 0 9 * * 1 每周一9点
+
+### 创建流程
+1. 选择模板 -> 集合类型需选数据表
+2. 创建工作流 -> 跳转编辑页
+3. 添加节点 -> condition/update/create 等
+`,
+  },
 };
