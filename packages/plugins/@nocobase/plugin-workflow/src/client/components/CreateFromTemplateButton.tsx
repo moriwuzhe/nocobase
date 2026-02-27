@@ -47,15 +47,26 @@ export function CreateFromTemplateButton() {
       const workflowId = data?.data?.id;
       if (workflowId && template.nodes?.length) {
         let upstreamId: number | null = null;
+        let lastNodeType: string | null = null;
         for (const nodeDef of template.nodes) {
-          const nodeRes = await api.resource('workflows.nodes', workflowId).create({
-            values: {
+          try {
+            const values: Record<string, any> = {
               type: nodeDef.type,
               config: nodeDef.config ?? {},
               upstreamId,
-            },
-          });
-          upstreamId = nodeRes?.data?.data?.id ?? null;
+            };
+            if (upstreamId != null && lastNodeType === 'condition') {
+              values.branchIndex = 0;
+            }
+            const nodeRes = await api.resource('workflows.nodes', workflowId).create({
+              values,
+            });
+            const created = nodeRes?.data?.data ?? nodeRes?.data;
+            upstreamId = created?.id ?? null;
+            lastNodeType = nodeDef.type;
+          } catch (nodeErr: any) {
+            console.warn('Workflow node creation failed:', nodeDef.type, nodeErr?.message);
+          }
         }
       }
       message.success(t('Created successfully'));

@@ -502,9 +502,7 @@ export const Calendar: any = withDynamicSchemaProps(
                   setVisibleAddNewer(true);
                 }
               }}
-              onDoubleClickEvent={() => {
-                console.log('onDoubleClickEvent');
-              }}
+              onDoubleClickEvent={() => {}}
               onSelectEvent={(event) => {
                 const record = dataSource?.find((item) => item[fieldNames.id] === event.id);
                 if (!record) {
