@@ -108,6 +108,72 @@ export const LOCAL_DOCS = {
   }
 }
 \`\`\`
+
+## 看板区块 (Kanban)
+
+\`\`\`json
+{
+  "x-decorator": "KanbanBlockProvider",
+  "x-decorator-props": {
+    "collection": "tasks",
+    "action": "list",
+    "dataSource": "main",
+    "groupField": "status",
+    "params": { "paginate": false }
+  },
+  "x-component": "CardItem",
+  "properties": {
+    "kanban": {
+      "x-component": "Kanban",
+      "x-use-component-props": "useKanbanBlockProps"
+    }
+  }
+}
+\`\`\`
+
+## 日历区块 (Calendar)
+
+\`\`\`json
+{
+  "x-decorator": "CalendarBlockProvider",
+  "x-decorator-props": {
+    "collection": "events",
+    "action": "list",
+    "dataSource": "main",
+    "fieldNames": { "title": "title", "start": "startTime", "end": "endTime" },
+    "params": { "paginate": false }
+  },
+  "x-component": "CardItem",
+  "properties": {
+    "calendar": {
+      "x-component": "CalendarV2",
+      "x-use-component-props": "useCalendarBlockProps"
+    }
+  }
+}
+\`\`\`
+
+## 甘特图区块 (Gantt)
+
+\`\`\`json
+{
+  "x-decorator": "GanttBlockProvider",
+  "x-decorator-props": {
+    "collection": "tasks",
+    "action": "list",
+    "dataSource": "main",
+    "fieldNames": { "title": "title", "start": "startDate", "end": "endDate", "progress": "progress" },
+    "params": { "paginate": false }
+  },
+  "x-component": "CardItem",
+  "properties": {
+    "gantt": {
+      "x-component": "Gantt",
+      "x-use-component-props": "useGanttBlockProps"
+    }
+  }
+}
+\`\`\`
 `,
   },
   'ui-schema': {

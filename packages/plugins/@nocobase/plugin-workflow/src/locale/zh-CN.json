@@ -273,5 +273,7 @@
   "Create trigger + condition + echo": "新增触发 + 条件 + 回显",
   "Create trigger with condition branch and echo, for complex logic": "新增触发 + 条件分支 + 回显，适合复杂逻辑",
   "Daily task + condition + echo": "每日任务 + 条件 + 回显",
-  "Schedule with condition branch for branching logic": "定时任务 + 条件分支，适合分支逻辑"
+  "Schedule with condition branch for branching logic": "定时任务 + 条件分支，适合分支逻辑",
+  "Daily task + calculation + echo": "每日任务 + 计算 + 回显",
+  "Schedule with calculation node for expressions and formulas": "定时任务 + 计算节点，适合表达式和公式"
 }

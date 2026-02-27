@@ -192,4 +192,22 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       { type: 'echo', config: {} },
     ],
   },
+  {
+    key: 'schedule-calculation-echo',
+    title: `{{t("Daily task + calculation + echo", { ns: "${NAMESPACE}" })}}`,
+    description: `{{t("Schedule with calculation node for expressions and formulas", { ns: "${NAMESPACE}" })}}`,
+    type: 'schedule',
+    sync: false,
+    config: {
+      mode: 0,
+      cron: '0 9 * * *',
+    },
+    nodes: [
+      {
+        type: 'calculation',
+        config: { engine: 'math.js', expression: '1 + 1' },
+      },
+      { type: 'echo', config: {} },
+    ],
+  },
 ];

@@ -998,6 +998,7 @@
   "AI intelligent analysis": "AI智能分析",
   "Install template: {{title}}": "安装模板：{{title}}",
   "Template install confirm blank": "将创建空白应用，无预置数据表和页面。可在应用内自行添加数据表、页面和工作流。",
+  "Template requires NocoBase {{version}} or higher": "该模板需要 NocoBase {{version}} 或更高版本",
   "Template install confirm collections": "将创建 <strong>{{collections}}</strong> 个数据表、<strong>{{relations}}</strong> 个关联关系、",
   "Template install confirm kanban": "<strong>{{count}}</strong> 个看板视图、",
   "Template install confirm calendar": "<strong>{{count}}</strong> 个日历视图、",

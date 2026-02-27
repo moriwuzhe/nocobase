@@ -1588,6 +1588,22 @@ function normalizeListRows(res: any): any[] {
   return [];
 }
 
+function parseVersion(v: string): number[] {
+  return (v || '0').split('.').map((n) => parseInt(n, 10) || 0);
+}
+
+function isVersionGte(current: string, required: string): boolean {
+  const a = parseVersion(current);
+  const b = parseVersion(required);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const x = a[i] || 0;
+    const y = b[i] || 0;
+    if (x > y) return true;
+    if (x < y) return false;
+  }
+  return true;
+}
+
 function buildTemplateFieldPayload(field: FieldDef): Record<string, any> {
   const { name, type, interface: fieldInterface, title, uiSchema, required, showInTable, showInForm, ...rest } = field;
   void showInTable;
@@ -1706,6 +1722,39 @@ export async function installTemplate(
             if (subToken) authHeaders = { ...headers, Authorization: `Bearer ${subToken}` };
           } catch {
             // Auth may fail if password changed, continue with main app token
+          }
+
+          if (tpl.minNocoBaseVersion) {
+            currentStep = 'checkVersion';
+            try {
+              const infoRes = await requestWithRetry(
+                api,
+                {
+                  url: 'app:getInfo',
+                  method: 'get',
+                  headers: authHeaders,
+                },
+                { maxAttempts: 2, initialDelayMs: 500 },
+              );
+              const appVersion =
+                infoRes?.data?.data?.version ?? infoRes?.data?.version ?? infoRes?.version ?? '';
+              if (!isVersionGte(appVersion, tpl.minNocoBaseVersion)) {
+                notifyError({
+                  step: currentStep,
+                  message: 'template_version_incompatible',
+                });
+                ui.message.error({
+                  content: msg('Template requires NocoBase {{version}} or higher', {
+                    version: tpl.minNocoBaseVersion,
+                  }),
+                  key: messageKey,
+                });
+                resolve(false);
+                return;
+              }
+            } catch {
+              // Skip version check if we cannot get app info
+            }
           }
 
           const listCollectionFields = async (collectionName: string) => {

@@ -268,5 +268,7 @@
   "Create trigger + condition + echo": "Create trigger + condition + echo",
   "Create trigger with condition branch and echo, for complex logic": "Create trigger with condition branch and echo, for complex logic",
   "Daily task + condition + echo": "Daily task + condition + echo",
-  "Schedule with condition branch for branching logic": "Schedule with condition branch for branching logic"
+  "Schedule with condition branch for branching logic": "Schedule with condition branch for branching logic",
+  "Daily task + calculation + echo": "Daily task + calculation + echo",
+  "Schedule with calculation node for expressions and formulas": "Schedule with calculation node for expressions and formulas"
 }

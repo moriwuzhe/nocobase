@@ -94,6 +94,10 @@ export interface TemplateDef {
   relations: RelationDef[];
   menu: MenuItemDef[];
   workflows: WorkflowDef[];
+  /** Template schema version, e.g. "1.0" */
+  version?: string;
+  /** Minimum NocoBase version required, e.g. "1.0.0" */
+  minNocoBaseVersion?: string;
 }
 
 // ─── Field helpers ────────────────────────────────────────
@@ -751,6 +755,8 @@ const projectManagement: TemplateDef = {
       ],
     },
   ],
+  version: '1.0',
+  minNocoBaseVersion: '1.0.0',
 };
 
 // ─── CRM ──────────────────────────────────────────────────
@@ -1253,6 +1259,8 @@ const crm: TemplateDef = {
       ],
     },
   ],
+  version: '1.0',
+  minNocoBaseVersion: '1.0.0',
 };
 
 // ─── HR ───────────────────────────────────────────────────
@@ -1779,6 +1787,8 @@ const hr: TemplateDef = {
       ],
     },
   ],
+  version: '1.0',
+  minNocoBaseVersion: '1.0.0',
 };
 
 // ─── CMS ──────────────────────────────────────────────────
@@ -2104,6 +2114,8 @@ const cms: TemplateDef = {
       ],
     },
   ],
+  version: '1.0',
+  minNocoBaseVersion: '1.0.0',
 };
 
 /** Blank template - empty app for custom setup */
@@ -2118,6 +2130,7 @@ export const blank: TemplateDef = {
   relations: [],
   menu: [],
   workflows: [],
+  version: '1.0',
 };
 
 export const builtInTemplates: TemplateDef[] = [blank, projectManagement, crm, hr, cms];
