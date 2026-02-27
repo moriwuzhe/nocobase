@@ -1675,9 +1675,9 @@ const hr: TemplateDef = {
       ],
     },
     {
-      title: '试用期到期提醒',
+      title: '试用期员工自动建档',
       type: 'collection',
-      description: '员工入职时检查是否需要设置试用期提醒',
+      description: '试用期员工入职时自动创建试用期评估记录',
       triggerConfig: { collection: 'employees', mode: 1 },
       nodes: [
         {
@@ -1695,11 +1695,18 @@ const hr: TemplateDef = {
           },
         },
         {
-          type: 'update',
-          title: '标记需跟进',
+          type: 'create',
+          title: '创建试用期评估',
           config: {
-            collection: 'employees',
-            params: { filter: { id: '{{$context.data.id}}' }, values: { status: 'probation' } },
+            collection: 'performance_reviews',
+            params: {
+              values: {
+                period: '试用期评估',
+                type: 'probation',
+                status: 'draft',
+                reviewEmployeeId: '{{$context.data.id}}',
+              },
+            },
           },
         },
       ],

@@ -1550,10 +1550,17 @@ export async function installTemplate(
             }
           };
 
-          ui.message.loading({ content: msg('Creating data tables...'), key: messageKey, duration: 0 });
-
-          for (const col of tpl.collections) {
+          for (let i = 0; i < tpl.collections.length; i++) {
+            const col = tpl.collections[i];
             currentStep = `createCollection:${col.name}`;
+            ui.message.loading({
+              content: msg('Creating data tables... {{current}}/{{total}}', {
+                current: i + 1,
+                total: tpl.collections.length,
+              }),
+              key: messageKey,
+              duration: 0,
+            });
             const businessFields = col.fields.map((f) => buildTemplateFieldPayload(f));
             const systemRepairFields: Record<string, any>[] = [
               {
@@ -1648,9 +1655,16 @@ export async function installTemplate(
             await ensureCollectionFields(col.name, [...businessFields, ...systemRepairFields]);
           }
 
-          ui.message.loading({ content: msg('Creating relations...'), key: messageKey, duration: 0 });
-
-          for (const rel of tpl.relations) {
+          for (let i = 0; i < tpl.relations.length; i++) {
+            const rel = tpl.relations[i];
+            ui.message.loading({
+              content: msg('Creating relations... {{current}}/{{total}}', {
+                current: i + 1,
+                total: tpl.relations.length,
+              }),
+              key: messageKey,
+              duration: 0,
+            });
             try {
               currentStep = `createRelation:${rel.sourceCollection}.${rel.name}`;
               await requestWithRetry(
@@ -1997,15 +2011,26 @@ export async function installTemplate(
             // refresh may be unavailable in some deployments
           }
 
-          ui.message.loading({ content: msg('Inserting sample data...'), key: messageKey, duration: 0 });
-
+          const totalSampleCount = sampleBatches.reduce((sum, b) => sum + b.records.length, 0);
+          let sampleInserted = 0;
+          const sampleFailed: { collection: string; count: number }[] = [];
+          const unresolvedRefs: { collection: string; ref: string }[] = [];
           const idMap: Record<string, Record<string, number>> = {};
 
           for (const batch of sampleBatches) {
             if (!idMap[batch.collection]) idMap[batch.collection] = {};
+            let batchFailed = 0;
 
             for (const record of batch.records) {
               currentStep = `insertSample:${batch.collection}`;
+              ui.message.loading({
+                content: msg('Inserting sample data... {{current}}/{{total}}', {
+                  current: sampleInserted + 1,
+                  total: totalSampleCount,
+                }),
+                key: messageKey,
+                duration: 0,
+              });
               const cleanRecord: Record<string, any> = {};
               for (const [k, v] of Object.entries(record)) {
                 if (isRef(v)) {
@@ -2014,7 +2039,19 @@ export async function installTemplate(
                     const matchKey = Object.keys(v.__match)[0];
                     const matchVal = v.__match[matchKey];
                     const refId = refMap[`${matchKey}:${matchVal}`];
-                    if (refId) cleanRecord[k] = refId;
+                    if (refId) {
+                      cleanRecord[k] = refId;
+                    } else {
+                      unresolvedRefs.push({
+                        collection: batch.collection,
+                        ref: `${v.__ref}.${matchKey}=${matchVal}`,
+                      });
+                    }
+                  } else {
+                    unresolvedRefs.push({
+                      collection: batch.collection,
+                      ref: `${v.__ref} (batch order?)`,
+                    });
                   }
                 } else {
                   cleanRecord[k] = v;
@@ -2034,15 +2071,22 @@ export async function installTemplate(
                 );
                 const createdId = res?.data?.data?.id ?? res?.data?.id;
                 if (createdId) {
+                  sampleInserted += 1;
                   for (const [k, v] of Object.entries(record)) {
                     if (typeof v === 'string' || typeof v === 'number') {
                       idMap[batch.collection][`${k}:${v}`] = createdId;
                     }
                   }
+                } else {
+                  batchFailed += 1;
                 }
               } catch (e) {
+                batchFailed += 1;
                 console.warn(`Failed to insert ${batch.collection} record:`, e);
               }
+            }
+            if (batchFailed > 0) {
+              sampleFailed.push({ collection: batch.collection, count: batchFailed });
             }
           }
 
@@ -2269,10 +2313,23 @@ export async function installTemplate(
             // refresh may be unavailable in some deployments
           }
 
+          const successParts: string[] = [];
+          if (missingWorkflows.length > 0) {
+            successParts.push(msg('{{count}} workflow(s) could not be created', { count: missingWorkflows.length }));
+          }
+          if (sampleFailed.length > 0) {
+            const failedCount = sampleFailed.reduce((s, x) => s + x.count, 0);
+            successParts.push(msg('{{count}} sample record(s) failed', { count: failedCount }));
+          }
+          if (unresolvedRefs.length > 0) {
+            successParts.push(msg('{{count}} reference(s) unresolved', { count: unresolvedRefs.length }));
+          }
           const successContent =
-            missingWorkflows.length > 0
-              ? msg('Template "{{title}}" installed successfully. {{count}} workflow(s) could not be created.',
-                  { title: displayTitle, count: missingWorkflows.length })
+            successParts.length > 0
+              ? msg('Template "{{title}}" installed. {{issues}}', {
+                  title: displayTitle,
+                  issues: successParts.join('; '),
+                })
               : msg('Template "{{title}}" installed successfully', { title: displayTitle });
           ui.message.success({
             content: successContent,
