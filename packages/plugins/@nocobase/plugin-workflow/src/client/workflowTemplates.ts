@@ -73,4 +73,15 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       cron: '0 * * * *',
     },
   },
+  {
+    key: 'schedule-weekly',
+    title: `{{t("Weekly scheduled task", { ns: "${NAMESPACE}" })}}`,
+    description: `{{t("Runs every Monday at 9:00", { ns: "${NAMESPACE}" })}}`,
+    type: 'schedule',
+    sync: false,
+    config: {
+      mode: 0,
+      cron: '0 9 * * 1',
+    },
+  },
 ];

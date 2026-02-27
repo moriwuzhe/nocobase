@@ -246,6 +246,11 @@
   "Runs at a fixed time every day": "Runs at a fixed time every day",
   "Hourly scheduled task": "Hourly scheduled task",
   "Runs every hour": "Runs every hour",
+  "Weekly scheduled task": "Weekly scheduled task",
+  "Runs every Monday at 9:00": "Runs every Monday at 9:00",
   "Use template": "Use template",
-  "Failed to create": "Failed to create"
+  "Failed to create": "Failed to create",
+  "Select collection": "Select collection",
+  "Collection": "Collection",
+  "Please select a collection": "Please select a collection"
 }

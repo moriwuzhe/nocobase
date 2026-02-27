@@ -299,6 +299,52 @@ function buildKanbanBlock(collectionName: string, groupField: string, cardFields
                 'x-initializer': 'kanban:configureActions',
                 'x-component': 'ActionBar',
                 'x-component-props': { style: { marginBottom: 'var(--nb-spacing)' } },
+                properties: {
+                  addNew: {
+                    type: 'void',
+                    title: "{{ t('Add new') }}",
+                    'x-action': 'create',
+                    'x-acl-action': 'create',
+                    'x-decorator': 'ACLActionProvider',
+                    'x-acl-action-props': { skipScopeCheck: true },
+                    'x-component': 'Action',
+                    'x-component-props': { type: 'primary', icon: 'PlusOutlined' },
+                    'x-align': 'right',
+                    properties: {
+                      drawer: {
+                        type: 'void',
+                        title: '{{ t("Add record") }}',
+                        'x-component': 'Action.Drawer',
+                        'x-component-props': { className: 'nb-action-popup' },
+                        properties: {
+                          grid: {
+                            type: 'void',
+                            'x-component': 'Grid',
+                            properties: {
+                              [uid()]: {
+                                type: 'void',
+                                'x-component': 'Grid.Row',
+                                properties: {
+                                  [uid()]: {
+                                    type: 'void',
+                                    'x-component': 'Grid.Col',
+                                    properties: {
+                                      [uid()]: buildCreateFormBlock(
+                                        collectionName,
+                                        [...new Set([groupField, ...(cardFields || [])])],
+                                        new Set([groupField]),
+                                      ),
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
               },
               [uid()]: {
                 type: 'array',
@@ -584,6 +630,57 @@ function buildGanttBlock(
                     'x-component': 'ActionBar',
                     'x-initializer': 'gantt:configureActions',
                     'x-component-props': { style: { marginBottom: 24 } },
+                    properties: {
+                      addNew: {
+                        type: 'void',
+                        title: "{{ t('Add new') }}",
+                        'x-action': 'create',
+                        'x-acl-action': 'create',
+                        'x-decorator': 'ACLActionProvider',
+                        'x-acl-action-props': { skipScopeCheck: true },
+                        'x-component': 'Action',
+                        'x-component-props': { type: 'primary', icon: 'PlusOutlined' },
+                        'x-align': 'right',
+                        properties: {
+                          drawer: {
+                            type: 'void',
+                            title: '{{ t("Add record") }}',
+                            'x-component': 'Action.Drawer',
+                            'x-component-props': { className: 'nb-action-popup' },
+                            properties: {
+                              grid: {
+                                type: 'void',
+                                'x-component': 'Grid',
+                                properties: {
+                                  [uid()]: {
+                                    type: 'void',
+                                    'x-component': 'Grid.Row',
+                                    properties: {
+                                      [uid()]: {
+                                        type: 'void',
+                                        'x-component': 'Grid.Col',
+                                        properties: {
+                                          [uid()]: buildCreateFormBlock(
+                                            collectionName,
+                                            [
+                                              titleField,
+                                              startField,
+                                              endField,
+                                              ...(progressField ? [progressField] : []),
+                                            ],
+                                            new Set([titleField, startField]),
+                                          ),
+                                        },
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
                   },
                   table: {
                     type: 'void',

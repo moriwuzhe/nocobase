@@ -8,11 +8,11 @@
  */
 
 import React, { useState } from 'react';
-import { Button, Dropdown, App } from 'antd';
+import { Button, Dropdown, App, Modal, Form, Select } from 'antd';
 import { DownOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useAPIClient, useCompile } from '@nocobase/client';
+import { useAPIClient, useCompile, useCollections } from '@nocobase/client';
 import { WORKFLOW_TEMPLATES } from '../workflowTemplates';
 import { getWorkflowDetailPath } from '../utils';
 import { NAMESPACE } from '../locale';
@@ -23,11 +23,16 @@ export function CreateFromTemplateButton() {
   const navigate = useNavigate();
   const compile = useCompile();
   const { message } = App.useApp();
+  const collections = useCollections((c) => !!c.name && !c.name.startsWith('_'));
   const [loading, setLoading] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<(typeof WORKFLOW_TEMPLATES)[0] | null>(null);
+  const [form] = Form.useForm();
 
-  const handleCreate = async (template: (typeof WORKFLOW_TEMPLATES)[0]) => {
+  const createWorkflow = async (template: (typeof WORKFLOW_TEMPLATES)[0], configOverride?: Record<string, any>) => {
     setLoading(template.key);
     try {
+      const config = { ...template.config, ...configOverride };
       const { data } = await api.request({
         url: 'workflows:create',
         method: 'post',
@@ -35,7 +40,7 @@ export function CreateFromTemplateButton() {
           title: compile(template.title),
           type: template.type,
           sync: template.sync ?? false,
-          config: template.config,
+          config,
           current: true,
         },
       });
@@ -48,17 +53,66 @@ export function CreateFromTemplateButton() {
     }
   };
 
+  const handleSelect = (template: (typeof WORKFLOW_TEMPLATES)[0]) => {
+    if (template.type === 'collection' && template.config?.collection == null) {
+      setSelectedTemplate(template);
+      setModalOpen(true);
+      form.resetFields();
+    } else {
+      createWorkflow(template);
+    }
+  };
+
+  const handleModalOk = async () => {
+    if (!selectedTemplate) return;
+    const values = await form.validateFields();
+    setModalOpen(false);
+    setSelectedTemplate(null);
+    await createWorkflow(selectedTemplate, { collection: values.collection });
+  };
+
+
   const menuItems = WORKFLOW_TEMPLATES.map((template) => ({
     key: template.key,
     label: compile(template.title),
-    onClick: () => handleCreate(template),
+    onClick: () => handleSelect(template),
   }));
 
   return (
-    <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-      <Button icon={<ThunderboltOutlined />} loading={!!loading}>
-        {t('Create from template')} <DownOutlined />
-      </Button>
-    </Dropdown>
+    <>
+      <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+        <Button icon={<ThunderboltOutlined />} loading={!!loading}>
+          {t('Create from template')} <DownOutlined />
+        </Button>
+      </Dropdown>
+      <Modal
+        title={t('Select collection')}
+        open={modalOpen}
+        onOk={handleModalOk}
+        onCancel={() => {
+          setModalOpen(false);
+          setSelectedTemplate(null);
+        }}
+        confirmLoading={!!loading}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="collection"
+            label={t('Collection')}
+            rules={[{ required: true, message: t('Please select a collection') }]}
+          >
+            <Select
+              placeholder={t('Select collection')}
+              showSearch
+              optionFilterProp="label"
+              options={(collections ?? []).map((c) => ({
+                value: c.name,
+                label: c.title || c.name,
+              }))}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
   );
 }

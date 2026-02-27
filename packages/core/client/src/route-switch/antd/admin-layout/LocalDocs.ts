@@ -103,4 +103,44 @@ UI Schema 是 NocoBase 的声明式界面配置方式，使用 JSON 描述界面
 - popup:addNew:addBlock: 添加区块到新建弹窗
 `,
   },
+  'variables': {
+    title: '变量与表达式',
+    titleEn: 'Variables & Expressions',
+    content: `
+## 变量
+
+### 记录变量
+- $nRecord: 当前表格行/表单记录
+- $nPopupRecord: 弹窗内当前记录
+- $nParentRecord: 父级记录
+
+### 系统变量
+- $nNow: 当前时间
+- $nUser: 当前用户
+
+### 表达式
+- {{ $nRecord.fieldName }}: 引用字段值
+- {{ $nUser.nickname }}: 引用用户昵称
+`,
+  },
+  'api': {
+    title: 'API 参考',
+    titleEn: 'API Reference',
+    content: `
+## 常用 API
+
+### 数据操作
+- workflows:create - 创建工作流
+- workflows:list - 工作流列表
+- collections/{name}:create - 创建记录
+- collections/{name}:list - 列表查询
+- collections/{name}:get - 单条查询
+- collections/{name}:update - 更新
+- collections/{name}:destroy - 删除
+
+### 资源路径
+- /api/workflows:create
+- /api/collections/{collectionName}:create
+`,
+  },
 };
