@@ -270,5 +270,9 @@
   "Daily task + condition + echo": "Daily task + condition + echo",
   "Schedule with condition branch for branching logic": "Schedule with condition branch for branching logic",
   "Daily task + calculation + echo": "Daily task + calculation + echo",
-  "Schedule with calculation node for expressions and formulas": "Schedule with calculation node for expressions and formulas"
+  "Schedule with calculation node for expressions and formulas": "Schedule with calculation node for expressions and formulas",
+  "Daily task + create record + echo": "Daily task + create record + echo",
+  "Schedule with create node, for batch data creation": "Schedule with create node, for batch data creation",
+  "Create trigger + calculation + echo": "Create trigger + calculation + echo",
+  "Create trigger with calculation for data transform before echo": "Create trigger with calculation for data transform before echo"
 }

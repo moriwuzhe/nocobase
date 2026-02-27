@@ -8,8 +8,8 @@
  */
 
 import { uid } from '@formily/shared';
-import { App, Card, Col, Row, Spin, Tag, Typography } from 'antd';
-import React, { useCallback, useState } from 'react';
+import { App, Card, Col, Row, Spin, Tag, Tooltip, Typography } from 'antd';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAPIClient } from '../../../api-client/hooks/useAPIClient';
 import {
@@ -1744,10 +1744,11 @@ export async function installTemplate(
                   message: 'template_version_incompatible',
                 });
                 ui.message.error({
-                  content: msg('Template requires NocoBase {{version}} or higher', {
+                  content: msg('Template requires NocoBase {{version}} or higher. Please upgrade NocoBase.', {
                     version: tpl.minNocoBaseVersion,
                   }),
                   key: messageKey,
+                  duration: 6,
                 });
                 resolve(false);
                 return;
@@ -2628,6 +2629,30 @@ export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => v
   const { modal, message } = App.useApp();
   const { t } = useTranslation();
   const [installing, setInstalling] = useState(false);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .silent()
+      .request({
+        url: 'app:getInfo',
+        method: 'get',
+        headers: { 'X-App': appName },
+        skipNotify: true,
+      })
+      .then((res: any) => {
+        if (cancelled) return;
+        const v = res?.data?.data?.version ?? res?.data?.version ?? res?.version ?? '';
+        setAppVersion(v ? String(v) : null);
+      })
+      .catch(() => {
+        if (!cancelled) setAppVersion(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [api, appName]);
 
   const handleInstall = useCallback(
     async (templateKey: string) => {
@@ -2665,34 +2690,49 @@ export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => v
             const i18n = TEMPLATE_I18N_KEYS[tpl.key];
             const displayTitle = i18n ? t(i18n.title) : tpl.title;
             const displayDesc = i18n ? t(i18n.description) : tpl.description;
-            return (
-              <Col span={12} key={tpl.key}>
-                <div
-                  role="button"
-                  tabIndex={installing ? -1 : 0}
-                  aria-disabled={installing}
-                  aria-label={displayTitle}
-                  onClick={() => !installing && handleInstall(tpl.key)}
-                  onKeyDown={(e) => {
-                    if (!installing && (e.key === 'Enter' || e.key === ' ')) {
-                      e.preventDefault();
-                      handleInstall(tpl.key);
-                    }
-                  }}
-                  style={{
-                    height: '100%',
-                    cursor: installing ? 'not-allowed' : 'pointer',
-                    opacity: installing ? 0.7 : 1,
-                  }}
-                >
+            const versionIncompatible =
+              tpl.minNocoBaseVersion &&
+              appVersion != null &&
+              !isVersionGte(appVersion, tpl.minNocoBaseVersion);
+            const disabled = installing || versionIncompatible;
+            const versionTooltip = versionIncompatible
+              ? t('Template requires NocoBase {{version}} or higher', {
+                  version: tpl.minNocoBaseVersion,
+                })
+              : null;
+
+            const cardContent = (
+              <div
+                role="button"
+                tabIndex={disabled ? -1 : 0}
+                aria-disabled={disabled}
+                aria-label={displayTitle}
+                onClick={() => !disabled && handleInstall(tpl.key)}
+                onKeyDown={(e) => {
+                  if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    handleInstall(tpl.key);
+                  }
+                }}
+                style={{
+                  height: '100%',
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  opacity: disabled ? 0.7 : 1,
+                }}
+              >
                 <Card
-                  hoverable={!installing}
-                  style={{ borderColor: tpl.color, borderWidth: 2, height: '100%', pointerEvents: 'none' }}
+                  hoverable={!disabled}
+                  style={{
+                    borderColor: tpl.color,
+                    borderWidth: 2,
+                    height: '100%',
+                    pointerEvents: 'none',
+                  }}
                   bodyStyle={{ padding: 16 }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
                     <span style={{ fontSize: 28, marginRight: 12 }}>{tpl.icon}</span>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <Text strong style={{ fontSize: 16 }}>
                         {displayTitle}
                       </Text>
@@ -2704,23 +2744,39 @@ export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => v
                         })}
                       </Text>
                     </div>
+                    {tpl.minNocoBaseVersion && (
+                      <Tag style={{ fontSize: 10, margin: 0 }}>
+                        ≥{tpl.minNocoBaseVersion}
+                      </Tag>
+                    )}
                   </div>
                   <Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 8 }} ellipsis={{ rows: 2 }}>
                     {displayDesc}
                   </Paragraph>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {tpl.highlights.slice(0, 8).map((h) => (
-                    <Tag key={h} color={tpl.color} style={{ fontSize: 11, margin: 0 }}>
-                      {HIGHLIGHT_I18N_KEYS[h] ? t(HIGHLIGHT_I18N_KEYS[h]) : h}
-                    </Tag>
-                  ))}
-                  {tpl.highlights.length > 8 && (
-                    <Tag style={{ fontSize: 11, margin: 0 }}>+{tpl.highlights.length - 8}</Tag>
-                  )}
-                </div>
-              </Card>
-                </div>
-            </Col>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {tpl.highlights.slice(0, 8).map((h) => (
+                      <Tag key={h} color={tpl.color} style={{ fontSize: 11, margin: 0 }}>
+                        {HIGHLIGHT_I18N_KEYS[h] ? t(HIGHLIGHT_I18N_KEYS[h]) : h}
+                      </Tag>
+                    ))}
+                    {tpl.highlights.length > 8 && (
+                      <Tag style={{ fontSize: 11, margin: 0 }}>+{tpl.highlights.length - 8}</Tag>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            );
+
+            return (
+              <Col span={12} key={tpl.key}>
+                {versionTooltip ? (
+                  <Tooltip title={versionTooltip} placement="top">
+                    {cardContent}
+                  </Tooltip>
+                ) : (
+                  cardContent
+                )}
+              </Col>
             );
           })
           )}

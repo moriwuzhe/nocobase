@@ -210,4 +210,41 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       { type: 'echo', config: {} },
     ],
   },
+  {
+    key: 'schedule-create-echo',
+    title: `{{t("Daily task + create record + echo", { ns: "${NAMESPACE}" })}}`,
+    description: `{{t("Schedule with create node, for batch data creation", { ns: "${NAMESPACE}" })}}`,
+    type: 'schedule',
+    sync: false,
+    config: {
+      mode: 0,
+      cron: '0 9 * * *',
+    },
+    nodes: [
+      {
+        type: 'create',
+        config: { collection: null, params: {} },
+      },
+      { type: 'echo', config: {} },
+    ],
+  },
+  {
+    key: 'collection-create-calculation-echo',
+    title: `{{t("Create trigger + calculation + echo", { ns: "${NAMESPACE}" })}}`,
+    description: `{{t("Create trigger with calculation for data transform before echo", { ns: "${NAMESPACE}" })}}`,
+    type: 'collection',
+    sync: false,
+    config: {
+      collection: null,
+      mode: 1,
+      condition: null,
+    },
+    nodes: [
+      {
+        type: 'calculation',
+        config: { engine: 'math.js', expression: '1 + 1' },
+      },
+      { type: 'echo', config: {} },
+    ],
+  },
 ];

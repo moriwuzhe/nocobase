@@ -275,5 +275,9 @@
   "Daily task + condition + echo": "每日任务 + 条件 + 回显",
   "Schedule with condition branch for branching logic": "定时任务 + 条件分支，适合分支逻辑",
   "Daily task + calculation + echo": "每日任务 + 计算 + 回显",
-  "Schedule with calculation node for expressions and formulas": "定时任务 + 计算节点，适合表达式和公式"
+  "Schedule with calculation node for expressions and formulas": "定时任务 + 计算节点，适合表达式和公式",
+  "Daily task + create record + echo": "每日任务 + 创建记录 + 回显",
+  "Schedule with create node, for batch data creation": "定时任务 + 创建节点，适合批量创建数据",
+  "Create trigger + calculation + echo": "新增触发 + 计算 + 回显",
+  "Create trigger with calculation for data transform before echo": "新增触发 + 计算节点，用于数据转换后回显"
 }

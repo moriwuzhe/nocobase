@@ -299,6 +299,11 @@ UI Schema 是 NocoBase 的声明式界面配置方式，使用 JSON 描述界面
 - $jobsMapByNodeKey: 按节点 key 索引的已执行节点结果
 - $system.now: 当前系统时间
 - 示例: {{$context.data.title}} 引用触发记录的 title 字段
+
+### 工作流节点引用
+- {{$jobsMapByNodeKey.createNodeKey.result}}: 引用上游 create 节点的 result
+- {{$jobsMapByNodeKey.calcNodeKey.result}}: 引用 calculation 节点结果
+- 条件节点: expression 中可用 {{$context.data.field}}
 `,
   },
   'api': {
@@ -319,6 +324,16 @@ UI Schema 是 NocoBase 的声明式界面配置方式，使用 JSON 描述界面
 ### 资源路径
 - /api/workflows:create
 - /api/collections/{collectionName}:create
+
+### 请求示例 (api.request)
+\`\`\`js
+// 创建记录
+await api.request({ url: 'users:create', method: 'post', data: { name: 'test' } });
+// 列表查询
+await api.request({ url: 'users:list', method: 'get', params: { pageSize: 20 } });
+// 子应用请求 (多应用)
+await api.request({ url: 'app:getInfo', method: 'get', headers: { 'X-App': 'subAppName' } });
+\`\`\`
 `,
   },
   'workflow-templates': {
@@ -382,6 +397,11 @@ UI Schema 是 NocoBase 的声明式界面配置方式，使用 JSON 描述界面
 - 确认子应用已创建且可访问
 - 检查网络和 API 权限
 - 查看控制台具体错误信息
+
+### 模板版本不兼容
+- 提示「需要 NocoBase X.X.X 或更高版本」时，请升级 NocoBase 主应用
+- 升级后刷新页面，模板选择器会重新检测版本
+- 参考: https://docs.nocobase.com
 `,
   },
   'collection-fields': {

@@ -29,7 +29,7 @@
   "AI intelligent analysis": "AI intelligent analysis",
   "Install template: {{title}}": "Install template: {{title}}",
   "Template install confirm blank": "Will create an empty app with no pre-built data tables or pages. You can add collections, pages and workflows inside the app.",
-  "Template requires NocoBase {{version}} or higher": "This template requires NocoBase {{version}} or higher",
+  "Template requires NocoBase {{version}} or higher. Please upgrade NocoBase.": "This template requires NocoBase {{version}} or higher. Please upgrade NocoBase.",
   "Template install confirm collections": "Will create <strong>{{collections}}</strong> data tables, <strong>{{relations}}</strong> relations, ",
   "Template install confirm kanban": "<strong>{{count}}</strong> kanban views, ",
   "Template install confirm calendar": "<strong>{{count}}</strong> calendar views, ",
