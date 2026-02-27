@@ -46,3 +46,10 @@ export const HIGHLIGHT_I18N_KEYS: Record<string, string> = {
   富文本: 'Rich text',
   'URL链接': 'URL link',
 };
+
+/** Common workflow templates - reusable across built-in templates */
+export const COMMON_WORKFLOW_I18N_KEYS: Record<string, string> = {
+  '数据变更通知': 'Data change notification',
+  '逾期提醒': 'Overdue reminder',
+  'AI智能分析': 'AI intelligent analysis',
+};

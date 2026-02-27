@@ -716,6 +716,39 @@ const projectManagement: TemplateDef = {
         },
       ],
     },
+    {
+      title: '逾期任务自动提醒',
+      type: 'collection',
+      description: '任务逾期时自动更新状态为已逾期',
+      triggerConfig: { collection: 'tasks', mode: 2, changed: ['dueDate'] },
+      nodes: [
+        {
+          type: 'condition',
+          title: '检查是否逾期',
+          config: {
+            rejectOnFalse: true,
+            engine: 'basic',
+            calculation: {
+              group: {
+                type: 'and',
+                calculations: [
+                  { calculator: 'notNull', left: '{{$context.data.dueDate}}' },
+                  { calculator: 'lt', left: '{{$context.data.dueDate}}', right: '{{$system.now}}' },
+                ],
+              },
+            },
+          },
+        },
+        {
+          type: 'update',
+          title: '更新为逾期状态',
+          config: {
+            collection: 'tasks',
+            params: { filter: { id: '{{$context.data.id}}' }, values: { status: 'overdue' } },
+          },
+        },
+      ],
+    },
   ],
 };
 
@@ -1181,6 +1214,39 @@ const crm: TemplateDef = {
           config: {
             collection: 'customers',
             params: { filter: { id: '{{$context.data.id}}' }, values: { status: 'following' } },
+          },
+        },
+      ],
+    },
+    {
+      title: '商机逾期自动标记',
+      type: 'collection',
+      description: '商机预计成交日过期时自动更新阶段',
+      triggerConfig: { collection: 'deals', mode: 2, changed: ['expectedCloseDate'] },
+      nodes: [
+        {
+          type: 'condition',
+          title: '检查是否逾期',
+          config: {
+            rejectOnFalse: true,
+            engine: 'basic',
+            calculation: {
+              group: {
+                type: 'and',
+                calculations: [
+                  { calculator: 'notNull', left: '{{$context.data.expectedCloseDate}}' },
+                  { calculator: 'lt', left: '{{$context.data.expectedCloseDate}}', right: '{{$system.now}}' },
+                ],
+              },
+            },
+          },
+        },
+        {
+          type: 'update',
+          title: '标记为需跟进',
+          config: {
+            collection: 'deals',
+            params: { filter: { id: '{{$context.data.id}}' }, values: { stage: 'negotiation' } },
           },
         },
       ],

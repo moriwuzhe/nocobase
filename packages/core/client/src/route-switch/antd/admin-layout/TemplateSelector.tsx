@@ -670,8 +670,40 @@ function buildEditFormBlock(collectionName: string, formFieldNames: string[], re
   };
 }
 
+function buildViewFormBlock(collectionName: string, formFieldNames: string[]) {
+  const formGridProperties: Record<string, any> = {};
+  for (const fn of formFieldNames) {
+    formGridProperties[uid()] = buildFormField(collectionName, fn, false);
+  }
+  return {
+    type: 'void',
+    'x-acl-action': `${collectionName}:get`,
+    'x-decorator': 'FormBlockProvider',
+    'x-use-decorator-props': 'useEditFormBlockDecoratorProps',
+    'x-decorator-props': { action: 'get', dataSource: 'main', collection: collectionName, readPretty: true },
+    'x-toolbar': 'BlockSchemaToolbar',
+    'x-settings': 'blockSettings:editForm',
+    'x-component': 'CardItem',
+    properties: {
+      [uid()]: {
+        type: 'void',
+        'x-component': 'FormV2',
+        'x-pattern': 'readPretty',
+        'x-use-component-props': 'useEditFormBlockProps',
+        properties: {
+          grid: {
+            type: 'void',
+            'x-component': 'Grid',
+            properties: formGridProperties,
+          },
+        },
+      },
+    },
+  };
+}
+
 function buildViewAction(collectionName: string, formFieldNames: string[], detailFieldNames: string[]) {
-  const detailBlock = buildDetailBlock(collectionName, detailFieldNames);
+  const viewFormBlock = buildViewFormBlock(collectionName, formFieldNames.length > 0 ? formFieldNames : detailFieldNames);
   return {
     type: 'void',
     title: '{{ t("View") }}',
@@ -681,34 +713,26 @@ function buildViewAction(collectionName: string, formFieldNames: string[], detai
     'x-component': 'Action.Link',
     'x-component-props': { openMode: 'drawer' },
     'x-action-context': { dataSource: 'main', collection: collectionName },
+    'x-decorator': 'ACLActionProvider',
     properties: {
       drawer: {
         type: 'void',
         title: '{{ t("View record") }}',
-        'x-component': 'Action.Container',
+        'x-component': 'Action.Drawer',
         'x-component-props': { className: 'nb-action-popup' },
         properties: {
-          tabs: {
+          grid: {
             type: 'void',
-            'x-component': 'Tabs',
+            'x-component': 'Grid',
             properties: {
-              tab1: {
+              [uid()]: {
                 type: 'void',
-                title: '{{ t("Details") }}',
-                'x-component': 'Tabs.TabPane',
+                'x-component': 'Grid.Row',
                 properties: {
-                  grid: {
+                  [uid()]: {
                     type: 'void',
-                    'x-component': 'Grid',
-                    properties: {
-                      [uid()]: {
-                        type: 'void',
-                        'x-component': 'Grid.Row',
-                        properties: {
-                          [uid()]: { type: 'void', 'x-component': 'Grid.Col', properties: { [uid()]: detailBlock } },
-                        },
-                      },
-                    },
+                    'x-component': 'Grid.Col',
+                    properties: { [uid()]: viewFormBlock },
                   },
                 },
               },
@@ -736,35 +760,21 @@ function buildEditAction(collectionName: string, formFieldNames: string[], requi
       drawer: {
         type: 'void',
         title: '{{ t("Edit record") }}',
-        'x-component': 'Action.Container',
+        'x-component': 'Action.Drawer',
         'x-component-props': { className: 'nb-action-popup' },
         properties: {
-          tabs: {
+          grid: {
             type: 'void',
-            'x-component': 'Tabs',
+            'x-component': 'Grid',
             properties: {
-              tab1: {
+              [uid()]: {
                 type: 'void',
-                title: '{{t("Edit")}}',
-                'x-component': 'Tabs.TabPane',
-                'x-designer': 'Tabs.Designer',
+                'x-component': 'Grid.Row',
                 properties: {
-                  grid: {
+                  [uid()]: {
                     type: 'void',
-                    'x-component': 'Grid',
-                    properties: {
-                      [uid()]: {
-                        type: 'void',
-                        'x-component': 'Grid.Row',
-                        properties: {
-                          [uid()]: {
-                            type: 'void',
-                            'x-component': 'Grid.Col',
-                            properties: { [uid()]: editFormBlock },
-                          },
-                        },
-                      },
-                    },
+                    'x-component': 'Grid.Col',
+                    properties: { [uid()]: editFormBlock },
                   },
                 },
               },

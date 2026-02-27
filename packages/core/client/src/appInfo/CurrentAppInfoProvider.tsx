@@ -27,9 +27,19 @@ export const useCurrentAppInfo = () => {
   }>(CurrentAppInfoContext);
 };
 export const CurrentAppInfoProvider = (props) => {
-  const result = useRequest({
-    url: 'app:getInfo',
-  });
+  const result = useRequest(
+    {
+      url: 'app:getInfo',
+    },
+    {
+      retryCount: 5,
+      retryInterval: 2000,
+      retryError: (err: any) => {
+        const status = err?.response?.status;
+        return status === 503 || status === 502 || status === 504 || status === 404;
+      },
+    },
+  );
 
   return <CurrentAppInfoContext.Provider value={result.data}>{props.children}</CurrentAppInfoContext.Provider>;
 };
