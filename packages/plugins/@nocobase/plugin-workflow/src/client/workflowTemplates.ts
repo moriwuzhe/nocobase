@@ -266,4 +266,23 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       { type: 'echo', config: {} },
     ],
   },
+  {
+    key: 'collection-update-update-echo',
+    title: `{{t("Update trigger + update record + echo", { ns: "${NAMESPACE}" })}}`,
+    description: `{{t("When record updated, update another record in target collection", { ns: "${NAMESPACE}" })}}`,
+    type: 'collection',
+    sync: false,
+    config: {
+      collection: null,
+      mode: 2,
+      condition: null,
+    },
+    nodes: [
+      {
+        type: 'update',
+        config: { collection: null, params: {} },
+      },
+      { type: 'echo', config: {} },
+    ],
+  },
 ];

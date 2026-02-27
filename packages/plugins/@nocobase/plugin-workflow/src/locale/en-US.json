@@ -278,5 +278,7 @@
   "Create trigger + calculation + echo": "Create trigger + calculation + echo",
   "Create trigger with calculation for data transform before echo": "Create trigger with calculation for data transform before echo",
   "Create trigger + create record + echo": "Create trigger + create record + echo",
-  "When record created, create another record in target collection": "When record created, create another record in target collection"
+  "When record created, create another record in target collection": "When record created, create another record in target collection",
+  "Update trigger + update record + echo": "Update trigger + update record + echo",
+  "When record updated, update another record in target collection": "When record updated, update another record in target collection"
 }

@@ -283,5 +283,7 @@
   "Create trigger + calculation + echo": "新增触发 + 计算 + 回显",
   "Create trigger with calculation for data transform before echo": "新增触发 + 计算节点，用于数据转换后回显",
   "Create trigger + create record + echo": "新增触发 + 创建记录 + 回显",
-  "When record created, create another record in target collection": "当记录新增时，在目标数据表创建关联记录"
+  "When record created, create another record in target collection": "当记录新增时，在目标数据表创建关联记录",
+  "Update trigger + update record + echo": "更新触发 + 更新记录 + 回显",
+  "When record updated, update another record in target collection": "当记录更新时，在目标数据表更新关联记录"
 }

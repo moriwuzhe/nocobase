@@ -109,6 +109,40 @@ export const LOCAL_DOCS = {
 }
 \`\`\`
 
+## 详情区块 (Details)
+
+\`\`\`json
+{
+  "type": "void",
+  "x-decorator": "DetailsBlockProvider",
+  "x-decorator-props": {
+    "collection": "users",
+    "action": "get",
+    "dataSource": "main"
+  },
+  "x-component": "CardItem",
+  "properties": {
+    "details": {
+      "type": "void",
+      "x-component": "Details",
+      "x-initializer": "details:configureFields"
+    }
+  }
+}
+\`\`\`
+
+## 表格筛选 (Filter)
+
+\`\`\`json
+{
+  "type": "void",
+  "x-action": "filter",
+  "x-component": "Filter.Action",
+  "x-use-component-props": "useFilterActionProps",
+  "x-component-props": { "icon": "FilterOutlined" }
+}
+\`\`\`
+
 ## 看板区块 (Kanban)
 
 \`\`\`json

@@ -8,7 +8,7 @@
  */
 
 import { uid } from '@formily/shared';
-import { App, Card, Col, Row, Spin, Tag, Tooltip, Typography } from 'antd';
+import { App, Card, Checkbox, Col, Row, Spin, Tag, Tooltip, Typography } from 'antd';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAPIClient } from '../../../api-client/hooks/useAPIClient';
@@ -1480,6 +1480,8 @@ interface TemplateInstallOptions {
   onHealthReport?: (report: TemplateInstallHealthReport) => void;
   messageKey?: string;
   skipAppReadyCheck?: boolean;
+  /** Skip inserting sample data (for faster install) */
+  skipSampleData?: boolean;
   /** Translation function for install UI messages */
   t?: (key: string, options?: Record<string, any>) => string;
 }
@@ -1666,6 +1668,7 @@ export async function installTemplate(
   const displayTitle = t && TEMPLATE_I18N_KEYS[tpl.key] ? t(TEMPLATE_I18N_KEYS[tpl.key].title) : tpl.title;
   const displayDesc = t && TEMPLATE_I18N_KEYS[tpl.key] ? t(TEMPLATE_I18N_KEYS[tpl.key].description) : tpl.description;
 
+  const skipSampleDataRef = { current: false };
   return new Promise((resolve) => {
     const confirmConfig: any = {
       title: msg('Install template: {{title}}', { title: displayTitle }),
@@ -1689,6 +1692,13 @@ export async function installTemplate(
               </p>
               <p dangerouslySetInnerHTML={{ __html: msg('Template install features') }} />
               <p dangerouslySetInnerHTML={{ __html: msg('Template install sample data', { count: sampleCount }) }} />
+              {sampleCount > 0 && (
+                <p style={{ marginTop: 16 }}>
+                  <Checkbox onChange={(e) => (skipSampleDataRef.current = e.target.checked)}>
+                    {msg('Skip sample data')}
+                  </Checkbox>
+                </p>
+              )}
             </>
           )}
         </div>
@@ -2304,10 +2314,12 @@ export async function installTemplate(
             // refresh may be unavailable in some deployments
           }
 
+          const skipSampleData = options?.skipSampleData ?? skipSampleDataRef.current;
           const totalSampleCount = sampleBatches.reduce((sum, b) => sum + b.records.length, 0);
           let sampleInserted = 0;
           const idMap: Record<string, Record<string, number>> = {};
 
+          if (!skipSampleData) {
           for (const batch of sampleBatches) {
             if (!idMap[batch.collection]) idMap[batch.collection] = {};
             let batchFailed = 0;
@@ -2379,6 +2391,7 @@ export async function installTemplate(
             if (batchFailed > 0) {
               sampleFailed.push({ collection: batch.collection, count: batchFailed });
             }
+          }
           }
 
           if (tpl.workflows.length > 0) {

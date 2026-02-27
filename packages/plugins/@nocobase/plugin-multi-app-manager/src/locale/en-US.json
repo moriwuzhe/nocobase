@@ -37,6 +37,7 @@
   "Template install confirm workflows": "<strong>{{workflows}}</strong> workflows.",
   "Template install features": "Page features include <strong>bulk edit</strong>, <strong>print</strong>, <strong>duplicate</strong>, <strong>import/export</strong>.",
   "Template install sample data": "Will insert <strong>{{count}}</strong> sample records.",
+  "Skip sample data": "Skip sample data",
   "Start install": "Start install",
   "Waiting for app startup...": "Waiting for app startup...",
   "App startup timeout, please try again later": "App startup timeout, please try again later",

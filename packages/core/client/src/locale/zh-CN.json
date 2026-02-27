@@ -1006,6 +1006,7 @@
   "Template install confirm workflows": "<strong>{{workflows}}</strong> 个工作流。",
   "Template install features": "页面功能含 <strong>批量编辑</strong>、<strong>打印</strong>、<strong>复制</strong>、<strong>导入导出</strong>。",
   "Template install sample data": "将插入 <strong>{{count}}</strong> 条示例数据。",
+  "Skip sample data": "跳过示例数据",
   "Start install": "开始安装",
   "Waiting for app startup...": "等待应用启动...",
   "App startup timeout, please try again later": "应用启动超时，请稍后重试",
