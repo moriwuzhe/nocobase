@@ -326,6 +326,38 @@ function TemplateInstallStateField() {
   return React.createElement(Typography.Text, { type: 'secondary' }, t('Template not initialized'));
 }
 
+const TEMPLATE_INSTALL_STEP_KEYS: Record<string, string> = {
+  waitForAppReady: 'Template install step: Waiting for app',
+  authSignIn: 'Template install step: Authenticating',
+  checkVersion: 'Template install step: Checking version',
+  listCollectionFields: 'Template install step: Listing fields',
+  createCollection: 'Template install step: Creating data table',
+  repairCollection: 'Template install step: Repairing data table',
+  repairCollectionField: 'Template install step: Repairing field',
+  createRelation: 'Template install step: Creating relation',
+  createMenuGroup: 'Template install step: Creating menu',
+  createPageRoute: 'Template install step: Creating page',
+  createWorkflowMenuLink: 'Template install step: Creating workflow link',
+  validatePageRoute: 'Template install step: Validating page',
+  refreshApp: 'Template install step: Refreshing app',
+  insertSample: 'Template install step: Inserting sample data',
+  createWorkflow: 'Template install step: Creating workflow',
+  createWorkflowNode: 'Template install step: Creating workflow node',
+  validateWorkflows: 'Template install step: Validating workflows',
+  finalRefreshApp: 'Template install step: Final refresh',
+};
+
+function formatTemplateInstallErrorForDisplay(raw: string, t: (key: string) => string): string {
+  const colonIdx = raw.indexOf(': ');
+  if (colonIdx <= 0) return raw;
+  const step = raw.slice(0, colonIdx).trim();
+  const message = raw.slice(colonIdx + 2).trim();
+  const prefix = step.split(':')[0];
+  const stepKey = TEMPLATE_INSTALL_STEP_KEYS[prefix];
+  const stepLabel = stepKey ? t(stepKey) : step;
+  return `${stepLabel}: ${message}`;
+}
+
 function TemplateInstallErrorField() {
   const record = useRecord() as any;
   const { t } = useTranslation(NAMESPACE);
@@ -334,12 +366,12 @@ function TemplateInstallErrorField() {
     return React.createElement(Typography.Text, { type: 'secondary' }, '-');
   }
 
-  const shortError =
-    templateInstallError.length > 96 ? `${templateInstallError.slice(0, 96).trimEnd()}...` : templateInstallError;
+  const displayText = formatTemplateInstallErrorForDisplay(templateInstallError, t);
+  const shortError = displayText.length > 96 ? `${displayText.slice(0, 96).trimEnd()}...` : displayText;
 
   return React.createElement(
     Tooltip,
-    { title: templateInstallError },
+    { title: displayText },
     React.createElement(
       Typography.Text,
       {

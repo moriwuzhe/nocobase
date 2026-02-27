@@ -1307,5 +1307,6 @@
   "Documentation": "Documentation",
   "Local Documentation": "Local Documentation",
   "Search documentation": "Search documentation...",
+  "No documentation found for \"{{query}}\"": "No documentation found for \"{{query}}\"",
   "Built-in documentation, view offline. For AI learning and reference.": "Built-in documentation, view offline. For AI learning and reference."
 }

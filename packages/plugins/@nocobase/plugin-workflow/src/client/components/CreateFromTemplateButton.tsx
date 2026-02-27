@@ -8,7 +8,7 @@
  */
 
 import React, { useState } from 'react';
-import { Button, Dropdown, App, Modal, Form, Select } from 'antd';
+import { Button, Dropdown, App, Modal, Form, Select, Tooltip } from 'antd';
 import { DownOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -112,11 +112,20 @@ export function CreateFromTemplateButton() {
   const scheduleTemplates = WORKFLOW_TEMPLATES.filter((t) => t.type === 'schedule');
   const otherTemplates = WORKFLOW_TEMPLATES.filter((t) => t.type !== 'collection' && t.type !== 'schedule');
 
-  const toMenuItem = (template: (typeof WORKFLOW_TEMPLATES)[0]) => ({
-    key: template.key,
-    label: compile(template.title),
-    onClick: () => handleSelect(template),
-  });
+  const toMenuItem = (template: (typeof WORKFLOW_TEMPLATES)[0]) => {
+    const desc = compile(template.description);
+    return {
+      key: template.key,
+      label: desc ? (
+        <Tooltip title={desc} placement="right">
+          <span>{compile(template.title)}</span>
+        </Tooltip>
+      ) : (
+        compile(template.title)
+      ),
+      onClick: () => handleSelect(template),
+    };
+  };
 
   const menuItems: { key: string; label: string; children?: { key: string; label: any; onClick: () => void }[] }[] = [];
   if (collectionTemplates.length > 0) {
