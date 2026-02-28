@@ -17,6 +17,7 @@ import { executionSchema } from './executions';
 import { ExecutionStatusOptions } from '../constants';
 import workflowCollection from '../../common/collections/workflows';
 import { ExecutionStatusOption, LabelTag } from '../components/ExecutionStatus';
+import { CreateFromTemplateButton } from '../components/CreateFromTemplateButton';
 
 function ExecutedLink(props) {
   const record = useCollectionRecordData();
@@ -200,6 +201,11 @@ export const workflowSchema: ISchema = {
                     },
                   },
                 },
+                createFromTemplate: {
+                  type: 'void',
+                  'x-component': 'CreateFromTemplateButton',
+                  'x-align': 'right',
+                },
                 create: {
                   type: 'void',
                   title: '{{t("Add new")}}',
@@ -208,6 +214,7 @@ export const workflowSchema: ISchema = {
                     type: 'primary',
                     icon: 'PlusOutlined',
                   },
+                  'x-align': 'right',
                   properties: {
                     drawer: {
                       type: 'void',

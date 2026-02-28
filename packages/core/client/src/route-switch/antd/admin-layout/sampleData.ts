@@ -224,6 +224,130 @@ const pmIssues: SampleBatch = {
   ],
 };
 
+const pmWorkLogs: SampleBatch = {
+  collection: 'work_logs',
+  records: [
+    {
+      workDate: '2025-03-15',
+      hours: 8,
+      type: 'development',
+      content: '仓储模块接口开发',
+      worker: '张伟',
+      taskId: { __ref: 'tasks', __field: 'id', __match: { title: '仓储模块开发' } },
+    },
+    {
+      workDate: '2025-03-14',
+      hours: 4,
+      type: 'meeting',
+      content: '项目周会',
+      worker: '张明',
+      taskId: { __ref: 'tasks', __field: 'id', __match: { title: '需求调研与分析' } },
+    },
+  ],
+};
+
+const pmProjectDocs: SampleBatch = {
+  collection: 'project_docs',
+  records: [
+    {
+      title: '智能物流平台需求规格说明书',
+      type: 'requirement',
+      version: 'v1.0',
+      status: 'approved',
+      author: '陈伟',
+      docProjectId: { __ref: 'projects', __field: 'id', __match: { name: '智能物流平台' } },
+    },
+    {
+      title: '系统架构设计文档',
+      type: 'design',
+      version: 'v0.9',
+      status: 'reviewing',
+      author: '刘洋',
+      docProjectId: { __ref: 'projects', __field: 'id', __match: { name: '智能物流平台' } },
+    },
+  ],
+};
+
+const pmProjectMembers: SampleBatch = {
+  collection: 'project_members',
+  records: [
+    {
+      name: '张明',
+      role: 'pm',
+      status: 'active',
+      joinDate: '2025-01-10',
+      memberProjectId: { __ref: 'projects', __field: 'id', __match: { name: '智能物流平台' } },
+    },
+    {
+      name: '张伟',
+      role: 'dev',
+      status: 'active',
+      joinDate: '2025-01-15',
+      memberProjectId: { __ref: 'projects', __field: 'id', __match: { name: '智能物流平台' } },
+    },
+    {
+      name: '李婷',
+      role: 'pm',
+      status: 'active',
+      joinDate: '2025-02-01',
+      memberProjectId: { __ref: 'projects', __field: 'id', __match: { name: '电商数据中台' } },
+    },
+  ],
+};
+
+const pmChangeRequests: SampleBatch = {
+  collection: 'change_requests',
+  records: [
+    {
+      title: '增加移动端适配需求',
+      type: 'scope',
+      status: 'approved',
+      applyDate: '2025-03-01',
+      applicant: '王刚',
+      changeProjectId: { __ref: 'projects', __field: 'id', __match: { name: '智能物流平台' } },
+    },
+  ],
+};
+
+const pmMeetingRecords: SampleBatch = {
+  collection: 'meeting_records',
+  records: [
+    {
+      title: '项目启动会',
+      startTime: '2025-01-15T09:00:00',
+      endTime: '2025-01-15T11:00:00',
+      location: '会议室A',
+      host: '张明',
+      attendees: '张明、陈伟、刘洋、张伟',
+      meetingProjectId: { __ref: 'projects', __field: 'id', __match: { name: '智能物流平台' } },
+    },
+  ],
+};
+
+const pmBudgets: SampleBatch = {
+  collection: 'budgets',
+  records: [
+    {
+      category: '人力成本',
+      planned: 1200000,
+      actual: 540000,
+      status: 'approved',
+      periodStart: '2025-01-01',
+      periodEnd: '2025-06-30',
+      budgetProjectId: { __ref: 'projects', __field: 'id', __match: { name: '智能物流平台' } },
+    },
+    {
+      category: '硬件采购',
+      planned: 200000,
+      actual: 0,
+      status: 'draft',
+      periodStart: '2025-01-01',
+      periodEnd: '2025-12-31',
+      budgetProjectId: { __ref: 'projects', __field: 'id', __match: { name: '智能物流平台' } },
+    },
+  ],
+};
+
 // ─── CRM ──────────────────────────────────────────────────
 
 const crmCustomers: SampleBatch = {
@@ -416,6 +540,108 @@ const crmActivities: SampleBatch = {
   ],
 };
 
+const crmFollowUps: SampleBatch = {
+  collection: 'follow_ups',
+  records: [
+    {
+      type: 'phone',
+      content: '电话沟通项目需求，客户表示有兴趣',
+      result: 'positive',
+      followedAt: '2025-03-18T10:00:00',
+      nextFollowUpDate: '2025-03-25',
+      follower: '王明',
+      followCustomerId: { __ref: 'customers', __field: 'id', __match: { companyName: '深圳腾飞科技' } },
+    },
+    {
+      type: 'visit',
+      content: '现场拜访，演示产品',
+      result: 'positive',
+      followedAt: '2025-03-20T14:00:00',
+      nextFollowUpDate: '2025-04-01',
+      follower: '李芳',
+      followCustomerId: { __ref: 'customers', __field: 'id', __match: { companyName: '北京启航教育' } },
+    },
+  ],
+};
+
+const crmPayments: SampleBatch = {
+  collection: 'payments',
+  records: [
+    {
+      amount: 400000,
+      paymentDate: '2025-03-15',
+      method: 'transfer',
+      status: 'confirmed',
+      invoiceNo: 'INV-2025-001',
+      paymentContractId: { __ref: 'contracts', __field: 'id', __match: { contractNo: 'HT-2025-001' } },
+    },
+    {
+      amount: 200000,
+      paymentDate: '2025-04-01',
+      method: 'transfer',
+      status: 'pending',
+      paymentContractId: { __ref: 'contracts', __field: 'id', __match: { contractNo: 'HT-2025-001' } },
+    },
+  ],
+};
+
+const crmProducts: SampleBatch = {
+  collection: 'products',
+  records: [
+    { name: '企业ERP系统', code: 'ERP-PRO', category: 'software', price: 50000, status: 'active' },
+    { name: 'CRM标准版', code: 'CRM-STD', category: 'software', price: 15000, status: 'active' },
+    { name: '数据分析平台', code: 'BI-PLAT', category: 'solution', price: 80000, status: 'active' },
+    { name: '实施服务包', code: 'SVC-IMP', category: 'service', price: 20000, status: 'active' },
+  ],
+};
+
+const crmQuotes: SampleBatch = {
+  collection: 'quotes',
+  records: [
+    {
+      quoteNo: 'QT-2025-001',
+      title: '腾飞ERP升级报价',
+      totalAmount: 500000,
+      quoteDate: '2025-03-10',
+      validUntil: '2025-04-10',
+      status: 'sent',
+      discount: 5,
+      quoteCustomerId: { __ref: 'customers', __field: 'id', __match: { companyName: '深圳腾飞科技' } },
+      quoteDealId: { __ref: 'deals', __field: 'id', __match: { title: '腾飞-ERP系统升级' } },
+    },
+  ],
+};
+
+const crmCompetitors: SampleBatch = {
+  collection: 'competitors',
+  records: [
+    {
+      name: '用友网络',
+      website: 'https://www.yonyou.com',
+      threatLevel: 'high',
+      analyst: '王明',
+      lastUpdated: '2025-03-01',
+    },
+    {
+      name: '金蝶软件',
+      website: 'https://www.kingdee.com',
+      threatLevel: 'high',
+      analyst: '张伟',
+      lastUpdated: '2025-02-15',
+    },
+  ],
+};
+
+const crmCustomerTags: SampleBatch = {
+  collection: 'customer_tags',
+  records: [
+    { name: '大客户', category: 'size', color: '#1890ff' },
+    { name: '软件行业', category: 'industry', color: '#52c41a' },
+    { name: '官网线索', category: 'source', color: '#faad14' },
+    { name: '高意向', category: 'custom', color: '#f5222d' },
+  ],
+};
+
 // ─── HR ───────────────────────────────────────────────────
 
 const hrDepartments: SampleBatch = {
@@ -564,6 +790,7 @@ const hrRecruitments: SampleBatch = {
       deadline: '2025-04-30',
       recruiter: '张丽',
       recruitDeptId: { __ref: 'departments', __field: 'id', __match: { name: '技术研发部' } },
+      recruitPositionId: { __ref: 'positions', __field: 'id', __match: { title: '高级前端工程师' } },
     },
     {
       positionTitle: '市场专员',
@@ -574,6 +801,7 @@ const hrRecruitments: SampleBatch = {
       deadline: '2025-03-31',
       recruiter: '张丽',
       recruitDeptId: { __ref: 'departments', __field: 'id', __match: { name: '市场营销部' } },
+      recruitPositionId: { __ref: 'positions', __field: 'id', __match: { title: '市场专员' } },
     },
   ],
 };
@@ -803,11 +1031,84 @@ const cmsNewsletters: SampleBatch = {
   ],
 };
 
+const cmsMediaFiles: SampleBatch = {
+  collection: 'media_files',
+  records: [
+    { title: '首页Banner图', fileUrl: 'https://example.com/banner.jpg', type: 'image', fileSize: 256 },
+    { title: '产品介绍视频', fileUrl: 'https://example.com/intro.mp4', type: 'video', fileSize: 10240 },
+    { title: '公司Logo', fileUrl: 'https://example.com/logo.png', type: 'image', fileSize: 48 },
+  ],
+};
+
+const cmsLinkResources: SampleBatch = {
+  collection: 'link_resources',
+  records: [
+    { name: 'NocoBase官网', url: 'https://nocobase.com', status: 'active', sort: 1 },
+    { name: 'GitHub', url: 'https://github.com', status: 'active', sort: 2 },
+    { name: '技术社区', url: 'https://forum.nocobase.com', status: 'active', sort: 3 },
+  ],
+};
+
+const cmsSubscribers: SampleBatch = {
+  collection: 'subscribers',
+  records: [
+    { email: 'user1@example.com', name: '张三', status: 'active', subscribedAt: '2025-01-15T10:00:00' },
+    { email: 'user2@example.com', name: '李四', status: 'active', subscribedAt: '2025-02-01T14:30:00' },
+    { email: 'user3@example.com', name: '王五', status: 'unsubscribed', subscribedAt: '2024-12-01T09:00:00' },
+  ],
+};
+
+const cmsSiteSettings: SampleBatch = {
+  collection: 'site_settings',
+  records: [
+    { key: 'site_name', value: '我的博客', group: 'basic', description: '站点名称' },
+    { key: 'site_description', value: '分享技术与生活', group: 'basic', description: '站点描述' },
+    { key: 'posts_per_page', value: '10', group: 'content', description: '每页文章数' },
+  ],
+};
+
 // ─── Export ───────────────────────────────────────────────
 
 export const templateSampleData: Record<string, SampleBatch[]> = {
-  'project-management': [pmProjects, pmTasks, pmMilestones, pmRisks, pmIssues],
-  crm: [crmCustomers, crmContacts, crmDeals, crmContracts, crmServiceTickets, crmActivities],
+  'project-management': [
+    pmProjects,
+    pmTasks,
+    pmMilestones,
+    pmRisks,
+    pmWorkLogs,
+    pmProjectDocs,
+    pmProjectMembers,
+    pmChangeRequests,
+    pmMeetingRecords,
+    pmBudgets,
+    pmIssues,
+  ],
+  crm: [
+    crmCustomers,
+    crmContacts,
+    crmDeals,
+    crmContracts,
+    crmFollowUps,
+    crmPayments,
+    crmProducts,
+    crmQuotes,
+    crmCompetitors,
+    crmCustomerTags,
+    crmServiceTickets,
+    crmActivities,
+  ],
   hr: [hrDepartments, hrPositions, hrEmployees, hrLeaveRequests, hrRecruitments, hrCandidates, hrTraining],
-  cms: [cmsCategories, cmsTags, cmsAuthors, cmsArticles, cmsComments, cmsPages, cmsNewsletters],
+  cms: [
+    cmsCategories,
+    cmsTags,
+    cmsAuthors,
+    cmsArticles,
+    cmsComments,
+    cmsPages,
+    cmsMediaFiles,
+    cmsLinkResources,
+    cmsSubscribers,
+    cmsSiteSettings,
+    cmsNewsletters,
+  ],
 };

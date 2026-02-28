@@ -94,6 +94,10 @@ export interface TemplateDef {
   relations: RelationDef[];
   menu: MenuItemDef[];
   workflows: WorkflowDef[];
+  /** Template schema version, e.g. "1.0" */
+  version?: string;
+  /** Minimum NocoBase version required, e.g. "1.0.0" */
+  minNocoBaseVersion?: string;
 }
 
 // ─── Field helpers ────────────────────────────────────────
@@ -325,6 +329,7 @@ const projectManagement: TemplateDef = {
           { value: 'in_progress', label: '进行中', color: 'processing' },
           { value: 'in_review', label: '审核中', color: 'warning' },
           { value: 'done', label: '已完成', color: 'success' },
+          { value: 'overdue', label: '已逾期', color: 'error' },
           { value: 'cancelled', label: '已取消', color: 'error' },
         ]),
         select('priority', '优先级', [
@@ -716,7 +721,42 @@ const projectManagement: TemplateDef = {
         },
       ],
     },
+    {
+      title: '逾期任务自动提醒',
+      type: 'collection',
+      description: '任务逾期时自动更新状态为已逾期',
+      triggerConfig: { collection: 'tasks', mode: 2, changed: ['dueDate'] },
+      nodes: [
+        {
+          type: 'condition',
+          title: '检查是否逾期',
+          config: {
+            rejectOnFalse: true,
+            engine: 'basic',
+            calculation: {
+              group: {
+                type: 'and',
+                calculations: [
+                  { calculator: 'notNull', left: '{{$context.data.dueDate}}' },
+                  { calculator: 'lt', left: '{{$context.data.dueDate}}', right: '{{$system.now}}' },
+                ],
+              },
+            },
+          },
+        },
+        {
+          type: 'update',
+          title: '更新为逾期状态',
+          config: {
+            collection: 'tasks',
+            params: { filter: { id: '{{$context.data.id}}' }, values: { status: 'overdue' } },
+          },
+        },
+      ],
+    },
   ],
+  version: '1.0',
+  minNocoBaseVersion: '1.0.0',
 };
 
 // ─── CRM ──────────────────────────────────────────────────
@@ -1185,7 +1225,42 @@ const crm: TemplateDef = {
         },
       ],
     },
+    {
+      title: '商机逾期自动标记',
+      type: 'collection',
+      description: '商机预计成交日过期时自动更新阶段',
+      triggerConfig: { collection: 'deals', mode: 2, changed: ['expectedCloseDate'] },
+      nodes: [
+        {
+          type: 'condition',
+          title: '检查是否逾期',
+          config: {
+            rejectOnFalse: true,
+            engine: 'basic',
+            calculation: {
+              group: {
+                type: 'and',
+                calculations: [
+                  { calculator: 'notNull', left: '{{$context.data.expectedCloseDate}}' },
+                  { calculator: 'lt', left: '{{$context.data.expectedCloseDate}}', right: '{{$system.now}}' },
+                ],
+              },
+            },
+          },
+        },
+        {
+          type: 'update',
+          title: '标记为需跟进',
+          config: {
+            collection: 'deals',
+            params: { filter: { id: '{{$context.data.id}}' }, values: { stage: 'negotiation' } },
+          },
+        },
+      ],
+    },
   ],
+  version: '1.0',
+  minNocoBaseVersion: '1.0.0',
 };
 
 // ─── HR ───────────────────────────────────────────────────
@@ -1675,9 +1750,9 @@ const hr: TemplateDef = {
       ],
     },
     {
-      title: '试用期到期提醒',
+      title: '试用期员工自动建档',
       type: 'collection',
-      description: '员工入职时检查是否需要设置试用期提醒',
+      description: '试用期员工入职时自动创建试用期评估记录',
       triggerConfig: { collection: 'employees', mode: 1 },
       nodes: [
         {
@@ -1695,16 +1770,25 @@ const hr: TemplateDef = {
           },
         },
         {
-          type: 'update',
-          title: '标记需跟进',
+          type: 'create',
+          title: '创建试用期评估',
           config: {
-            collection: 'employees',
-            params: { filter: { id: '{{$context.data.id}}' }, values: { status: 'probation' } },
+            collection: 'performance_reviews',
+            params: {
+              values: {
+                period: '试用期评估',
+                type: 'probation',
+                status: 'draft',
+                reviewEmployeeId: '{{$context.data.id}}',
+              },
+            },
           },
         },
       ],
     },
   ],
+  version: '1.0',
+  minNocoBaseVersion: '1.0.0',
 };
 
 // ─── CMS ──────────────────────────────────────────────────
@@ -2030,6 +2114,23 @@ const cms: TemplateDef = {
       ],
     },
   ],
+  version: '1.0',
+  minNocoBaseVersion: '1.0.0',
 };
 
-export const builtInTemplates: TemplateDef[] = [projectManagement, crm, hr, cms];
+/** Blank template - empty app for custom setup */
+export const blank: TemplateDef = {
+  key: 'blank',
+  title: 'Blank',
+  description: 'Empty app, create your own data tables and pages from scratch',
+  icon: '📄',
+  color: '#8c8c8c',
+  highlights: ['Custom', 'From scratch'],
+  collections: [],
+  relations: [],
+  menu: [],
+  workflows: [],
+  version: '1.0',
+};
+
+export const builtInTemplates: TemplateDef[] = [blank, projectManagement, crm, hr, cms];

@@ -8,8 +8,9 @@
  */
 
 import { uid } from '@formily/shared';
-import { App, Card, Col, Row, Spin, Tag, Typography } from 'antd';
-import React, { useCallback, useState } from 'react';
+import { App, Card, Checkbox, Col, Row, Spin, Tag, Tooltip, Typography } from 'antd';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAPIClient } from '../../../api-client/hooks/useAPIClient';
 import {
   builtInTemplates,
@@ -23,6 +24,7 @@ import {
   TemplateDef,
 } from './templates';
 import { templateSampleData, SampleBatch, isRef } from './sampleData';
+import { HIGHLIGHT_I18N_KEYS, TEMPLATE_I18N_KEYS } from './templateConstants';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -227,6 +229,39 @@ function buildKanbanCardField(collectionName: string, fieldName: string) {
   };
 }
 
+function buildKanbanViewFormBlock(collectionName: string, fieldNames: string[]) {
+  const formGridProperties: Record<string, any> = {};
+  const names = fieldNames.length > 0 ? fieldNames : ['id'];
+  for (const fn of names) {
+    formGridProperties[uid()] = buildFormField(collectionName, fn, false);
+  }
+  return {
+    type: 'void',
+    'x-acl-action': `${collectionName}:get`,
+    'x-decorator': 'FormBlockProvider',
+    'x-use-decorator-props': 'useEditFormBlockDecoratorProps',
+    'x-decorator-props': { action: 'get', dataSource: 'main', collection: collectionName, readPretty: true },
+    'x-toolbar': 'BlockSchemaToolbar',
+    'x-settings': 'blockSettings:editForm',
+    'x-component': 'CardItem',
+    properties: {
+      [uid()]: {
+        type: 'void',
+        'x-component': 'FormV2',
+        'x-pattern': 'readPretty',
+        'x-use-component-props': 'useEditFormBlockProps',
+        properties: {
+          grid: {
+            type: 'void',
+            'x-component': 'Grid',
+            properties: formGridProperties,
+          },
+        },
+      },
+    },
+  };
+}
+
 function buildKanbanBlock(collectionName: string, groupField: string, cardFields?: string[]) {
   const cardGridProps: Record<string, any> = {};
   if (cardFields && cardFields.length > 0) {
@@ -264,6 +299,52 @@ function buildKanbanBlock(collectionName: string, groupField: string, cardFields
                 'x-initializer': 'kanban:configureActions',
                 'x-component': 'ActionBar',
                 'x-component-props': { style: { marginBottom: 'var(--nb-spacing)' } },
+                properties: {
+                  addNew: {
+                    type: 'void',
+                    title: "{{ t('Add new') }}",
+                    'x-action': 'create',
+                    'x-acl-action': 'create',
+                    'x-decorator': 'ACLActionProvider',
+                    'x-acl-action-props': { skipScopeCheck: true },
+                    'x-component': 'Action',
+                    'x-component-props': { type: 'primary', icon: 'PlusOutlined' },
+                    'x-align': 'right',
+                    properties: {
+                      drawer: {
+                        type: 'void',
+                        title: '{{ t("Add record") }}',
+                        'x-component': 'Action.Drawer',
+                        'x-component-props': { className: 'nb-action-popup' },
+                        properties: {
+                          grid: {
+                            type: 'void',
+                            'x-component': 'Grid',
+                            properties: {
+                              [uid()]: {
+                                type: 'void',
+                                'x-component': 'Grid.Row',
+                                properties: {
+                                  [uid()]: {
+                                    type: 'void',
+                                    'x-component': 'Grid.Col',
+                                    properties: {
+                                      [uid()]: buildCreateFormBlock(
+                                        collectionName,
+                                        [...new Set([groupField, ...(cardFields || [])])],
+                                        new Set([groupField]),
+                                      ),
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
               },
               [uid()]: {
                 type: 'array',
@@ -297,8 +378,35 @@ function buildKanbanBlock(collectionName: string, groupField: string, cardFields
                       drawer: {
                         type: 'void',
                         title: '{{ t("View record") }}',
-                        'x-component': 'Action.Container',
+                        'x-component': 'Action.Drawer',
                         'x-component-props': { className: 'nb-action-popup' },
+                        properties: {
+                          grid: {
+                            type: 'void',
+                            'x-component': 'Grid',
+                            properties: {
+                              [uid()]: {
+                                type: 'void',
+                                'x-component': 'Grid.Row',
+                                properties: {
+                                  [uid()]: {
+                                    type: 'void',
+                                    'x-component': 'Grid.Col',
+                                    properties: {
+                                      [uid()]: {
+                                        type: 'void',
+                                        'x-component': 'PopupRecordProvider',
+                                        properties: {
+                                          [uid()]: buildKanbanViewFormBlock(collectionName, cardFields || []),
+                                        },
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
                       },
                     },
                   },
@@ -335,6 +443,7 @@ function buildCalendarBlock(collectionName: string, titleField: string, startDat
               action: 'list',
               fieldNames,
               params: { paginate: false },
+              enableQuickCreateEvent: true,
             },
             'x-toolbar': 'BlockSchemaToolbar',
             'x-settings': 'blockSettings:calendar',
@@ -345,6 +454,38 @@ function buildCalendarBlock(collectionName: string, titleField: string, startDat
                 'x-component': 'CalendarV2',
                 'x-use-component-props': 'useCalendarBlockProps',
                 properties: {
+                  addNewer: {
+                    type: 'void',
+                    'x-component': 'AssociationField.AddNewer',
+                    'x-action': 'create',
+                    title: '{{ t("Add record") }}',
+                    'x-component-props': { className: 'nb-action-popup' },
+                    properties: {
+                      form: {
+                        type: 'void',
+                        'x-component': 'Grid',
+                        properties: {
+                          [uid()]: {
+                            type: 'void',
+                            'x-component': 'Grid.Row',
+                            properties: {
+                              [uid()]: {
+                                type: 'void',
+                                'x-component': 'Grid.Col',
+                                properties: {
+                                  [uid()]: buildCreateFormBlock(
+                                    collectionName,
+                                    [titleField, startDateField, ...(endDateField ? [endDateField] : [])],
+                                    new Set([titleField, startDateField]),
+                                  ),
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
                   toolBar: {
                     type: 'void',
                     'x-component': 'CalendarV2.ActionBar',
@@ -379,17 +520,92 @@ function buildCalendarBlock(collectionName: string, titleField: string, startDat
                         'x-align': 'right',
                         'x-designer': 'Action.Designer',
                       },
+                      addNew: {
+                        type: 'void',
+                        title: "{{ t('Add new') }}",
+                        'x-action': 'create',
+                        'x-acl-action': 'create',
+                        'x-decorator': 'ACLActionProvider',
+                        'x-component': 'Action',
+                        'x-component-props': { type: 'primary', icon: 'PlusOutlined' },
+                        'x-align': 'right',
+                        properties: {
+                          drawer: {
+                            type: 'void',
+                            title: '{{ t("Add record") }}',
+                            'x-component': 'Action.Drawer',
+                            'x-component-props': { className: 'nb-action-popup' },
+                            properties: {
+                              grid: {
+                                type: 'void',
+                                'x-component': 'Grid',
+                                properties: {
+                                  [uid()]: {
+                                    type: 'void',
+                                    'x-component': 'Grid.Row',
+                                    properties: {
+                                      [uid()]: {
+                                        type: 'void',
+                                        'x-component': 'Grid.Col',
+                                        properties: {
+                                          [uid()]: buildCreateFormBlock(
+                                            collectionName,
+                                            [titleField, startDateField, ...(endDateField ? [endDateField] : [])],
+                                            new Set([titleField, startDateField]),
+                                          ),
+                                        },
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
                     },
                   },
                   event: {
                     type: 'void',
                     'x-component': 'CalendarV2.Event',
+                    'x-component-props': { openMode: 'drawer' },
                     properties: {
                       drawer: {
                         type: 'void',
                         'x-component': 'Action.Drawer',
+                        'x-component-props': { className: 'nb-action-popup' },
                         title: '{{ t("View record") }}',
-                        properties: {},
+                        properties: {
+                          grid: {
+                            type: 'void',
+                            'x-component': 'Grid',
+                            properties: {
+                              [uid()]: {
+                                type: 'void',
+                                'x-component': 'Grid.Row',
+                                properties: {
+                                  [uid()]: {
+                                    type: 'void',
+                                    'x-component': 'Grid.Col',
+                                    properties: {
+                                      [uid()]: {
+                                        type: 'void',
+                                        'x-component': 'PopupRecordProvider',
+                                        properties: {
+                                          [uid()]: buildKanbanViewFormBlock(collectionName, [
+                                            titleField,
+                                            startDateField,
+                                            ...(endDateField ? [endDateField] : []),
+                                          ]),
+                                        },
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
                       },
                     },
                   },
@@ -447,6 +663,57 @@ function buildGanttBlock(
                     'x-component': 'ActionBar',
                     'x-initializer': 'gantt:configureActions',
                     'x-component-props': { style: { marginBottom: 24 } },
+                    properties: {
+                      addNew: {
+                        type: 'void',
+                        title: "{{ t('Add new') }}",
+                        'x-action': 'create',
+                        'x-acl-action': 'create',
+                        'x-decorator': 'ACLActionProvider',
+                        'x-acl-action-props': { skipScopeCheck: true },
+                        'x-component': 'Action',
+                        'x-component-props': { type: 'primary', icon: 'PlusOutlined' },
+                        'x-align': 'right',
+                        properties: {
+                          drawer: {
+                            type: 'void',
+                            title: '{{ t("Add record") }}',
+                            'x-component': 'Action.Drawer',
+                            'x-component-props': { className: 'nb-action-popup' },
+                            properties: {
+                              grid: {
+                                type: 'void',
+                                'x-component': 'Grid',
+                                properties: {
+                                  [uid()]: {
+                                    type: 'void',
+                                    'x-component': 'Grid.Row',
+                                    properties: {
+                                      [uid()]: {
+                                        type: 'void',
+                                        'x-component': 'Grid.Col',
+                                        properties: {
+                                          [uid()]: buildCreateFormBlock(
+                                            collectionName,
+                                            [
+                                              titleField,
+                                              startField,
+                                              endField,
+                                              ...(progressField ? [progressField] : []),
+                                            ],
+                                            new Set([titleField, startField]),
+                                          ),
+                                        },
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
                   },
                   table: {
                     type: 'void',
@@ -467,8 +734,40 @@ function buildGanttBlock(
                       drawer: {
                         type: 'void',
                         'x-component': 'Action.Drawer',
+                        'x-component-props': { className: 'nb-action-popup' },
                         title: '{{ t("View record") }}',
-                        properties: {},
+                        properties: {
+                          grid: {
+                            type: 'void',
+                            'x-component': 'Grid',
+                            properties: {
+                              [uid()]: {
+                                type: 'void',
+                                'x-component': 'Grid.Row',
+                                properties: {
+                                  [uid()]: {
+                                    type: 'void',
+                                    'x-component': 'Grid.Col',
+                                    properties: {
+                                      [uid()]: {
+                                        type: 'void',
+                                        'x-component': 'PopupRecordProvider',
+                                        properties: {
+                                          [uid()]: buildKanbanViewFormBlock(collectionName, [
+                                            titleField,
+                                            startField,
+                                            endField,
+                                            ...(progressField ? [progressField] : []),
+                                          ]),
+                                        },
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
                       },
                     },
                   },
@@ -588,8 +887,40 @@ function buildEditFormBlock(collectionName: string, formFieldNames: string[], re
   };
 }
 
+function buildViewFormBlock(collectionName: string, formFieldNames: string[]) {
+  const formGridProperties: Record<string, any> = {};
+  for (const fn of formFieldNames) {
+    formGridProperties[uid()] = buildFormField(collectionName, fn, false);
+  }
+  return {
+    type: 'void',
+    'x-acl-action': `${collectionName}:get`,
+    'x-decorator': 'FormBlockProvider',
+    'x-use-decorator-props': 'useEditFormBlockDecoratorProps',
+    'x-decorator-props': { action: 'get', dataSource: 'main', collection: collectionName, readPretty: true },
+    'x-toolbar': 'BlockSchemaToolbar',
+    'x-settings': 'blockSettings:editForm',
+    'x-component': 'CardItem',
+    properties: {
+      [uid()]: {
+        type: 'void',
+        'x-component': 'FormV2',
+        'x-pattern': 'readPretty',
+        'x-use-component-props': 'useEditFormBlockProps',
+        properties: {
+          grid: {
+            type: 'void',
+            'x-component': 'Grid',
+            properties: formGridProperties,
+          },
+        },
+      },
+    },
+  };
+}
+
 function buildViewAction(collectionName: string, formFieldNames: string[], detailFieldNames: string[]) {
-  const detailBlock = buildDetailBlock(collectionName, detailFieldNames);
+  const viewFormBlock = buildViewFormBlock(collectionName, formFieldNames.length > 0 ? formFieldNames : detailFieldNames);
   return {
     type: 'void',
     title: '{{ t("View") }}',
@@ -599,34 +930,26 @@ function buildViewAction(collectionName: string, formFieldNames: string[], detai
     'x-component': 'Action.Link',
     'x-component-props': { openMode: 'drawer' },
     'x-action-context': { dataSource: 'main', collection: collectionName },
+    'x-decorator': 'ACLActionProvider',
     properties: {
       drawer: {
         type: 'void',
         title: '{{ t("View record") }}',
-        'x-component': 'Action.Container',
+        'x-component': 'Action.Drawer',
         'x-component-props': { className: 'nb-action-popup' },
         properties: {
-          tabs: {
+          grid: {
             type: 'void',
-            'x-component': 'Tabs',
+            'x-component': 'Grid',
             properties: {
-              tab1: {
+              [uid()]: {
                 type: 'void',
-                title: '{{ t("Details") }}',
-                'x-component': 'Tabs.TabPane',
+                'x-component': 'Grid.Row',
                 properties: {
-                  grid: {
+                  [uid()]: {
                     type: 'void',
-                    'x-component': 'Grid',
-                    properties: {
-                      [uid()]: {
-                        type: 'void',
-                        'x-component': 'Grid.Row',
-                        properties: {
-                          [uid()]: { type: 'void', 'x-component': 'Grid.Col', properties: { [uid()]: detailBlock } },
-                        },
-                      },
-                    },
+                    'x-component': 'Grid.Col',
+                    properties: { [uid()]: viewFormBlock },
                   },
                 },
               },
@@ -654,35 +977,21 @@ function buildEditAction(collectionName: string, formFieldNames: string[], requi
       drawer: {
         type: 'void',
         title: '{{ t("Edit record") }}',
-        'x-component': 'Action.Container',
+        'x-component': 'Action.Drawer',
         'x-component-props': { className: 'nb-action-popup' },
         properties: {
-          tabs: {
+          grid: {
             type: 'void',
-            'x-component': 'Tabs',
+            'x-component': 'Grid',
             properties: {
-              tab1: {
+              [uid()]: {
                 type: 'void',
-                title: '{{t("Edit")}}',
-                'x-component': 'Tabs.TabPane',
-                'x-designer': 'Tabs.Designer',
+                'x-component': 'Grid.Row',
                 properties: {
-                  grid: {
+                  [uid()]: {
                     type: 'void',
-                    'x-component': 'Grid',
-                    properties: {
-                      [uid()]: {
-                        type: 'void',
-                        'x-component': 'Grid.Row',
-                        properties: {
-                          [uid()]: {
-                            type: 'void',
-                            'x-component': 'Grid.Col',
-                            properties: { [uid()]: editFormBlock },
-                          },
-                        },
-                      },
-                    },
+                    'x-component': 'Grid.Col',
+                    properties: { [uid()]: editFormBlock },
                   },
                 },
               },
@@ -719,35 +1028,21 @@ function buildDuplicateAction(collectionName: string, formFieldNames: string[], 
       drawer: {
         type: 'void',
         title: '{{ t("Duplicate") }}',
-        'x-component': 'Action.Container',
+        'x-component': 'Action.Drawer',
         'x-component-props': { className: 'nb-action-popup' },
         properties: {
-          tabs: {
+          grid: {
             type: 'void',
-            'x-component': 'Tabs',
+            'x-component': 'Grid',
             properties: {
-              tab1: {
+              [uid()]: {
                 type: 'void',
-                title: '{{t("Duplicate")}}',
-                'x-component': 'Tabs.TabPane',
-                'x-designer': 'Tabs.Designer',
+                'x-component': 'Grid.Row',
                 properties: {
-                  grid: {
+                  [uid()]: {
                     type: 'void',
-                    'x-component': 'Grid',
-                    properties: {
-                      [uid()]: {
-                        type: 'void',
-                        'x-component': 'Grid.Row',
-                        properties: {
-                          [uid()]: {
-                            type: 'void',
-                            'x-component': 'Grid.Col',
-                            properties: { [uid()]: duplicateFormBlock },
-                          },
-                        },
-                      },
-                    },
+                    'x-component': 'Grid.Col',
+                    properties: { [uid()]: duplicateFormBlock },
                   },
                 },
               },
@@ -793,7 +1088,7 @@ function buildActionsColumn(
   return {
     type: 'void',
     title: '{{ t("Actions") }}',
-    'x-decorator': 'TableV2.Column.Decorator',
+    'x-decorator': 'TableV2.Column.ActionBar',
     'x-component': 'TableV2.Column',
     'x-toolbar': 'TableColumnSchemaToolbar',
     'x-settings': 'fieldSettings:TableColumn',
@@ -849,6 +1144,14 @@ function buildActionBar(
         'x-component-props': { icon: 'FilterOutlined' },
         'x-align': 'left',
       },
+      refresh: {
+        type: 'void',
+        title: '{{ t("Refresh") }}',
+        'x-component': 'Action',
+        'x-use-component-props': 'useRefreshActionProps',
+        'x-component-props': { icon: 'ReloadOutlined' },
+        'x-align': 'right',
+      },
       [uid()]: exportAction,
       [uid()]: importAction,
       [uid()]: buildBulkEditAction(),
@@ -877,34 +1180,21 @@ function buildActionBar(
           drawer: {
             type: 'void',
             title: '{{ t("Add record") }}',
-            'x-component': 'Action.Container',
+            'x-component': 'Action.Drawer',
             'x-component-props': { className: 'nb-action-popup' },
             properties: {
-              tabs: {
+              grid: {
                 type: 'void',
-                'x-component': 'Tabs',
+                'x-component': 'Grid',
                 properties: {
-                  tab1: {
+                  [uid()]: {
                     type: 'void',
-                    title: '{{ t("Add new") }}',
-                    'x-component': 'Tabs.TabPane',
+                    'x-component': 'Grid.Row',
                     properties: {
-                      grid: {
+                      [uid()]: {
                         type: 'void',
-                        'x-component': 'Grid',
-                        properties: {
-                          [uid()]: {
-                            type: 'void',
-                            'x-component': 'Grid.Row',
-                            properties: {
-                              [uid()]: {
-                                type: 'void',
-                                'x-component': 'Grid.Col',
-                                properties: { [uid()]: createBlock },
-                              },
-                            },
-                          },
-                        },
+                        'x-component': 'Grid.Col',
+                        properties: { [uid()]: createBlock },
                       },
                     },
                   },
@@ -1055,7 +1345,7 @@ function buildPageSchema(
 
   const tableTabName = uid();
   const tableTabUid = uid();
-  tabs.push({ schemaUid: tableTabUid, tabSchemaName: tableTabName, title: '列表' });
+  tabs.push({ schemaUid: tableTabUid, tabSchemaName: tableTabName, title: '{{t("List")}}' });
   pageProperties[tableTabName] = {
     type: 'void',
     'x-component': 'Grid',
@@ -1074,7 +1364,7 @@ function buildPageSchema(
   if (viewConfig?.kanban) {
     const kanbanTabName = uid();
     const kanbanTabUid = uid();
-    tabs.push({ schemaUid: kanbanTabUid, tabSchemaName: kanbanTabName, title: '看板' });
+    tabs.push({ schemaUid: kanbanTabUid, tabSchemaName: kanbanTabName, title: '{{t("Kanban")}}' });
     const kanbanCardFields = collection.fields
       .filter((f) => f.showInTable !== false && f.name !== viewConfig?.kanban?.groupField)
       .slice(0, 3)
@@ -1093,7 +1383,7 @@ function buildPageSchema(
   if (viewConfig?.calendar) {
     const calendarTabName = uid();
     const calendarTabUid = uid();
-    tabs.push({ schemaUid: calendarTabUid, tabSchemaName: calendarTabName, title: '日历' });
+    tabs.push({ schemaUid: calendarTabUid, tabSchemaName: calendarTabName, title: '{{t("Calendar")}}' });
     const calendarBlock = buildCalendarBlock(
       collectionName,
       viewConfig.calendar.titleField,
@@ -1113,7 +1403,7 @@ function buildPageSchema(
   if (viewConfig?.gantt) {
     const ganttTabName = uid();
     const ganttTabUid = uid();
-    tabs.push({ schemaUid: ganttTabUid, tabSchemaName: ganttTabName, title: '甘特图' });
+    tabs.push({ schemaUid: ganttTabUid, tabSchemaName: ganttTabName, title: '{{t("Gantt")}}' });
     const ganttBlock = buildGanttBlock(
       collectionName,
       viewConfig.gantt.titleField,
@@ -1190,6 +1480,10 @@ interface TemplateInstallOptions {
   onHealthReport?: (report: TemplateInstallHealthReport) => void;
   messageKey?: string;
   skipAppReadyCheck?: boolean;
+  /** Skip inserting sample data (for faster install) */
+  skipSampleData?: boolean;
+  /** Translation function for install UI messages */
+  t?: (key: string, options?: Record<string, any>) => string;
 }
 
 function getAxiosErrorMessage(err: any): string {
@@ -1204,6 +1498,32 @@ function getAxiosErrorMessage(err: any): string {
           .join('; ')
       : '');
   return String(serverMessage || err?.message || 'Unknown error');
+}
+
+const STEP_LABEL_KEYS: Record<string, string> = {
+  waitForAppReady: 'Template install step: Waiting for app',
+  authSignIn: 'Template install step: Authenticating',
+  checkVersion: 'Template install step: Checking version',
+  listCollectionFields: 'Template install step: Listing fields',
+  createCollection: 'Template install step: Creating data table',
+  repairCollection: 'Template install step: Repairing data table',
+  repairCollectionField: 'Template install step: Repairing field',
+  createRelation: 'Template install step: Creating relation',
+  createMenuGroup: 'Template install step: Creating menu',
+  createPageRoute: 'Template install step: Creating page',
+  createWorkflowMenuLink: 'Template install step: Creating workflow link',
+  validatePageRoute: 'Template install step: Validating page',
+  refreshApp: 'Template install step: Refreshing app',
+  insertSample: 'Template install step: Inserting sample data',
+  createWorkflow: 'Template install step: Creating workflow',
+  createWorkflowNode: 'Template install step: Creating workflow node',
+  validateWorkflows: 'Template install step: Validating workflows',
+  finalRefreshApp: 'Template install step: Final refresh',
+};
+
+function getStepLabelKey(step: string): string {
+  const prefix = step.split(':')[0];
+  return STEP_LABEL_KEYS[prefix] || step;
 }
 
 function isAlreadyExistsError(err: any): boolean {
@@ -1296,6 +1616,22 @@ function normalizeListRows(res: any): any[] {
   return [];
 }
 
+function parseVersion(v: string): number[] {
+  return (v || '0').split('.').map((n) => parseInt(n, 10) || 0);
+}
+
+function isVersionGte(current: string, required: string): boolean {
+  const a = parseVersion(current);
+  const b = parseVersion(required);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const x = a[i] || 0;
+    const y = b[i] || 0;
+    if (x > y) return true;
+    if (x < y) return false;
+  }
+  return true;
+}
+
 function buildTemplateFieldPayload(field: FieldDef): Record<string, any> {
   const { name, type, interface: fieldInterface, title, uiSchema, required, showInTable, showInForm, ...rest } = field;
   void showInTable;
@@ -1327,44 +1663,48 @@ export async function installTemplate(
   const sampleBatches = templateSampleData[templateKey] || [];
   const sampleCount = sampleBatches.reduce((sum, b) => sum + b.records.length, 0);
 
+  const t = options?.t;
+  const msg = (key: string, opts?: Record<string, any>) => (t ? t(key, opts) : key);
+  const displayTitle = t && TEMPLATE_I18N_KEYS[tpl.key] ? t(TEMPLATE_I18N_KEYS[tpl.key].title) : tpl.title;
+  const displayDesc = t && TEMPLATE_I18N_KEYS[tpl.key] ? t(TEMPLATE_I18N_KEYS[tpl.key].description) : tpl.description;
+
+  const skipSampleDataRef = { current: false };
   return new Promise((resolve) => {
     const confirmConfig: any = {
-      title: `安装模板：${tpl.title}`,
+      title: msg('Install template: {{title}}', { title: displayTitle }),
       width: 560,
       content: (
         <div>
-          <p>{tpl.description}</p>
-          <p>
-            将创建 <strong>{tpl.collections.length}</strong> 个数据表、
-            <strong>{tpl.relations.length}</strong> 个关联关系、
-            {kanbanCount > 0 && (
-              <>
-                <strong>{kanbanCount}</strong> 个看板视图、
-              </>
-            )}
-            {calendarCount > 0 && (
-              <>
-                <strong>{calendarCount}</strong> 个日历视图、
-              </>
-            )}
-            {ganttCount > 0 && (
-              <>
-                <strong>{ganttCount}</strong> 个甘特图视图、
-              </>
-            )}
-            <strong>{tpl.workflows.length}</strong> 个工作流。
-          </p>
-          <p>
-            页面功能含 <strong>批量编辑</strong>、<strong>打印</strong>、<strong>复制</strong>、
-            <strong>导入导出</strong>。
-          </p>
-          <p>
-            将插入 <strong>{sampleCount}</strong> 条示例数据。
-          </p>
+          <p>{displayDesc}</p>
+          {templateKey === 'blank' ? (
+            <p dangerouslySetInnerHTML={{ __html: msg('Template install confirm blank') }} />
+          ) : (
+            <>
+              <p>
+                {msg('Template install confirm collections', {
+                  collections: tpl.collections.length,
+                  relations: tpl.relations.length,
+                })}
+                {kanbanCount > 0 && msg('Template install confirm kanban', { count: kanbanCount })}
+                {calendarCount > 0 && msg('Template install confirm calendar', { count: calendarCount })}
+                {ganttCount > 0 && msg('Template install confirm gantt', { count: ganttCount })}
+                {msg('Template install confirm workflows', { workflows: tpl.workflows.length })}
+              </p>
+              <p dangerouslySetInnerHTML={{ __html: msg('Template install features') }} />
+              <p dangerouslySetInnerHTML={{ __html: msg('Template install sample data', { count: sampleCount }) }} />
+              {sampleCount > 0 && (
+                <p style={{ marginTop: 16 }}>
+                  <Checkbox onChange={(e) => (skipSampleDataRef.current = e.target.checked)}>
+                    {msg('Skip sample data')}
+                  </Checkbox>
+                </p>
+              )}
+            </>
+          )}
         </div>
       ),
-      okText: '开始安装',
-      cancelText: '取消',
+      okText: msg('Start install'),
+      cancelText: msg('Cancel'),
       onOk: async () => {
         let currentStep = 'prepare';
         const notifyError = (detail: TemplateInstallErrorDetail) => {
@@ -1384,15 +1724,18 @@ export async function installTemplate(
         };
         try {
           const headers = { 'X-App': appName };
+          let missingWorkflows: string[] = [];
+          let sampleFailed: { collection: string; count: number }[] = [];
+          let unresolvedRefs: { collection: string; ref: string }[] = [];
 
           if (!options?.skipAppReadyCheck) {
             // Wait for sub-app to be ready with retry
             currentStep = 'waitForAppReady';
-            ui.message.loading({ content: '等待应用启动...', key: messageKey, duration: 0 });
+            ui.message.loading({ content: msg('Waiting for app startup...'), key: messageKey, duration: 0 });
             const appReady = await waitForAppReady(api, headers, { maxAttempts: 15, initialDelayMs: 1500 });
             if (!appReady) {
               notifyError({ step: currentStep, message: 'app_start_timeout' });
-              ui.message.error({ content: '应用启动超时，请稍后重试', key: messageKey });
+              ui.message.error({ content: msg('App startup timeout, please try again later'), key: messageKey });
               resolve(false);
               return;
             }
@@ -1415,6 +1758,40 @@ export async function installTemplate(
             if (subToken) authHeaders = { ...headers, Authorization: `Bearer ${subToken}` };
           } catch {
             // Auth may fail if password changed, continue with main app token
+          }
+
+          if (tpl.minNocoBaseVersion) {
+            currentStep = 'checkVersion';
+            try {
+              const infoRes = await requestWithRetry(
+                api,
+                {
+                  url: 'app:getInfo',
+                  method: 'get',
+                  headers: authHeaders,
+                },
+                { maxAttempts: 2, initialDelayMs: 500 },
+              );
+              const appVersion =
+                infoRes?.data?.data?.version ?? infoRes?.data?.version ?? infoRes?.version ?? '';
+              if (!isVersionGte(appVersion, tpl.minNocoBaseVersion)) {
+                notifyError({
+                  step: currentStep,
+                  message: 'template_version_incompatible',
+                });
+                ui.message.error({
+                  content: msg('Template requires NocoBase {{version}} or higher. Please upgrade NocoBase.', {
+                    version: tpl.minNocoBaseVersion,
+                  }),
+                  key: messageKey,
+                  duration: 6,
+                });
+                resolve(false);
+                return;
+              }
+            } catch {
+              // Skip version check if we cannot get app info
+            }
           }
 
           const listCollectionFields = async (collectionName: string) => {
@@ -1476,10 +1853,17 @@ export async function installTemplate(
             }
           };
 
-          ui.message.loading({ content: '正在创建数据表...', key: messageKey, duration: 0 });
-
-          for (const col of tpl.collections) {
+          for (let i = 0; i < tpl.collections.length; i++) {
+            const col = tpl.collections[i];
             currentStep = `createCollection:${col.name}`;
+            ui.message.loading({
+              content: msg('Creating data tables... {{current}}/{{total}}', {
+                current: i + 1,
+                total: tpl.collections.length,
+              }),
+              key: messageKey,
+              duration: 0,
+            });
             const businessFields = col.fields.map((f) => buildTemplateFieldPayload(f));
             const systemRepairFields: Record<string, any>[] = [
               {
@@ -1574,9 +1958,16 @@ export async function installTemplate(
             await ensureCollectionFields(col.name, [...businessFields, ...systemRepairFields]);
           }
 
-          ui.message.loading({ content: '正在创建关联关系...', key: messageKey, duration: 0 });
-
-          for (const rel of tpl.relations) {
+          for (let i = 0; i < tpl.relations.length; i++) {
+            const rel = tpl.relations[i];
+            ui.message.loading({
+              content: msg('Creating relations... {{current}}/{{total}}', {
+                current: i + 1,
+                total: tpl.relations.length,
+              }),
+              key: messageKey,
+              duration: 0,
+            });
             try {
               currentStep = `createRelation:${rel.sourceCollection}.${rel.name}`;
               await requestWithRetry(
@@ -1612,7 +2003,7 @@ export async function installTemplate(
             }
           }
 
-          ui.message.loading({ content: '正在配置页面...', key: messageKey, duration: 0 });
+          ui.message.loading({ content: msg('Configuring pages...'), key: messageKey, duration: 0 });
 
           const collectionMap = new Map<string, CollectionDef>();
           for (const col of tpl.collections) {
@@ -1844,6 +2235,24 @@ export async function installTemplate(
             }
           }
 
+          if (tpl.workflows.length > 0) {
+            currentStep = 'createWorkflowMenuLink';
+            try {
+              await createDesktopRoute({
+                type: 'link',
+                title: msg('Workflow'),
+                icon: 'PartitionOutlined',
+                hideInMenu: false,
+                options: {
+                  href: '/admin/settings/workflow',
+                  openInNewWindow: false,
+                },
+              });
+            } catch (e) {
+              console.warn('Failed to create workflow menu link:', e);
+            }
+          }
+
           const expectedPageTitles: string[] = [];
           for (const menuItem of tpl.menu) {
             if (menuItem.type === 'page') {
@@ -1905,15 +2314,26 @@ export async function installTemplate(
             // refresh may be unavailable in some deployments
           }
 
-          ui.message.loading({ content: '正在插入示例数据...', key: messageKey, duration: 0 });
-
+          const skipSampleData = options?.skipSampleData ?? skipSampleDataRef.current;
+          const totalSampleCount = sampleBatches.reduce((sum, b) => sum + b.records.length, 0);
+          let sampleInserted = 0;
           const idMap: Record<string, Record<string, number>> = {};
 
+          if (!skipSampleData) {
           for (const batch of sampleBatches) {
             if (!idMap[batch.collection]) idMap[batch.collection] = {};
+            let batchFailed = 0;
 
             for (const record of batch.records) {
               currentStep = `insertSample:${batch.collection}`;
+              ui.message.loading({
+                content: msg('Inserting sample data... {{current}}/{{total}}', {
+                  current: sampleInserted + 1,
+                  total: totalSampleCount,
+                }),
+                key: messageKey,
+                duration: 0,
+              });
               const cleanRecord: Record<string, any> = {};
               for (const [k, v] of Object.entries(record)) {
                 if (isRef(v)) {
@@ -1922,7 +2342,19 @@ export async function installTemplate(
                     const matchKey = Object.keys(v.__match)[0];
                     const matchVal = v.__match[matchKey];
                     const refId = refMap[`${matchKey}:${matchVal}`];
-                    if (refId) cleanRecord[k] = refId;
+                    if (refId) {
+                      cleanRecord[k] = refId;
+                    } else {
+                      unresolvedRefs.push({
+                        collection: batch.collection,
+                        ref: `${v.__ref}.${matchKey}=${matchVal}`,
+                      });
+                    }
+                  } else {
+                    unresolvedRefs.push({
+                      collection: batch.collection,
+                      ref: `${v.__ref} (batch order?)`,
+                    });
                   }
                 } else {
                   cleanRecord[k] = v;
@@ -1940,38 +2372,52 @@ export async function installTemplate(
                   },
                   { maxAttempts: 8, initialDelayMs: 700 },
                 );
-                const createdId = res?.data?.data?.id;
+                const createdId = res?.data?.data?.id ?? res?.data?.id;
                 if (createdId) {
+                  sampleInserted += 1;
                   for (const [k, v] of Object.entries(record)) {
                     if (typeof v === 'string' || typeof v === 'number') {
                       idMap[batch.collection][`${k}:${v}`] = createdId;
                     }
                   }
+                } else {
+                  batchFailed += 1;
                 }
               } catch (e) {
+                batchFailed += 1;
                 console.warn(`Failed to insert ${batch.collection} record:`, e);
               }
             }
+            if (batchFailed > 0) {
+              sampleFailed.push({ collection: batch.collection, count: batchFailed });
+            }
+          }
           }
 
-          let missingWorkflows: string[] = [];
           if (tpl.workflows.length > 0) {
-            ui.message.loading({ content: '正在创建工作流...', key: messageKey, duration: 0 });
+            ui.message.loading({ content: msg('Creating workflows...'), key: messageKey, duration: 0 });
 
             const toNumericId = (value: any): number | null => {
+              if (value == null || value === '') return null;
               const num = Number(value);
               return Number.isFinite(num) && num > 0 ? num : null;
             };
 
             const extractCreatedId = (res: any): number | null => {
-              const payload = res?.data?.data;
+              const body = res?.data;
+              const payload = body?.data ?? body;
               if (Array.isArray(payload)) {
                 return toNumericId(payload[0]?.id);
               }
               return toNumericId(payload?.id);
             };
 
-            const createWorkflowWithCompat = async (wf: (typeof tpl.workflows)[number]): Promise<number> => {
+            const mainAppHeaders: Record<string, string> = { ...authHeaders };
+            if (mainAppHeaders['X-App']) delete mainAppHeaders['X-App'];
+            const workflowHeadersToTry: Record<string, string>[] =
+              authHeaders['X-App'] ? [mainAppHeaders, authHeaders] : [authHeaders];
+
+            const createWorkflowWithCompat = async (wf: (typeof tpl.workflows)[number]): Promise<number | null> => {
               const workflowValues = {
                 title: wf.title,
                 description: wf.description,
@@ -1980,35 +2426,38 @@ export async function installTemplate(
                 config: wf.triggerConfig,
               };
               const attemptPayloads = [
+                { label: 'direct', data: workflowValues },
                 { label: 'values', data: { values: workflowValues } },
-                { label: 'legacy', data: workflowValues },
               ];
               let lastError: any;
 
-              for (const attempt of attemptPayloads) {
-                try {
-                  currentStep = `createWorkflow:${wf.title}:${attempt.label}`;
-                  const wfRes = await requestWithRetry(
-                    api,
-                    {
-                      url: 'workflows:create',
-                      method: 'post',
-                      headers: authHeaders,
-                      data: attempt.data,
-                    },
-                    { maxAttempts: 3, initialDelayMs: 700 },
-                  );
-                  const workflowId = extractCreatedId(wfRes);
-                  if (workflowId) {
-                    return workflowId;
+              for (const headers of workflowHeadersToTry) {
+                for (const attempt of attemptPayloads) {
+                  try {
+                    currentStep = `createWorkflow:${wf.title}:${attempt.label}`;
+                    const wfRes = await requestWithRetry(
+                      api,
+                      {
+                        url: 'workflows:create',
+                        method: 'post',
+                        headers,
+                        data: attempt.data,
+                      },
+                      { maxAttempts: 3, initialDelayMs: 700 },
+                    );
+                    const workflowId = extractCreatedId(wfRes);
+                    if (workflowId) {
+                      return workflowId;
+                    }
+                    lastError = new Error(`empty workflow id (${attempt.label})`);
+                  } catch (err) {
+                    lastError = err;
                   }
-                  lastError = new Error(`empty workflow id (${attempt.label})`);
-                } catch (err) {
-                  lastError = err;
                 }
               }
 
-              throw new Error(`Failed to create workflow "${wf.title}": ${getAxiosErrorMessage(lastError)}`);
+              console.warn(`Workflow "${wf.title}" creation failed:`, getAxiosErrorMessage(lastError));
+              return null;
             };
 
             const createWorkflowNodeWithCompat = async (
@@ -2016,7 +2465,7 @@ export async function installTemplate(
               wfTitle: string,
               node: (typeof tpl.workflows)[number]['nodes'][number],
               upstreamId: number | null,
-            ): Promise<number> => {
+            ): Promise<number | null> => {
               const nodeValues = {
                 title: node.title,
                 type: node.type,
@@ -2024,37 +2473,38 @@ export async function installTemplate(
                 config: node.config,
               };
               const attemptPayloads = [
+                { label: 'direct', data: nodeValues },
                 { label: 'values', data: { values: nodeValues } },
-                { label: 'legacy', data: nodeValues },
               ];
               let lastError: any;
 
-              for (const attempt of attemptPayloads) {
-                try {
-                  currentStep = `createWorkflowNode:${wfTitle}:${node.title}:${attempt.label}`;
-                  const nodeRes = await requestWithRetry(
-                    api,
-                    {
-                      url: `workflows/${workflowId}/nodes:create`,
-                      method: 'post',
-                      headers: authHeaders,
-                      data: attempt.data,
-                    },
-                    { maxAttempts: 3, initialDelayMs: 700 },
-                  );
-                  const nodeId = extractCreatedId(nodeRes);
-                  if (nodeId) {
-                    return nodeId;
+              for (const headers of workflowHeadersToTry) {
+                for (const attempt of attemptPayloads) {
+                  try {
+                    currentStep = `createWorkflowNode:${wfTitle}:${node.title}:${attempt.label}`;
+                    const nodeRes = await requestWithRetry(
+                      api,
+                      {
+                        url: `workflows/${workflowId}/nodes:create`,
+                        method: 'post',
+                        headers,
+                        data: attempt.data,
+                      },
+                      { maxAttempts: 3, initialDelayMs: 700 },
+                    );
+                    const nodeId = extractCreatedId(nodeRes);
+                    if (nodeId) {
+                      return nodeId;
+                    }
+                    lastError = new Error(`empty workflow node id (${attempt.label})`);
+                  } catch (err) {
+                    lastError = err;
                   }
-                  lastError = new Error(`empty workflow node id (${attempt.label})`);
-                } catch (err) {
-                  lastError = err;
                 }
               }
 
-              throw new Error(
-                `Failed to create workflow node "${wfTitle}:${node.title}": ${getAxiosErrorMessage(lastError)}`,
-              );
+              console.warn(`Workflow node "${wfTitle}:${node.title}" creation failed:`, getAxiosErrorMessage(lastError));
+              return null;
             };
 
             const countWorkflowNodes = async (workflowId: number): Promise<number | null> => {
@@ -2078,40 +2528,45 @@ export async function installTemplate(
 
             for (const wf of tpl.workflows) {
               const workflowId = await createWorkflowWithCompat(wf);
-              if (wf.nodes.length > 0) {
+              if (workflowId != null && wf.nodes.length > 0) {
                 let upstreamId: number | null = null;
                 for (const node of wf.nodes) {
-                  upstreamId = await createWorkflowNodeWithCompat(workflowId, wf.title, node, upstreamId);
+                  const nodeId = await createWorkflowNodeWithCompat(workflowId, wf.title, node, upstreamId);
+                  upstreamId = nodeId ?? upstreamId;
                 }
-                const nodeCount = await countWorkflowNodes(workflowId);
-                if (nodeCount !== null && nodeCount < wf.nodes.length) {
-                  throw new Error(
-                    `Workflow "${wf.title}" has ${nodeCount} nodes, expected at least ${wf.nodes.length}`,
-                  );
-                }
+              }
+              if (workflowId == null) {
+                missingWorkflows.push(wf.title);
               }
             }
 
             currentStep = 'validateWorkflows';
-            const workflowListRes = await requestWithRetry(
-              api,
-              {
-                url: 'workflows:list',
-                method: 'get',
-                headers: authHeaders,
-                params: { paginate: false },
-              },
-              { maxAttempts: 2, initialDelayMs: 600 },
-            );
-            const workflowRows = normalizeListRows(workflowListRes);
-            const existingWorkflowTitles = new Set(
-              workflowRows.map((row: any) => String(row?.title || '').trim()).filter(Boolean),
-            );
-            missingWorkflows = tpl.workflows
-              .map((wf) => String(wf?.title || '').trim())
-              .filter((title) => !!title && !existingWorkflowTitles.has(title));
-            if (missingWorkflows.length > 0) {
-              throw new Error(`Missing workflows after installation: ${missingWorkflows.join(', ')}`);
+            let workflowListRes: any;
+            for (const headers of workflowHeadersToTry) {
+              try {
+                workflowListRes = await requestWithRetry(
+                  api,
+                  {
+                    url: 'workflows:list',
+                    method: 'get',
+                    headers,
+                    params: { paginate: false },
+                  },
+                  { maxAttempts: 2, initialDelayMs: 600 },
+                );
+                break;
+              } catch {
+                workflowListRes = null;
+              }
+            }
+            if (workflowListRes) {
+              const workflowRows = normalizeListRows(workflowListRes);
+              const existingWorkflowTitles = new Set(
+                workflowRows.map((row: any) => String(row?.title || '').trim()).filter(Boolean),
+              );
+              missingWorkflows = tpl.workflows
+                .map((wf) => String(wf?.title || '').trim())
+                .filter((title) => !!title && !existingWorkflowTitles.has(title));
             }
           }
 
@@ -2161,12 +2616,42 @@ export async function installTemplate(
             // refresh may be unavailable in some deployments
           }
 
-          ui.message.success({ content: `模板 "${tpl.title}" 安装完成！`, key: messageKey });
+          const successParts: string[] = [];
+          if (missingWorkflows.length > 0) {
+            successParts.push(msg('{{count}} workflow(s) could not be created', { count: missingWorkflows.length }));
+          }
+          if (sampleFailed.length > 0) {
+            const failedCount = sampleFailed.reduce((s, x) => s + x.count, 0);
+            successParts.push(msg('{{count}} sample record(s) failed', { count: failedCount }));
+          }
+          if (unresolvedRefs.length > 0) {
+            successParts.push(msg('{{count}} reference(s) unresolved', { count: unresolvedRefs.length }));
+          }
+          const successContent =
+            successParts.length > 0
+              ? msg('Template "{{title}}" installed. {{issues}}', {
+                  title: displayTitle,
+                  issues: successParts.join('; '),
+                })
+              : msg('Template "{{title}}" installed successfully', { title: displayTitle });
+          ui.message.success({
+            content: successContent,
+            key: messageKey,
+          });
           resolve(true);
         } catch (err: any) {
-          notifyError({ step: currentStep, message: getAxiosErrorMessage(err) });
+          const errorMessage = getAxiosErrorMessage(err);
+          notifyError({ step: currentStep, message: errorMessage });
           console.error('Template installation failed:', err);
-          ui.message.error({ content: `安装失败: ${err?.message || '未知错误'}`, key: messageKey });
+          const stepLabel = msg(getStepLabelKey(currentStep));
+          ui.message.error({
+            content: msg('Installation failed at {{step}}: {{message}}', {
+              step: stepLabel,
+              message: errorMessage,
+            }),
+            key: messageKey,
+            duration: 8,
+          });
           resolve(false);
         }
       },
@@ -2187,13 +2672,38 @@ export async function installTemplate(
 export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => void }> = ({ appName, onInstalled }) => {
   const api = useAPIClient();
   const { modal, message } = App.useApp();
+  const { t } = useTranslation();
   const [installing, setInstalling] = useState(false);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .silent()
+      .request({
+        url: 'app:getInfo',
+        method: 'get',
+        headers: { 'X-App': appName },
+        skipNotify: true,
+      })
+      .then((res: any) => {
+        if (cancelled) return;
+        const v = res?.data?.data?.version ?? res?.data?.version ?? res?.version ?? '';
+        setAppVersion(v ? String(v) : null);
+      })
+      .catch(() => {
+        if (!cancelled) setAppVersion(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [api, appName]);
 
   const handleInstall = useCallback(
     async (templateKey: string) => {
       setInstalling(true);
       try {
-        const ok = await installTemplate(api, appName, templateKey, { modal, message });
+        const ok = await installTemplate(api, appName, templateKey, { modal, message }, { t });
         if (ok) {
           onInstalled?.();
         }
@@ -2201,55 +2711,120 @@ export const TemplateSelector: React.FC<{ appName: string; onInstalled?: () => v
         setInstalling(false);
       }
     },
-    [api, appName, message, modal, onInstalled],
+    [api, appName, message, modal, onInstalled, t],
   );
 
   return (
-    <Spin spinning={installing} tip="正在安装模板...">
+    <Spin spinning={installing} tip={t('Installing template...')}>
       <div style={{ padding: '24px 0' }}>
         <Title level={4} style={{ textAlign: 'center', marginBottom: 8 }}>
-          选择模板
+          {t('Select template')}
         </Title>
         <Paragraph type="secondary" style={{ textAlign: 'center', marginBottom: 24 }}>
-          为新应用选择一个模板，将自动创建数据表、页面、示例数据和工作流
+          {t('Select template for new app')}
         </Paragraph>
         <Row gutter={[16, 16]}>
-          {builtInTemplates.map((tpl) => (
-            <Col span={12} key={tpl.key}>
-              <Card
-                hoverable
-                onClick={() => handleInstall(tpl.key)}
-                style={{ borderColor: tpl.color, borderWidth: 2, height: '100%' }}
-                bodyStyle={{ padding: 16 }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontSize: 28, marginRight: 12 }}>{tpl.icon}</span>
-                  <div>
-                    <Text strong style={{ fontSize: 16 }}>
-                      {tpl.title}
-                    </Text>
-                    <br />
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      {tpl.collections.length}表 · {tpl.relations.length}关联
-                    </Text>
-                  </div>
-                </div>
-                <Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 8 }} ellipsis={{ rows: 2 }}>
-                  {tpl.description}
-                </Paragraph>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {tpl.highlights.slice(0, 8).map((h) => (
-                    <Tag key={h} color={tpl.color} style={{ fontSize: 11, margin: 0 }}>
-                      {h}
-                    </Tag>
-                  ))}
-                  {tpl.highlights.length > 8 && (
-                    <Tag style={{ fontSize: 11, margin: 0 }}>+{tpl.highlights.length - 8}</Tag>
-                  )}
-                </div>
-              </Card>
+          {builtInTemplates.length === 0 ? (
+            <Col span={24}>
+              <Paragraph type="secondary" style={{ textAlign: 'center', padding: 24 }}>
+                {t('No templates available')}
+              </Paragraph>
             </Col>
-          ))}
+          ) : (
+          builtInTemplates.map((tpl) => {
+            const i18n = TEMPLATE_I18N_KEYS[tpl.key];
+            const displayTitle = i18n ? t(i18n.title) : tpl.title;
+            const displayDesc = i18n ? t(i18n.description) : tpl.description;
+            const versionIncompatible =
+              tpl.minNocoBaseVersion &&
+              appVersion != null &&
+              !isVersionGte(appVersion, tpl.minNocoBaseVersion);
+            const disabled = installing || versionIncompatible;
+            const versionTooltip = versionIncompatible
+              ? t('Template requires NocoBase {{version}} or higher', {
+                  version: tpl.minNocoBaseVersion,
+                })
+              : null;
+
+            const cardContent = (
+              <div
+                role="button"
+                tabIndex={disabled ? -1 : 0}
+                aria-disabled={disabled}
+                aria-label={displayTitle}
+                onClick={() => !disabled && handleInstall(tpl.key)}
+                onKeyDown={(e) => {
+                  if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    handleInstall(tpl.key);
+                  }
+                }}
+                style={{
+                  height: '100%',
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  opacity: disabled ? 0.7 : 1,
+                }}
+              >
+                <Card
+                  hoverable={!disabled}
+                  style={{
+                    borderColor: tpl.color,
+                    borderWidth: 2,
+                    height: '100%',
+                    pointerEvents: 'none',
+                  }}
+                  bodyStyle={{ padding: 16 }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontSize: 28, marginRight: 12 }}>{tpl.icon}</span>
+                    <div style={{ flex: 1 }}>
+                      <Text strong style={{ fontSize: 16 }}>
+                        {displayTitle}
+                      </Text>
+                      <br />
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {t('Template stats', {
+                          collections: tpl.collections.length,
+                          relations: tpl.relations.length,
+                        })}
+                      </Text>
+                    </div>
+                    {tpl.minNocoBaseVersion && (
+                      <Tag style={{ fontSize: 10, margin: 0 }}>
+                        ≥{tpl.minNocoBaseVersion}
+                      </Tag>
+                    )}
+                  </div>
+                  <Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 8 }} ellipsis={{ rows: 2 }}>
+                    {displayDesc}
+                  </Paragraph>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {tpl.highlights.slice(0, 8).map((h) => (
+                      <Tag key={h} color={tpl.color} style={{ fontSize: 11, margin: 0 }}>
+                        {HIGHLIGHT_I18N_KEYS[h] ? t(HIGHLIGHT_I18N_KEYS[h]) : h}
+                      </Tag>
+                    ))}
+                    {tpl.highlights.length > 8 && (
+                      <Tag style={{ fontSize: 11, margin: 0 }}>+{tpl.highlights.length - 8}</Tag>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            );
+
+            return (
+              <Col span={12} key={tpl.key}>
+                {versionTooltip ? (
+                  <Tooltip title={versionTooltip} placement="top">
+                    {cardContent}
+                  </Tooltip>
+                ) : (
+                  cardContent
+                )}
+              </Col>
+            );
+          })
+          )}
         </Row>
       </div>
     </Spin>

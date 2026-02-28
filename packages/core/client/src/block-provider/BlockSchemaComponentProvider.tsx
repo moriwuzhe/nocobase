@@ -44,6 +44,7 @@ import { useFormItemProps } from '../modules/blocks/filter-blocks/form/hooks/use
 import { SchemaComponentOptions } from '../schema-component';
 import { RecordLink, useParamsFromRecord, useSourceIdFromParentRecord, useSourceIdFromRecord } from './BlockProvider';
 import { DetailsBlockProvider, useDetailsBlockProps } from './DetailsBlockProvider';
+import { PopupRecordProvider } from '../modules/variable/variablesProvider/PopupRecordProvider';
 import { FilterFormBlockProvider } from './FilterFormBlockProvider';
 import { FormBlockProvider, useFormBlockProps } from './FormBlockProvider';
 import { FormFieldProvider, useFormFieldProps } from './FormFieldProvider';
@@ -65,6 +66,7 @@ export const BlockSchemaComponentProvider: React.FC = (props) => {
         FormFieldProvider,
         DetailsBlockProvider,
         RecordLink,
+        PopupRecordProvider,
         Slider,
       }}
       scope={{
@@ -122,6 +124,7 @@ export class BlockSchemaComponentPlugin extends Plugin {
       FormFieldProvider,
       DetailsBlockProvider,
       RecordLink,
+      PopupRecordProvider,
       BlockSchemaToolbar,
       ActionSchemaToolbar,
       FormItemSchemaToolbar,
